@@ -1,0 +1,293 @@
+*{
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: #f6fffa;;
+  
+}
+
+input::placeholder {
+  text-align: left;
+}
+.hero {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* background: url("{% static 'images/1.jpg' %}") no-repeat center center;
+  background-size: cover; */
+  filter: blur(3px); 
+  z-index: -1;
+}
+
+.transparent-navbar {
+  background-color: transparent;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.blur-navbar {
+  background: rgba(255, 255, 255, 0.1); /* Transparent */
+  backdrop-filter: blur(8px); /* Blur effect*/
+  -webkit-backdrop-filter: blur(10px); /* Safari support */
+
+}
+
+
+.navbar.scrolled {
+  background-color: #044F44 !important; 
+  padding: 0.5rem 0; 
+}
+
+.navbar.scrolled .nav-link {
+  color: rgb(255, 255, 255) !important; /
+}
+
+/* .navbar.scrolled .navbar-brand {
+  color: black !important;
+} */
+
+.navbar .nav-link {
+  color: white !important;
+  font-weight: 500;
+}
+
+.navbar .nav-link.active {
+  border-bottom: 2px solid white;
+}
+
+.log{
+    text-decoration: none;
+}
+
+.side-numbers {
+  font-size: 1rem;
+  line-height: 2rem;
+  text-align: right;
+}
+
+.btn-success {
+  background-color: #1c5c4e;
+  border: none;
+}
+
+.btn-success:hover {
+  background-color: #174d42;
+}
+
+.card {
+  min-height: 350px;
+}
+
+.card-title {
+  font-weight: 600;
+}
+
+.card-text {
+  color: #234449;
+  font-weight: 500;
+}
+
+footer {
+    font-family: 'Pacifico', cursive;
+  
+  font-size: 1rem;
+}
+.bg-dark-green {
+  background-color: #044F44; 
+}
+
+.footer-link  {
+  color: white;
+  text-decoration: none;
+}
+
+.footer-link:hover {
+  color: #cccccc;
+  text-decoration: underline;
+}
+.footer div h6 {
+  color: #6E6E6A;
+}
+#footer-contact{
+    color: white;
+}
+.custom-navbar {
+  transition: transform 0.3s ease;
+}
+
+.navbar-hidden {
+  transform: translateY(-100%);
+}
+
+.about-section {
+  background-color: #f6fffa; /* light green tint */
+}
+
+.about-section h2 {
+  font-size: 2rem;
+}
+
+.about-section p {
+  margin-bottom: 1rem;
+}
+.shipping-section {
+  background-color: #f3d6cf; /* Light peach background */
+}
+
+.shipping-section h2 {
+  color: #7a5c58;
+}
+
+.shipping-section i {
+  color: #7a5c58;
+}
+
+
+/* user-login  */
+
+.login-section {
+  background-color: white;
+}
+
+.btn-success {
+  background-color: #054f44; /* Match navbar green */
+  border: none;
+}
+
+.btn-success:hover {
+  background-color: #043d35;
+}
+
+.login-section p a {
+    color: #004F44;
+  text-decoration: none;
+}
+
+
+/* user-Register  */
+
+.register-section {
+  background-color: white;
+}
+
+.btn-success {
+  background-color: #054f44; /* Navbar green */
+  border: none;
+}
+
+.btn-success:hover {
+  background-color: #043d35;
+}
+
+.register-section p a{
+    color: #004F44;
+  text-decoration: none;
+}
+
+/* user-Register-OTP  */
+
+.otp-box {
+  border: 2px solid #004F44;
+  border-radius: 15px;
+  max-width: 500px;
+  background-color: white;
+}
+
+.otp-input {
+  width: 50px;
+  height: 50px;
+  font-size: 1.5rem;
+  text-align: center;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+.otp-input:focus {
+  border-color: #004F44;
+  outline: none;
+}
+
+.btn-success {
+  background-color: #054f44;
+  border: none;
+}
+
+.btn-success:hover {
+  background-color: #043d35;
+}
+
+.reset-box {
+    max-width: 500px;
+    margin: 50px auto;
+    padding: 30px;
+    border: 2px solid #006b56;
+    border-radius: 15px;
+    text-align: center;
+}
+
+.reset-box h3 {
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+    letter-spacing: 2px;
+}
+
+.form-control {
+    background-color: #d9d9d9;
+    border: none;
+    border-radius: 10px;
+    height: 45px;
+    text-align: left;
+}
+
+.btn-submit {
+    background-color: #006b56;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 25px;
+}
+
+.btn-submit:hover {
+    background-color: #004d3d;
+}
+
+/* product-details-section */
+.price-old {
+
+    text-decoration: line-through;
+    color: gray;
+    font-size: 14px;
+}
+.price-new {
+    color: #044F44;
+    font-weight: bold;
+    font-size: 24px;
+}
+.discount {
+    color: green;
+    font-size: 14px;
+}
+.product-details ul {
+    list-style: none;
+    padding: 0;
+}
+.product-details ul li::before {
+    content: "✔";
+    color: green;
+    margin-right: 8px;
+}
