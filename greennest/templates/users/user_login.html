@@ -3,7 +3,7 @@
 
 {% block user_login %}
   
-
+{% load socialaccount %}
     <!-- user-login-section -->
 
     <section class="login-section py-4">
@@ -43,7 +43,7 @@
                                  <span class="input-group-text" id="toggleLoginPassword" style="cursor: pointer;">
                                     <i class="bi bi-eye" id="loginPasswordIcon"></i></span>
                             </div>
-                            <a href="#" class="small text-muted d-block mt-1">Forget Password?</a>
+                            <a href="{% url "forget_password" %}" class="small text-muted d-block mt-1">Forget Password?</a>
                         </div>
 
                         <!-- Login Button -->
@@ -54,8 +54,10 @@
 
                         <!-- Google Button -->
                         <button type="button" class="btn btn-light w-100 border">
+                            <a href="{% provider_login_url 'google' %}" >
                             <img src="{% static "images/Google__G__logo.png" %}" width="20" class="me-2">
                             Continue with Google
+                            </a>
                         </button>
 
                         <!-- Signup Link -->

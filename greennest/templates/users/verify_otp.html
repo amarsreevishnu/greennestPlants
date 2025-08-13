@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block user_signup_verify_otp %}
+<!-- user-signup-verify-otp-section -->
+<section class="otp-section py-5">
+    <form action="" method="post" class="otp-form">
+        {% csrf_token %}
+        <div class="container">
+            <div class="otp-box mx-auto p-4 text-center">
+                <h4 class="mb-4">Verify Your OTP</h4>
+
+                <!-- OTP Inputs -->
+                <div class="d-flex justify-content-center mb-3">
+                    <input type="text" maxlength="1" class="otp-input mx-1" required name="otp1">
+                    <input type="text" maxlength="1" class="otp-input mx-1" required name="otp2">
+                    <input type="text" maxlength="1" class="otp-input mx-1" required name="otp3">
+                    <input type="text" maxlength="1" class="otp-input mx-1" required name="otp4">
+                </div>
+
+                 <input type="hidden" name="otp" id="otpValue">
+                <!-- Resend Link & Timer -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <small>
+                        Didn’t get the OTP?
+                        <a href="#" class="fw-bold" style="color: #004F44;" id="resendOtpBtn">Resend OTP</a>
+                    </small>
+                    <small id="timer" id="timerText">00:56</small>
+                </div>
+
+                <!-- Submit Button -->
+                <button class="btn btn-success px-5">Submit</button>
+            </div>
+        </div>
+    </form>   
+    </section>
+
+
+    <script>
+  let timeLeft = 60; // seconds
+  const timerEl = document.getElementById('timer');
+  const countdownEl = document.getElementById('countdown');
+  const resendSectionEl = document.getElementById('resendSection');
+  const resendBtn = document.getElementById('resendOtpBtn');
+
+  function updateTimer() {
+    let minutes = Math.floor(timeLeft / 60);
+    let seconds = timeLeft % 60;
+    timerEl.textContent = 
+      `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      countdownEl.classList.add('hidden');
+      resendSectionEl.classList.remove('hidden');
+    }
+    timeLeft--;
+  }
+
+  // Start countdown immediately
+  updateTimer();
+  let timerInterval = setInterval(updateTimer, 1000);
+
+  // Handle resend click (AJAX to Django)
+  resendBtn.addEventListener("click", function() {
+    fetch("{% url 'resend_otp_ajax' %}", {
+        method: "POST",
+        headers: {
+            "X-Requested-With": "XMLHttpRequest",
+            "X-CSRFToken": "{{ csrf_token }}"
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.remaining) {
+            timeLeft = data.remaining;
+            resendSectionEl.classList.add('hidden');
+            countdownEl.classList.remove('hidden');
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+    });
+  });
+</script>
+
+
+{% endblock user_signup_verify_otp %}
+
+
+
+
+
+
+
+

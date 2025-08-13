@@ -42,8 +42,8 @@ input::placeholder {
 
 .blur-navbar {
   background: rgba(255, 255, 255, 0.1); /* Transparent */
-  backdrop-filter: blur(8px); /* Blur effect*/
-  -webkit-backdrop-filter: blur(10px); /* Safari support */
+  backdrop-filter: blur(8px); 
+  -webkit-backdrop-filter: blur(10px); 
 
 }
 
@@ -57,9 +57,6 @@ input::placeholder {
   color: rgb(255, 255, 255) !important; /
 }
 
-/* .navbar.scrolled .navbar-brand {
-  color: black !important;
-} */
 
 .navbar .nav-link {
   color: white !important;
@@ -174,7 +171,11 @@ footer {
 }
 
 .login-section p a {
-    color: #004F44;
+  color: #004F44;
+  text-decoration: none;
+}
+.login-section button a {
+  color: #004F44;
   text-decoration: none;
 }
 
@@ -195,7 +196,11 @@ footer {
 }
 
 .register-section p a{
-    color: #004F44;
+  color: #004F44;
+  text-decoration: none;
+}
+.register-section button a{
+  color: #004F44;
   text-decoration: none;
 }
 
@@ -291,3 +296,5 @@ footer {
     color: green;
     margin-right: 8px;
 }
+
+

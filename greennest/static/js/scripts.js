@@ -52,3 +52,4 @@ setupPasswordToggle("confirmPassword", "toggleConfirmPassword", "confirmPassword
 
 // Login page
 setupPasswordToggle("loginPassword", "toggleLoginPassword", "loginPasswordIcon");
+

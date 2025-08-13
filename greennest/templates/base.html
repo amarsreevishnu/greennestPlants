@@ -1,4 +1,5 @@
 {% load static %}
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -46,7 +47,7 @@
             </li>
             <li class="nav-item"><a class="nav-link" href="#">Products</a></li>
             <li class="nav-item">
-              <a class="nav-link" href="#">Contact Us</a>
+              <a class="nav-link" href="#footer">Contact Us</a>
             </li>
 
             <li class="nav-item">
@@ -98,12 +99,22 @@
     <!-- user-signup-verify-otp-section -->
     {% endblock user_signup_verify_otp %}
 
+    {% block user_forget_Password %}
+    <!-- user-reset-password-section -->  
+    {% endblock user_forget_Password %}
+
+    {% block user_reset_password %} 
+    <!-- user-reset-password-section -->
+    {% endblock user_reset_password %}
+
+    
+
 
 
 
 
     <!-- Footer -->
-    <footer class="footer bg-dark-green pt-5">
+    <footer class="footer bg-dark-green pt-5" id="footer">
       <div class="container">
         <div class="row text-center text-md-start">
           <!-- SHOP -->
