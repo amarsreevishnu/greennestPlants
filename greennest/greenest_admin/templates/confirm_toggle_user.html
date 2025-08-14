@@ -1,0 +1,12 @@
+{% extends 'admin/base.html' %}
+
+{% block content %}
+<h3>Are you sure you want to 
+    {% if user.is_active %}block{% else %}unblock{% endif %} user "{{ user.username }}"?</h3>
+
+<form method="post">
+    {% csrf_token %}
+    <button type="submit">Yes, Confirm</button>
+    <a href="{% url 'admin-user-list' %}">Cancel</a>
+</form>
+{% endblock %}

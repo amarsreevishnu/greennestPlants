@@ -1,0 +1,345 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GreenNest Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Bootstrap 5 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <style>
+    body {
+      background: #f6f9f6;
+    }
+    .sidebar {
+      background: #004F44;
+      min-height: 100vh;
+      color: #fff;
+      padding-top: 32px;
+      padding-left: 0;
+      padding-right: 0;
+    }
+    .sidebar .logo {
+      font-family: 'Georgia', serif;
+      font-size: 1.4rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      margin-bottom: 18px;
+      padding-left: 22px;
+    }
+    .sidebar .nav-link {
+      color: #fff !important;
+      padding-left: 22px;
+      font-weight: 500;
+      font-size: 1.04rem;
+      margin-bottom: 9px;
+      display: flex;
+      align-items: center;
+    }
+    .sidebar .nav-link.active, .sidebar .nav-link:hover {
+      background: rgba(255,255,255,0.08);
+      border-left: 4px solid #aea327;
+      color: #ffffff !important;
+    }
+    .sidebar .bi {
+      margin-right: 10px;
+      font-size: 1.2rem;
+    }
+    .main-section {
+      background: #fff;
+      border-radius: 0 14px 14px 0;
+      min-height: 100vh;
+      padding: 28px 32px 12px 32px;
+    }
+    .search-box {
+      max-width: 300px;
+      margin-right: 18px;
+    }
+    .dashboard-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      margin-bottom: 16px;
+    }
+    .profile-area {
+      display: flex;
+      align-items: center;
+      /* gap: 12px; */
+      margin-right: 0;
+    }
+    .profile-area img {
+      width: 36px; height:36px;
+      border-radius:50%;
+      object-fit:cover;
+      border: 2px solid #27ae60;
+      margin-right:7px;
+    }
+    .card-box {
+      background: #f7faf8;
+      border-radius: 11px;
+      padding: 18px 24px 17px 18px;
+      margin-right: 18px;
+    }
+    .card-title {
+      font-size: 0.98rem;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    .card-val {
+      font-size: 1.3rem;
+      color: #104733;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    /* Orders progress bar */
+    .progress-bar-orders {
+      height: 7px;
+      border-radius: 4px;
+      background: #e6f6e9;
+    }
+    .progress-bar-orders .progress-bar {
+      background: #104733;
+    }
+    /* Best Selling Card */
+    .best-selling-box {
+      background: #f7faf8;
+      border-radius: 11px;
+      padding: 15px 24px 22px 18px;
+      margin-top:30px;
+      margin-bottom:18px;
+      height: 100%;
+    }
+    .best-selling-pie {
+      width: 105px;
+      height: 105px;
+      background: conic-gradient(#27ae60 0% 35%, #c2ead2 35% 100%);
+      border-radius: 50%;
+      margin-top: 9px;
+      margin-bottom:10px;
+      border: 8px solid #e9f6ee;
+      display:inline-block;
+    }
+    .recent-orders-box {
+      background: #f7faf8;
+      border-radius: 11px;
+      padding: 18px 16px 12px 18px;
+      margin-top:30px;
+      min-height:225px;
+      margin-bottom:18px;
+    }
+    .recent-orders-box table thead {
+      font-size: 0.98rem;
+      color: #888;
+    }
+    .recent-orders-box table tbody td {
+      font-size: 1rem;
+      color: #333;
+      vertical-align: middle;
+      padding: 7px 2px;
+    }
+    .status-processing {
+      color: #f39c12;
+      font-weight: 500;
+      border-radius: 6px;
+      background: rgba(243, 156, 18, 0.09);
+      padding: 1px 8px;
+    }
+    .status-completed {
+      background: rgba(46, 204, 113, 0.08);
+      color: #27ae60;
+      font-weight: 500;
+      border-radius: 6px;
+      padding: 1px 8px;
+    }
+    @media (max-width: 990px) {
+      .main-section {padding: 20px 8px 8px 8px;}
+      .sidebar .nav-link {padding-left:18px;}
+      .sidebar {min-height:auto;}
+    }
+    @media (max-width: 768px) {
+      .dashboard-header {flex-direction:column-reverse;align-items:flex-start;padding-bottom:12px;}
+      .dashboard-header .search-box {margin-bottom:10px;}
+      .main-section {padding: 12px 4px 6px 4px;}
+      .sidebar {min-height:auto;}
+    }
+    @media (max-width: 576px) {
+      .main-section {padding: 5px 1px 3px 1px;}
+      .sidebar {padding-top:15px;}
+    }
+  </style>
+</head>
+<body>
+<div class="container-fluid px-0">
+  <div class="row gx-0">
+    <!-- Sidebar -->
+    <nav class="col-xl-2 col-lg-3 col-md-3 sidebar d-flex flex-column py-3">
+      <div class="logo mb-4 mt-0">
+        <img src="{% static "images/GreenNest-Logo(white).png" %}" alt="logo" style="vertical-align:middle; width: 150px;">
+      </div>
+      <div class="nav flex-column">
+        <a class="nav-link active" href="#"><i class="bi bi-grid-1x2-fill"></i>Dashboard</a>
+        <a class="nav-link" href="#"><i class="bi bi-bag-check"></i>Products</a>
+        <a class="nav-link" href="#"><i class="bi bi-person-lines-fill"></i>Customers</a>
+        <a class="nav-link" href="#"><i class="bi bi-cart-check"></i>Orders</a>
+        <a class="nav-link" href="#"><i class="bi bi-ticket"></i>Coupons</a>
+        <a class="nav-link" href="#"><i class="bi bi-tags"></i>Category</a>
+        <a class="nav-link" href="#"><i class="bi bi-gift"></i>Offers</a>
+        <a class="nav-link" href="#"><i class="bi bi-image"></i>Banner</a>
+        <a class="nav-link" href="#"><i class="bi bi-bar-chart"></i>Sales Report</a>
+        <a class="nav-link" href="#"><i class="bi bi-box-arrow-right"></i>Logout</a>
+      </div>
+    </nav>
+    <!-- Main Section -->
+    <main class="col-xl-10 col-lg-9 col-md-9 main-section">
+      <!-- Top header -->
+      <div class="dashboard-header ">
+        <div>
+          <h2 style="font-weight:600;">Dashboard</h2>
+          <span style="font-size:0.96rem;color:#888;">Admin &nbsp;&gt; Dashboard</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center gap-4">
+          <input type="search" class="form-control search-box" placeholder="Search product...">
+          <div class="profile-area">
+            <img src="https://via.placeholder.com/40x40?text=U" alt="user">
+            <div>
+              <div style="font-weight:500;">Vishnuraj R</div>
+              <div style="font-size:0.97rem;color:#0c583e;">Admin</div>
+            </div>
+            <span style="font-size:1.5rem;"><i class="bi bi-bell"></i></span>
+          </div>
+        </div>
+      </div>
+      <!-- Statistic cards row -->
+      <div class="row g-3">
+        <div class="col-md-4 col-12">
+          <div class="card-box">
+            <div class="card-title">Total Sales <span style="float:right;color:#85ba99;font-size:0.99rem;">(This Month)</span></div>
+            <div class="card-val">&#8377; 4,235</div>
+            <!-- Demo bar chart -->
+            <div style="height:44px;">
+              <svg width="100%" height="44">
+                <!-- Replace with real chart library for actual data -->
+                <rect x="7" y="20" width="5" height="20" fill="#27ae60"/>
+                <rect x="15" y="30" width="5" height="10" fill="#27ae60"/>
+                <rect x="23" y="27" width="5" height="13" fill="#27ae60"/>
+                <rect x="31" y="21" width="5" height="19" fill="#27ae60"/>
+                <rect x="39" y="15" width="5" height="25" fill="#27ae60"/>
+                <rect x="47" y="18" width="5" height="22" fill="#27ae60"/>
+                <rect x="55" y="26" width="5" height="14" fill="#27ae60"/>
+                <rect x="63" y="24" width="5" height="16" fill="#27ae60"/>
+                <rect x="71" y="32" width="5" height="8" fill="#27ae60"/>
+                <rect x="79" y="28" width="5" height="12" fill="#27ae60"/>
+                <rect x="87" y="19" width="5" height="21" fill="#27ae60"/>
+                <rect x="95" y="34" width="5" height="6" fill="#27ae60"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 col-12">
+          <div class="card-box">
+            <div class="card-title">Customers <span style="float:right;color:#85ba99;font-size:0.99rem;">(This Month)</span></div>
+            <div class="card-val">2,571</div>
+            <!-- Demo line chart -->
+            <div style="height:44px;">
+              <svg width="100%" height="44">
+                <polyline points="7,40 20,22 37,30 55,17 72,23 90,31 110,13" style="fill:none;stroke:#27ae60;stroke-width:3"/>
+                <circle cx="7" cy="40" r="2" fill="#27ae60"/>
+                <circle cx="20" cy="22" r="2" fill="#27ae60"/>
+                <circle cx="37" cy="30" r="2" fill="#27ae60"/>
+                <circle cx="55" cy="17" r="2" fill="#27ae60"/>
+                <circle cx="72" cy="23" r="2" fill="#27ae60"/>
+                <circle cx="90" cy="31" r="2" fill="#27ae60"/>
+                <circle cx="110" cy="13" r="2" fill="#27ae60"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 col-12">
+          <div class="card-box">
+            <div class="card-title">Orders <span style="float:right;color:#888;font-size:0.99rem;">Monthly Goal: 1,000</span></div>
+            <div class="card-val">734</div>
+            <div class="progress progress-bar-orders mt-2">
+              <div class="progress-bar" style="width: 73.4%;"></div>
+            </div>
+            <span style="font-size:0.97rem;color:#888;">266 left</span>
+          </div>
+        </div>
+      </div>
+      <!-- Best Selling and Recent Orders -->
+      <div class="row g-4">
+        <div class="col-lg-4 col-md-6">
+          <div class="best-selling-box">
+            <div style="font-size:1.07rem;font-weight:600;">Best Selling <span style="color:#888;font-size:0.99rem;">(This Month)</span></div>
+            <div style="font-size:1.2rem;font-weight:700;color:#104733;">&#8377; 2,400</div>
+            <div class="mb-2 mt-1" style="font-size:0.98rem;">
+              <span style="background:#d4ecdb;border-radius:8px;padding:2px 7px;margin-right:7px;font-weight:500;">Classic Monochrome Tees</span>
+              <span style="color:#27ae60;">940 Sales</span><br>
+              <span style="background:#d4ecdb;border-radius:8px;padding:2px 7px;margin-right:7px;font-weight:500;">Monochromatic Wardrobe</span>
+              <span style="color:#27ae60;">720 Sales</span><br>
+              <span style="background:#d4ecdb;border-radius:8px;padding:2px 7px;margin-right:7px;font-weight:500;">Essential Neutrals</span>
+              <span style="color:#27ae60;">740 Sales</span>
+            </div>
+            <span class="best-selling-pie"></span>
+          </div>
+        </div>
+        <div class="col-lg-8 col-md-6">
+          <div class="recent-orders-box">
+            <div class="mb-3" style="font-size:1.07rem;font-weight:600;">Recent Orders &nbsp;
+              <a href="#" style="font-size:0.98rem;font-weight:400;color:#27ae60;text-decoration:none;">View All</a>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-borderless mb-0">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Date</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Haworthia Attenuata Succulent Plant</td>
+                    <td>20 Mar, 2023</td>
+                    <td>&#8377; 75.00</td>
+                    <td><span class="status-processing">Processing</span></td>
+                  </tr>
+                  <tr>
+                    <td>Essential Neutrals</td>
+                    <td>19 Mar, 2023</td>
+                    <td>&#8377; 22.00</td>
+                    <td><span class="status-processing">Processing</span></td>
+                  </tr>
+                  <tr>
+                    <td>Sleek and Cozy Black</td>
+                    <td>7 Feb, 2023</td>
+                    <td>&#8377; 57.00</td>
+                    <td><span class="status-processing">Processing</span></td>
+                  </tr>
+                  <tr>
+                    <td>MOCKUP Black</td>
+                    <td>29 Jan, 2023</td>
+                    <td>&#8377; 30.00</td>
+                    <td><span class="status-completed">Completed</span></td>
+                  </tr>
+                  <tr>
+                    <td>Monochromatic Wardrobe</td>
+                    <td>27 Jan, 2023</td>
+                    <td>&#8377; 27.00</td>
+                    <td><span class="status-completed">Completed</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
