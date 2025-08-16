@@ -4,18 +4,17 @@
 
 {% block admin_user_list %}
 
-
-    <!-- Main content area -->
-    <div class="col-lg-10 p-0" style="background: #f8f9fa;">
+<div class="col-lg-10 p-0" style="background: #f8f9fa;">
       <div class="main-content">
-        <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <!-- Top section -->
+        <div class="content-section d-flex justify-content-between align-items-center flex-wrap">
           <div>
-            <h4 class="fw-bold mb-1">Customers</h4>
-            <div class="text-muted small" ><a href="{% url 'admin_dashboard'  %}" class="text-decoration-none">Admin &gt; Customers</a></div>
+            <h4 class="fw-bold mb-1">Coustomer Details</h4>
+            <div class="text-muted small">Admin &gt; Products</div>
           </div>
-          <div class="d-flex align-items-center">
-              <!-- Search user -->
-                <form class="d-none d-md-block me-3"  method="get" id="search-form">
+          <div class="d-flex align-items-center mt-2 mt-lg-0 me-5 ">
+            <form class="d-none d-md-block me-3"  method="get" id="search-form">
                 <input 
                 id="search-input"
                 class="form-control rounded-pill px-3" 
@@ -26,67 +25,59 @@
                 oninput="submitForm()" 
                 style="min-width:300px;"
                 autocomplete="off">
-                <!-- Clear icon, only visible when input has text -->
                 <span id="clear-btn" class="position-absolute top-0 end-0 me-5 mt-1" style="cursor: pointer; display: none;" onclick="clearInput()">✖</span>  
                 </form>
-            
-          </div>
-          <div class="profile-area gap-2 me-5">
-            <img src="{% static 'images/GreenNest-Logo(green).png'%}" alt="user" >
-            <div>
-              <div style="font-weight:500;">{{ request.user.first_name }}</div>
-              
-              <div style="font-size:0.97rem; color:#044F44;">Admin</div>
+            <div class="d-flex align-items-center">  
             </div>
-           
           </div>
         </div>
-        <!-- Customers Table -->
-        <div class="table-responsive">
-          <table class="table align-middle mb-0">
-            <thead>
-              <tr>
-                <th>Id</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Status</th>
-                <th>Address</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-             
-               {% for user in users %}
-              <tr>
-                <td>{{ forloop.counter }}</td>
-                <td>{{ user.first_name }}</td>
-                <td>{{ user.email }}</td>
-                <td>
-                {% if user.is_active %}
-                    Active
-                {% else %}
-                    Blocked
-                {% endif %}
-                </td>
-                <td>Nill</td>
-                <td>
-                  <form method="POST" action="{% url 'toggle_user_status' user.id %}" onsubmit="return confirmToggle(this)">
+
+        <!-- Table section -->
+        <div class="content-section">
+          <div class="table-responsive">
+            <table class="table align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Status</th>
+                  <th>Address</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for user in users %}
+                <tr>
+                  <td>{{  forloop.counter0|add:users.start_index }}</td>
+                  <td>{{ user.first_name }}</td>
+                  <td>{{ user.email }}</td>
+                  <td>
+                    {% if user.is_active %}
+                      Active
+                    {% else %}
+                      Blocked
+                    {% endif %}
+                  </td>
+                  <td>Nill</td>
+                  <td>
+                    <form method="POST" action="{% url 'toggle_user_status' user.id %}" onsubmit="return confirmToggle(this)">
                     {% csrf_token %}
                     <button type="submit" 
                       class="btn btn-sm {% if user.is_active %}btn-danger{% else %}btn-success{% endif %}">
                       {% if user.is_active %}Block{% else %}Unblock{% endif %}
                     </button>
                   </form>
-                </td>
-              </tr>
-             {% endfor %}
-              <!-- End repeat -->
-            </tbody>
-          </table>
-        </div>
-        
-    <!-- Pagination -->
-    {% if users.has_other_pages %}
+                  </td>
+                </tr>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          {% if users.has_other_pages %}
     <nav class="mt-4 d-flex justify-content-center">
       <ul class="pagination mb-0">
         {% if users.has_previous %}
@@ -117,13 +108,19 @@
       </ul>
     </nav>
     {% endif %}
+        </div>
+
       </div>
     </div>
-  </div>
-</div>
+
+
+
+
+
 <!-- Bootstrap JS (optional) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 
 <script>
 function toggleClearIcon() {
@@ -145,7 +142,7 @@ function submitForm() {
     clearTimeout(typingTimer);
     typingTimer = setTimeout(() => {
         document.getElementById('search-form').submit();
-    }, 300); // wait 500ms after user stops typing
+    }, 500); // wait 500ms after user stops typing
 }
 
 
@@ -168,6 +165,7 @@ function confirmToggle(form) {
 
 
 </script>
+
 
 {% endblock admin_user_list %}
 

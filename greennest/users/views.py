@@ -131,7 +131,7 @@ def user_login(request):
     if request.method=='POST':
         email = request.POST.get('email')
         password = request.POST.get('password')
-        print(email, password)
+        
         if not email or not password:
             messages.error(request, "Email and password are required.")
             return redirect('user_login')
@@ -139,7 +139,7 @@ def user_login(request):
         user = authenticate(request, username=email, password=password)
 
         if user is not None:
-            login(request, user)  # No backend arg needed now
+            login(request, user)  
             return redirect('user_home')
         else:
             messages.error(request, "Invalid credentials or user does not exist.")

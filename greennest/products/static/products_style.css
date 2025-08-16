@@ -1,8 +1,6 @@
  body {
     background: #f6f9f6;
-    
 }
-
 
 .sidebar {
     background: #004F44;
@@ -61,20 +59,6 @@
     .content-section + .content-section {
       margin-top: 25px;
     }
-
-.profile-area {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-right: 0;
-}
-.profile-area img {
-      width: 36px; height:36px;
-      border-radius:50%;
-      object-fit:cover;
-      border: 2px solid #27ae60;
-      margin-right:7px;
-}
     .product-img {
       width: 40px;
       height: 40px;
@@ -140,23 +124,3 @@
         padding: 13px 0;
       }
     }
-
-.card {
-      
-      border-radius: 11px;
-      padding: 18px 24px 17px 18px;
-      margin-right: 18px;
-      
-      
-      
-}
-.best-selling-pie {
-      width: 105px;
-      height: 105px;
-      background: conic-gradient(#27ae60 0% 35%, #c2ead2 35% 100%);
-      border-radius: 50%;
-      margin-top: 9px;
-      margin-bottom:10px;
-      border: 8px solid #e9f6ee;
-      display:inline-block;
-}
