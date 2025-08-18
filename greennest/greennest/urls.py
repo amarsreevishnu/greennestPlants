@@ -21,10 +21,16 @@ from django.urls import path, include
 from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
+    
     path('', include('home.urls')),  
     path('users/', include('users.urls')),
-    path('greenneest_admin/products/', include('products.urls')),
-    path('greenneest_admin/', include('greenest_admin.urls')),  
+
+    #  <- admin side products and user side products
+    path('greenneest_admin/products/', include('products.admin_urls')),  
+    path('users/products/', include('products.urls')),                         
+
+    path('greenneest_admin/', include('greenest_admin.urls')), 
+
     path('accounts/', include('allauth.urls')),  # <--- Allauth URLs
 ]
 if settings.DEBUG:

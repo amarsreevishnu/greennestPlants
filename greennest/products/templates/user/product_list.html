@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block user_products_list %}
+
+<style>
+/* Product Card */
+.product-card {
+  border: none;
+  transition: transform 0.2s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.product-card:hover {
+  transform: translateY(-5px);
+}
+.wishlist-icon {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+/* Product Image - keep ratio, no cut */
+.product-card img {
+  height: 250px;         
+  width: 100%;           
+  object-fit: contain;   /* contain keeps whole image visible */
+  background: #f8f9fa;   /* adds neutral bg if image has empty space */
+  padding: 10px;         /* prevent edge clipping */
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+}
+
+/* Sidebar Styling */
+.filter-sidebar {
+  background: #f9f9f9;
+  border-radius: 10px;
+  padding: 20px;
+  margin-right: 20px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  min-height: 100%;   /* stretch with product grid */
+}
+
+.filter-title {
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.form-check {
+  margin-bottom: 5px;
+}
+</style>
+
+
+<!-- Product_list-section -->
+<section class="mb-4">
+  <div class="container-fluid mt-2 pt-5">
+    <div class="row">
+      <!-- Sidebar Filters -->
+      <div class="col-md-3">
+        <div class="filter-sidebar">
+          <div class="mb-4">
+            <div class="filter-title">Categories</div>
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" id="indoor">
+              <label class="form-check-label" for="indoor">Indoor</label>
+            </div>
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" id="outdoor">
+              <label class="form-check-label" for="outdoor">Outdoor</label>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <div class="filter-title">Plant Size</div>
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" id="small">
+              <label class="form-check-label" for="small">Small</label>
+            </div>
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" id="medium">
+              <label class="form-check-label" for="medium">Medium</label>
+            </div>
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" id="large">
+              <label class="form-check-label" for="large">Large</label>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <div class="filter-title">Light Requirement</div>
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" id="low">
+              <label class="form-check-label" for="low">Low Light</label>
+            </div>
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" id="medium-light">
+              <label class="form-check-label" for="medium-light">Medium Light</label>
+            </div>
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" id="high">
+              <label class="form-check-label" for="high">High Light</label>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <div class="filter-title">Price</div>
+            <input type="number" class="form-control mb-2" placeholder="Min">
+            <input type="number" class="form-control mb-2" placeholder="Max">
+          </div>
+
+          <button class="btn btn-dark w-100">Filter</button>
+        </div>
+      </div>
+
+
+      <!-- Product Grid -->
+      <div class="col-md-9">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h4>Our Collection</h4>
+          <select class="form-select w-auto">
+            <option>Sort</option>
+            <option>Price Low to High</option>
+            <option>Price High to Low</option>
+          </select>
+        </div>
+
+        <div class="row g-4">
+          <!-- Loop Products -->
+          {% for product in products %}
+          <div class="col-md-4 col-sm-6">
+            <div class="card product-card position-relative shadow-sm">
+              <i class="fa fa-heart wishlist-icon" style="color:#004F44;"></i>
+
+              <!-- Product Image -->
+              {% if product.main_image %}
+                <img src="{{ product.main_image.url }}" class="card-img-top" alt="{{ product.name }}">
+              {% else %}
+                <img src="{% static 'images/no-image.png' %}" class="card-img-top" alt="No image">
+              {% endif %}
+
+              <div class="card-body text-center d-flex flex-column">
+                <h6 class="card-title">{{ product.name }}</h6>
+                <p class="text-muted mb-2">₹ {{ product.price }}</p>
+                <div class="mt-auto">
+                  <a href="{% url 'user_product_detail' product.id %}" class="btn btn-primary btn-sm">View</a>
+                  {% if product.stock > -1 %}
+                    <button class="btn btn-success btn-sm">Add to Cart</button>
+                  {% else %}
+                    <button class="btn btn-secondary btn-sm" disabled>Out of Stock</button>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+          {% empty %}
+          <p class="text-center">No products available at the moment.</p>
+          {% endfor %}
+        </div>
+
+        <div class="text-center mt-4">
+          <button class="btn btn-outline-dark">Load More</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock user_products_list %}

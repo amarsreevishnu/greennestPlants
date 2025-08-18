@@ -202,3 +202,8 @@ AUTHENTICATION_BACKENDS = [
 ACCOUNT_EMAIL_VERIFICATION = "none"  # Skip email verification for testing
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 SOCIALACCOUNT_LOGIN_ON_GET = True
+
+# For normal users 
+USER_LOGIN_URL = '/users/login/'
+# For admin views (superuser/staff)
+LOGIN_URL = '/users/login/'  # default redirect for admin_required decorator

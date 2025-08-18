@@ -20,7 +20,7 @@ def superuser_required(view_func):
 def admin_login(request):
     if request.user.is_authenticated and request.user.is_superuser:
         messages.error(request, 'You are not authorized as admin.')
-        return redirect('admin_user_list')
+        return redirect('admin_dashboard')
 
     if request.method == 'POST':
         username = request.POST.get('username')

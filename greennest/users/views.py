@@ -240,3 +240,5 @@ def reset_password(request):
         return redirect('user_login')
 
     return render(request, "users/user_reset_password.html")
+
+

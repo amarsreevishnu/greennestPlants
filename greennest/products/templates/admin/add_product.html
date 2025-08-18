@@ -1,0 +1,272 @@
+{% extends "greenest_admin/base.html" %}
+{% load static %}
+
+{% block admin_add_products %}
+<link  href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet"/>
+
+
+<style>
+  .img-thumb {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+</style>
+
+<!-- Main content area -->
+    <div class="col-lg-10 p-0" style="background: #f8f9fa;">
+      <div class="main-content">
+
+        <!-- Top section -->
+        <div class="content-section d-flex justify-content-between align-items-center flex-wrap">
+          <div>
+            <h4 class="fw-bold mb-1">Add Products</h4>
+            <div class="text-muted small">Admin &gt; Products</div>
+          </div>
+          <div class="d-flex align-items-center mt-2 mt-lg-0 me-5 ">
+            <form class="d-none d-md-block me-5">
+              <input class="form-control rounded-pill px-3" placeholder="Search " type="search" style="min-width:200px;">
+            </form>
+            <div class="d-flex align-items-center">
+
+               
+              
+            </div>
+          </div>
+        </div>
+
+        <!-- Table section -->
+        <div class="content-section">
+          <div class="table-responsive">
+            <!-- Add Product Form -->
+      <section class="rounded-form mx-3 my-3">
+       
+        
+   <form method="POST" enctype="multipart/form-data">
+  {% csrf_token %}
+  <div class="row g-4">
+
+    <!-- Product Name -->
+    <div class="col-md-6">
+      <label class="form-label">Product Title</label>
+      <input type="text" class="form-control" name="name" placeholder="Enter product title" required>
+    </div>
+
+    <!-- Category Dropdown -->
+    <div class="col-md-6">
+      <label class="form-label">Category</label>
+      <select class="form-select" name="category" required>
+        <option value="">Select Category</option>
+        {% for cat in categories %}
+          <option value="{{ cat.id }}">{{ cat.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Price -->
+    <div class="col-md-6">
+      <label class="form-label">Price</label>
+      <input type="number" class="form-control" name="price" placeholder="Enter price" step="0.01" required>
+    </div>
+
+    <!-- Size -->
+    <div class="col-md-6">
+      <label class="form-label">Size</label>
+      <input type="text" class="form-control" name="size" placeholder="Eg: S, M, L">
+    </div>
+
+    <!-- Light Requirement -->
+    <div class="col-md-6">
+      <label class="form-label">Light Requirement</label>
+      <input type="text" class="form-control" name="light_requirement" placeholder="Eg: Bright Indirect Sun">
+    </div>
+
+    
+    <!--Main Image Upload -->
+<div class="col-md-6">
+  <label class="form-label">Main Image</label>
+  <input type="file" id="mainImageInput" class="form-control form-control-sm" 
+         name="main_image" accept="image/*" required>
+  <input type="hidden" name="main_image_cropped" id="mainImageCropped">
+  
+  <!-- Modal for Cropping -->
+  <div id="cropModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; 
+       background:rgba(255,255,255,0.95); align-items:center; justify-content:center;z-index:9999;">
+    <div style="background:#fff; padding:15px; border-radius:8px; max-width:600px; box-shadow:0 4px 10px rgba(0,0,0,0.3);">
+      <img id="cropImage" style="max-width:100%; max-height:400px;">
+      <div class="mt-3 d-flex justify-content-end">
+        <button type="button" id="cropOk" class="btn btn-success btn-sm">Crop</button>
+        <button type="button" id="useOriginal" class="btn btn-primary btn-sm ms-2">Use Original</button>
+        <button type="button" id="cropCancel" class="btn btn-secondary btn-sm ms-2">Cancel</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Cropped preview -->
+  <div class="mt-2">
+    <img id="previewCropped" class="img-thumb" style="display:none;">
+  </div>
+</div>
+
+
+    <!-- Additional Images -->
+    <div class="col-12">
+      <label class="form-label">Additional Images</label>
+      <input type="file" class="form-control form-control-sm" name="extra_images" multiple accept="image/*">
+    </div>
+
+    <!-- Description -->
+    <div class="col-6">
+      <label class="form-label">Description</label>
+      <textarea class="form-control" rows="3" name="description" placeholder="Describe the product"></textarea>
+    </div>
+
+    <!-- Add Stock details -->
+    <div class="col-md-6">
+      <label class="form-label">Stock</label>
+      <input type="number" name="stock" class="form-control" placeholder="Enter stock quantity" min="0">
+    </div>
+    
+    <!-- Active Checkbox -->
+    <div class="col-12">
+      <div class="form-check">
+        <input type="checkbox" class="form-check-input" id="is_active" name="is_active">
+        <label class="form-check-label" for="is_active">Active</label>
+      </div>
+    </div>
+
+    <!-- Product Variants -->
+    <div class="col-12">
+      <h5>Variants</h5>
+      <div id="variants" class="mb-2">
+        <div class="variant mb-1 d-flex gap-2 align-items-center">
+          <input type="text" name="growth_stage[]" class="form-control" placeholder="Growth Stage">
+          <input type="number" name="additional_price[]" class="form-control" placeholder="Additional Price">
+          <button type="button" class="btn btn-sm btn-light p-1" style="color:red; font-weight:bold;" onclick="removeVariant(this)">×</button>
+        </div>
+      </div>
+      <button type="button" class="btn btn-sm btn-secondary" onclick="addVariant()">Add Variant</button>
+    </div>
+
+    <!-- Submit Button -->
+    <div class="col-12">
+      <button type="submit" class="btn mt-4 px-4 text-white" style="background-color:#004F44">Save Product</button>
+    </div>
+
+  </div>
+</form>
+
+
+
+      </section>
+
+      </div>
+    </div>
+
+
+
+
+
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script>
+function addVariant() {
+  const container = document.getElementById('variants');
+  const div = document.createElement('div');
+  div.classList.add('variant', 'mb-1', 'd-flex', 'gap-2', 'align-items-center');
+  div.innerHTML = `
+    <input type="text" name="growth_stage[]" class="form-control" placeholder="Growth Stage">
+    <input type="number" name="additional_price[]" class="form-control" placeholder="Additional Price">
+    <button type="button" class="btn btn-sm btn-light p-1" style="color:red; font-weight:bold;" onclick="removeVariant(this)">×</button>
+  `;
+  container.appendChild(div);
+}
+
+function removeVariant(button) {
+  button.parentElement.remove();
+}
+
+
+document.addEventListener("DOMContentLoaded", function () {
+    const fileInput = document.getElementById("mainImageInput");
+    const cropModal = document.getElementById("cropModal");
+    const cropImage = document.getElementById("cropImage");
+    const cropOk = document.getElementById("cropOk");
+    const useOriginal = document.getElementById("useOriginal");
+    const cropCancel = document.getElementById("cropCancel");
+    const croppedInput = document.getElementById("mainImageCropped");
+    const previewCropped = document.getElementById("previewCropped");
+    let cropper;
+    let originalFileBase64 = "";
+
+    // When user selects a file
+    fileInput.addEventListener("change", function (event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                cropImage.src = e.target.result;
+                originalFileBase64 = e.target.result; // store original in base64
+                cropModal.style.display = "flex";   // Show modal
+                if (cropper) cropper.destroy();     // Reset old cropper
+                cropper = new Cropper(cropImage, {
+                    aspectRatio: 1,  // square crop
+                    viewMode: 1
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Crop option
+    cropOk.addEventListener("click", function () {
+        if (cropper) {
+            const canvas = cropper.getCroppedCanvas({
+                width: 600,
+                height: 600
+            });
+            canvas.toBlob(function (blob) {
+                const reader = new FileReader();
+                reader.onloadend = function () {
+                    croppedInput.value = reader.result;  // base64 cropped
+                    previewCropped.src = reader.result;
+                    previewCropped.style.display = "block";
+                };
+                reader.readAsDataURL(blob);
+            }, "image/jpeg", 0.9);
+            cropModal.style.display = "none";
+            cropper.destroy();
+            cropper = null;
+        }
+    });
+
+    // Use Original (no crop)
+    useOriginal.addEventListener("click", function () {
+        croppedInput.value = ""; // leave hidden input empty → backend will use file
+        previewCropped.src = originalFileBase64; // preview original
+        previewCropped.style.display = "block";
+        cropModal.style.display = "none";
+        if (cropper) {
+            cropper.destroy();
+            cropper = null;
+        }
+    });
+
+    // Cancel button
+    cropCancel.addEventListener("click", function () {
+        cropModal.style.display = "none";
+        if (cropper) {
+            cropper.destroy();
+            cropper = null;
+        }
+        fileInput.value = ""; // reset input
+        previewCropped.style.display = "none";
+    });
+});
+
+</script>
+{% endblock %}

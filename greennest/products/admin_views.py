@@ -1,22 +1,28 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .models import Category, Product, ProductVariant, ProductImage
+from django.core.paginator import Paginator
+from django.db.models import Q
+from django.core.files.base import ContentFile
+from PIL import Image
+from io import BytesIO
+import base64
 
 
 
 def admin_required(view_func):
-    return user_passes_test(lambda u: u.is_authenticated and u.is_superuser)(view_func)
+    return user_passes_test(lambda u: u.is_authenticated and u.is_superuser,login_url='/greenneest_admin/login/')(view_func)
 
 
 
-# 📂 Category List
+# Category List
 @admin_required
 def admin_category_list(request):
     categories = Category.objects.all()
-    return render(request, "custom_admin/category_list.html", {"categories": categories})
+    return render(request, "admin/category_list.html", {"categories": categories})
 
 
-# ➕ Add Category
+# Add Category
 @admin_required
 def admin_add_category(request):
     if request.method == "POST":
@@ -24,29 +30,62 @@ def admin_add_category(request):
         if name:
             Category.objects.create(name=name)
         return redirect("admin_category_list")
-    return render(request, "custom_admin/add_category.html")
+    return render(request, "admin/add_category.html")
 
 
-# 📦 Product List
+def process_image(image_file, max_size=(800, 800), quality=75):
+    """Resize & compress image before saving."""
+    img = Image.open(image_file)
+
+    # Convert transparency (PNG) to RGB
+    if img.mode in ("RGBA", "P"):
+        img = img.convert("RGB")
+
+    # Resize (maintain aspect ratio)
+    img.thumbnail(max_size)
+
+    buffer = BytesIO()
+    img.save(buffer, format="JPEG", quality=quality, optimize=True)
+
+    return ContentFile(buffer.getvalue(), name=image_file.name if hasattr(image_file, 'name') else "image.jpg")
+
+
+# Product List
 @admin_required
 def admin_product_list(request):
-    products = Product.objects.all().order_by("-id")
-    return render(request, "product/product_list.html", {"products": products})
+    products = Product.objects.all().order_by('-id')  # latest first
+    
+    paginator = Paginator(products, 10)# Pagination: 10 products per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'admin/product_list.html', {'products': page_obj })
+    
 
 
-# ➕ Add Product (manual POST handling)
+#  Add Product (manual POST handling)
 @admin_required
 def admin_add_product(request):
     if request.method == "POST":
-        # Main product data
+        
         category_id = request.POST.get("category")
         name = request.POST.get("name")
         description = request.POST.get("description")
         size = request.POST.get("size")
         light_requirement = request.POST.get("light_requirement")
         price = request.POST.get("price")
-        main_image = request.FILES.get("main_image")
+        
+        stock = request.POST.get("stock") or 0  
         is_active = request.POST.get("is_active") == "on"
+        cropped_image = request.POST.get("main_image")
+        if cropped_image:  # If hidden field has base64 image
+            format, imgstr = cropped_image.split(";base64,")
+            ext = format.split("/")[-1]  # get jpg, png etc.
+            image_file = ContentFile(base64.b64decode(imgstr), name=f"cropped.{ext}")
+            
+        else:
+            # Fallback: normal file input
+            image_file = request.FILES.get("main_image")
 
         category = get_object_or_404(Category, id=category_id)
         product = Product.objects.create(
@@ -56,7 +95,8 @@ def admin_add_product(request):
             size=size,
             light_requirement=light_requirement,
             price=price,
-            main_image=main_image,
+            main_image=image_file,
+            stock=stock,
             is_active=is_active
         )
 
@@ -78,10 +118,10 @@ def admin_add_product(request):
         return redirect("admin_product_list")
 
     categories = Category.objects.all()
-    return render(request, "product/add_product.html", {"categories": categories})
+    return render(request, "admin/add_product.html", {"categories": categories})
 
 
-# ✏ Edit Product
+# Edit Product
 @admin_required
 def admin_edit_product(request, product_id):
     product = get_object_or_404(Product, id=product_id)
@@ -96,6 +136,7 @@ def admin_edit_product(request, product_id):
         product.price = request.POST.get("price")
         if request.FILES.get("main_image"):
             product.main_image = request.FILES.get("main_image")
+        product.stock = request.POST.get("stock") or product.stock
         product.is_active = request.POST.get("is_active") == "on"
         product.save()
 
@@ -120,7 +161,7 @@ def admin_edit_product(request, product_id):
     categories = Category.objects.all()
     variants = ProductVariant.objects.filter(product=product)
     images = ProductImage.objects.filter(product=product)
-    return render(request, "custom_admin/edit_product.html", {
+    return render(request, "admin/edit_product.html", {
         "categories": categories,
         "product": product,
         "variants": variants,
@@ -128,10 +169,18 @@ def admin_edit_product(request, product_id):
     })
 
 
-# 🗑 Soft Delete Product
+# Soft Delete Product
 @admin_required
 def admin_delete_product(request, product_id):
     product = get_object_or_404(Product, id=product_id)
-    product.is_active = False
+    product.is_active = not product.is_active 
     product.save()
     return redirect("admin_product_list")
+
+
+# Product List for Users
+
+def user_product_list(request):
+    # Fetch only active products
+    products = Product.objects.filter(is_active=True, stock__gt=0)
+    return render(request, "admin/user_product_list.html", {"products": products})

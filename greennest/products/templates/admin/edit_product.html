@@ -1,0 +1,176 @@
+{% extends "greenest_admin/base.html"%}
+{% load static %}
+
+{% block admin_edit_products %}
+
+<style>
+  .img-thumb {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+</style>
+
+<!-- Main content area -->
+    <div class="col-lg-10 p-0" style="background: #f8f9fa;">
+      <div class="main-content">
+
+        <!-- Top section -->
+        <div class="content-section d-flex justify-content-between align-items-center flex-wrap">
+          <div>
+            <h4 class="fw-bold mb-1">Edit Product</h4>
+            <div class="text-muted small">Admin &gt; Products</div>
+          </div>
+          <div class="d-flex align-items-center mt-2 mt-lg-0 me-5 ">
+            <form class="d-none d-md-block me-5">
+              <input class="form-control rounded-pill px-3" placeholder="Search " type="search" style="min-width:200px;">
+            </form>
+            <div class="d-flex align-items-center">
+
+               
+              
+            </div>
+          </div>
+        </div>
+
+        <!-- Table section -->
+        <div class="content-section">
+          <div class="table-responsive">
+            <!-- Add Product Form -->
+      <section class="rounded-form mx-3 my-3">
+       
+        
+   <form method="POST" enctype="multipart/form-data">
+  {% csrf_token %}
+  <div class="row g-4">
+
+    <!-- Product Name -->
+    <div class="col-md-6">
+      <label class="form-label">Product Title</label>
+      <input type="text" class="form-control" name="name" value="{{ product.name }}" required>
+    </div>
+
+    <!-- Category Dropdown -->
+    <div class="col-md-6">
+      <label class="form-label">Category</label>
+      <select class="form-select" name="category" required>
+        <option value="">Select Category</option>
+        {% for cat in categories %}
+          <option value="{{ cat.id }}" {% if cat.id == product.category.id %}selected{% endif %}>{{ cat.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Price -->
+    <div class="col-md-6">
+      <label class="form-label">Price</label>
+      <input type="number" class="form-control" name="price" placeholder="Enter price" step="0.01" required>
+    </div>
+
+    <!-- Size -->
+    <div class="col-md-6">
+      <label class="form-label">Size</label>
+       <input type="text" class="form-control" name="size" value="{{ product.size }}">
+    </div>
+
+    <!-- Light Requirement -->
+    <div class="col-md-6">
+      <label class="form-label">Light Requirement</label>
+      <input type="text" class="form-control" name="light_requirement" value="{{ product.light_requirement }}">
+    </div>
+
+    <!-- Main Image -->
+    <div class="col-md-6">
+      <label class="form-label">Main Image</label>
+      {% if product.main_image %}
+        <div class="mb-2">
+          <img src="{{ product.main_image.url }}" alt="Main Image" class="img-thumb">
+        </div>
+      {% endif %}
+      <input type="file" class="form-control form-control-sm" name="main_image" accept="image/*">
+    </div>
+
+    <!-- Additional Images -->
+    <div class="col-12">
+      <label class="form-label">Additional Images</label>
+      <div class="mb-2 d-flex gap-2 flex-wrap">
+        {% for img in images %}
+          <img src="{{ img.image.url }}" class="img-thumb" alt="Additional Image">
+        {% endfor %}
+      </div>
+      <input type="file" class="form-control form-control-sm" name="extra_images" multiple accept="image/*">
+    </div>
+
+    <!-- Description -->
+    <div class="col-12">
+      <label class="form-label">Description</label>
+      <textarea class="form-control" rows="3" name="description">{{ product.description }}</textarea>
+    </div>
+
+    <!-- Active Checkbox -->
+    <div class="col-12">
+      <div class="form-check">
+        <input type="checkbox" class="form-check-input" id="is_active" name="is_active" {% if product.is_active %}checked{% endif %}>
+        <label class="form-check-label" for="is_active">Active</label>
+      </div>
+    </div>
+
+    <!-- Product Variants -->
+    <div class="col-12">
+      <h5>Variants</h5>
+      <div id="variants" class="mb-2">
+        {% for var in variants %}
+        <div class="variant mb-1 d-flex gap-2 align-items-center">
+          <input type="text" name="growth_stage[]" class="form-control" value="{{ var.growth_stage }}" placeholder="Growth Stage">
+          <input type="number" name="additional_price[]" class="form-control" value="{{ var.additional_price }}" placeholder="Additional Price">
+          <button type="button" class="btn btn-sm btn-light p-1" style="color:red; font-weight:bold;" onclick="removeVariant(this)">×</button>
+        </div>
+        {% endfor %}
+      </div>
+      <button type="button" class="btn btn-sm btn-secondary" onclick="addVariant()">Add Variant</button>
+    </div>
+
+    <!-- Submit Button -->
+    <div class="col-12">
+      <button type="submit" class="btn mt-4 px-4 text-white" style="background-color:#004F44">Update Product</button>
+    </div>
+
+  </div>
+</form>
+
+
+
+      </section>
+
+      </div>
+    </div>
+
+
+
+
+
+
+
+
+
+
+<script>
+function addVariant() {
+  const container = document.getElementById('variants');
+  const div = document.createElement('div');
+  div.classList.add('variant', 'mb-1', 'd-flex', 'gap-2', 'align-items-center');
+  div.innerHTML = `
+    <input type="text" name="growth_stage[]" class="form-control" placeholder="Growth Stage">
+    <input type="number" name="additional_price[]" class="form-control" placeholder="Additional Price">
+    <button type="button" class="btn btn-sm btn-light p-1" style="color:red; font-weight:bold;" onclick="removeVariant(this)">×</button>
+  `;
+  container.appendChild(div);
+}
+
+function removeVariant(button) {
+  button.parentElement.remove();
+}
+</script>
+
+{% endblock admin_edit_products%}

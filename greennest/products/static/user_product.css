@@ -1,0 +1,49 @@
+/* Product Card */
+.product-card {
+  border: none;
+  transition: transform 0.2s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.product-card:hover {
+  transform: translateY(-5px);
+}
+.wishlist-icon {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+/* Product Image - keep ratio, no cut */
+.product-card img {
+  height: 250px;         
+  width: 100%;           
+  object-fit: contain;   /* contain keeps whole image visible */
+  background: #f8f9fa;   /* adds neutral bg if image has empty space */
+  padding: 10px;         /* prevent edge clipping */
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+}
+
+/* Sidebar Styling */
+.filter-sidebar {
+  background: #f9f9f9;
+  border-radius: 10px;
+  padding: 20px;
+  margin-right: 20px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  min-height: 100%;   /* stretch with product grid */
+}
+
+.filter-title {
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.form-check {
+  margin-bottom: 5px;
+}
