@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'products',
     'greenest_admin', 
     
+    
     # Needed for allauth 
     'django.contrib.sites',
     # Allauth

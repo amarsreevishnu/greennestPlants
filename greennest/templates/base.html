@@ -61,8 +61,9 @@
                 <span class="navbar-text">WELCOME</span> Login
               </a>
                {% elif request.user.is_authenticated %}
-              <a class="nav-link" href="{% url 'user_login' %}">
-                <span class="navbar-text">WELCOME</span> {{ request.user.first_name }}
+              <a class="nav-link" href="">
+                <span class="navbar-text">{{ request.user.first_name }}</span> 
+                
               </a>
 
               {% else %}
@@ -72,9 +73,11 @@
               </a>
               {% endif %}
             </li>
+            
+          
           </ul>
         </div>
-        <ul class="navbar-nav mx-auto">
+        <ul class="navbar-nav mx-auto gap-3">
           <!-- Wishlist Icon -->
           <li class="nav-item">
             <a class="nav-link position-relative" href="#">
@@ -88,16 +91,18 @@
               <i class="bi bi-cart fs-5"></i>
             </a>
           </li>
+           <li class="nav-item">
+            <a class="nav-link position-relative" href="{% url "profile_detail" %}">
+              <i class="bi bi-person-circle fs-5"></i>
+              
+            </a>
+          </li>
            {% if request.user.is_authenticated %}
                    
                 <li class="nav-item"><a class="nav-link logout-link position-relative "  href="{% url 'logout' %}" >
                     <span style="color: red; font-weight:bold;" ><i class="fa fa-sign-out-alt "></i>&nbsp;</span>Logout </a></li>
                     {% endif %}
-          {% comment %} <li class="nav-item">
-            <a class="nav-link position-relative" href="#">
-              <i class="bi bi-person-circle fs-5"></i>
-            </a>
-          </li> {% endcomment %}
+          
         </ul>
       </div>
     </nav>
@@ -130,6 +135,9 @@
      <!-- User Product Details Section -->
     {% endblock user_products_detials %} 
 
+    {% block user_profile_details %}
+    <!-- User profile_details Section -->
+    {% endblock user_profile_details %}
     
 
 

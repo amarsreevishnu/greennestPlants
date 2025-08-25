@@ -13,7 +13,7 @@ from datetime import timedelta
 from django.contrib import messages
 from django.http import JsonResponse
 
-from .models import EmailOTP
+from .models import EmailOTP,Profile, Address
 from products.models import Product
 
 
@@ -257,4 +257,53 @@ def reset_password(request):
 
     return render(request, "users/user_reset_password.html")
 
+# user profile section
 
+@login_required
+def profile_detail(request):
+    # Profile is guaranteed by signal; use select_related for efficiency
+    #profile = request.user.profile
+    return render(request, "users/profile_detail.html")
+
+
+@login_required
+def address_list(request):
+    addresses = request.user.addresses.all()
+    return render(request, "users/address_list.html", {"addresses": addresses})
+
+
+@login_required
+def address_add(request):
+    # if request.method == "POST":
+    #     #form = AddressForm(request.POST)
+    #     if form.is_valid():
+    #         address = form.save(commit=False)
+    #         address.user = request.user
+    #         address.save()
+    #         messages.success(request, "Address added successfully!")
+    #         return redirect("address_list")
+    # else:
+    #     form = AddressForm()
+    return render(request, "users/address_form.html")
+
+
+@login_required
+def address_edit(request, pk):
+    # address = get_object_or_404(Address, pk=pk, user=request.user)
+    # if request.method == "POST":
+    #     form = AddressForm(request.POST, instance=address)
+    #     if form.is_valid():
+    #         form.save()
+    #         messages.success(request, "Address updated successfully!")
+    #         return redirect("address_list")
+    # else:
+    #     form = AddressForm(instance=address)
+    return render(request, "users/address_form.html")
+
+
+@login_required
+def address_delete(request, pk):
+    address = get_object_or_404(Address, pk=pk, user=request.user)
+    address.delete()
+    messages.success(request, "Address deleted successfully!")
+    return redirect("address_list")
