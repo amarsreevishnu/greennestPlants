@@ -4,7 +4,7 @@
 {% block user_products_list %}
 
 <style>
-/* Product Card */
+
 .product-card {
   border: none;
   transition: transform 0.2s ease;
@@ -23,7 +23,7 @@
   cursor: pointer;
 }
 
-/* Product Image - keep ratio, no cut */
+
 .product-card img {
   height: 250px;         
   width: 100%;           
@@ -56,6 +56,7 @@
 </style>
 
 
+
 <!-- Product_list-section -->
 <section class="mb-4">
   <div class="container-fluid mt-2 pt-5">
@@ -64,110 +65,205 @@
       <div class="col-md-3">
         <div class="filter-sidebar">
           <div class="mb-4">
-            <div class="filter-title">Categories</div>
-            <div class="form-check">
-              <input type="checkbox" class="form-check-input" id="indoor">
-              <label class="form-check-label" for="indoor">Indoor</label>
-            </div>
-            <div class="form-check">
-              <input type="checkbox" class="form-check-input" id="outdoor">
-              <label class="form-check-label" for="outdoor">Outdoor</label>
-            </div>
+            <div class="filter-title">Search</div>
+                <form method="get" class="mb-3 d-flex">
+                  <input type="text" name="q" class="form-control" placeholder="Search products..."
+                        value="{{ search_query|default:'' }}">
+                          {% if search_query %}
+                            <a href="{% url 'user_product_list' %}" class="btn btn-outline-secondary ms-2">✕</a>
+                          {% endif %}
+                </form>
           </div>
+          <form method="get" id="filterForm">
+            <div class="mb-4">
+            <div class="filter-title">Categories</div>
+              {% for cat in all_categories %}
+                <div class="form-check">
+                  <input type="checkbox" name="category" id="cat{{ cat.id }}" value="{{ cat.name }}" class="form-check-input"
+                    {% if cat.name in categories %}checked{% endif %}>
+                  <label class="form-check-label" for="cat{{ cat.id }}">{{ cat.name }}</label>
+                </div>
+              {% endfor %}
 
-          <div class="mb-4">
+          </div>
+          {% comment %} <div class="mb-4">
             <div class="filter-title">Plant Size</div>
             <div class="form-check">
-              <input type="checkbox" class="form-check-input" id="small">
+              <input type="checkbox" name="sizes" id="small" value="S" class="form-check-input"
+                {% if "S" in sizes %}checked{% endif %}>
               <label class="form-check-label" for="small">Small</label>
             </div>
             <div class="form-check">
-              <input type="checkbox" class="form-check-input" id="medium">
+              <input type="checkbox" name="sizes" id="medium" value="M" class="form-check-input"
+                {% if "M" in sizes %}checked{% endif %}>
               <label class="form-check-label" for="medium">Medium</label>
             </div>
             <div class="form-check">
-              <input type="checkbox" class="form-check-input" id="large">
+              <input type="checkbox" name="sizes" id="large" value="L" class="form-check-input"
+                {% if "L" in sizes %}checked{% endif %}>
               <label class="form-check-label" for="large">Large</label>
             </div>
-          </div>
+        </div> {% endcomment %}
 
-          <div class="mb-4">
-            <div class="filter-title">Light Requirement</div>
-            <div class="form-check">
-              <input type="checkbox" class="form-check-input" id="low">
-              <label class="form-check-label" for="low">Low Light</label>
-            </div>
-            <div class="form-check">
-              <input type="checkbox" class="form-check-input" id="medium-light">
-              <label class="form-check-label" for="medium-light">Medium Light</label>
-            </div>
-            <div class="form-check">
-              <input type="checkbox" class="form-check-input" id="high">
-              <label class="form-check-label" for="high">High Light</label>
-            </div>
+        <div class="mb-4">
+          <div class="filter-title">Light Requirement</div>
+          <div class="form-check">
+            <input type="checkbox" name="lights" value="Low" class="form-check-input"
+              {% if "Low" in lights %}checked{% endif %}>
+            <label class="form-check-label">Low Light</label>
           </div>
-
-          <div class="mb-4">
-            <div class="filter-title">Price</div>
-            <input type="number" class="form-control mb-2" placeholder="Min">
-            <input type="number" class="form-control mb-2" placeholder="Max">
+          <div class="form-check">
+            <input type="checkbox" name="lights" value="Medium" class="form-check-input"
+              {% if "Medium" in lights %}checked{% endif %}>
+            <label class="form-check-label">Medium Light</label>
           </div>
-
-          <button class="btn btn-dark w-100">Filter</button>
+          <div class="form-check">
+            <input type="checkbox" name="lights" value="Bright" class="form-check-input"
+              {% if "Bright" in lights %}checked{% endif %}>
+            <label class="form-check-label">Bright Light</label>
+          </div>
+        </div>
+      <div class="mb-4">
+        <div class="filter-title">Price</div>
+          <input type="number" name="min_price" class="form-control mb-2" placeholder="Min"
+            value="{{ min_price|default:'' }}">
+          <input type="number" name="max_price" class="form-control mb-2" placeholder="Max"
+          value="{{ max_price|default:'' }}">
+      </div>
+          <hr>
+        <button class="btn btn-dark w-100">Filter</button>  
+          {% if categories or sizes or lights or min_price or max_price %}
+            <a href="{% url 'user_product_list' %}" class="btn btn-outline-secondary w-100 mt-2 ">Clear Filters ✕</a>
+          {% endif %}
         </div>
       </div>
 
-
-      <!-- Product Grid -->
+      <!-- Product sort with A-Z and Price Low-High -->
       <div class="col-md-9">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h4>Our Collection</h4>
-          <select class="form-select w-auto">
-            <option>Sort</option>
-            <option>Price Low to High</option>
-            <option>Price High to Low</option>
-          </select>
+          <form method="get" class="d-inline">
+            <select name="sort" class="form-select w-auto" onchange="this.form.submit()">
+                <option value="" disabled selected>Sort</option>
+                <option value="name_asc" {% if sort_option == "name_asc" %}selected{% endif %}>Name: A → Z</option>
+                <option value="name_desc" {% if sort_option == "name_desc" %}selected{% endif %}>Name: Z → A</option>  
+                <option value="price_asc" {% if sort_option == "price_asc" %}selected{% endif %}>Price: Low → High</option>
+                <option value="price_desc" {% if sort_option == "price_desc" %}selected{% endif %}>Price: High → Low</option>
+            </select>
+          </form>
         </div>
+      <!-- Products Listing --> 
+        
+<div class="row g-4" id="product-container">
+  {% for product in products %}
+    <div class="col-md-4 col-sm-6">
+      <div class="card product-card position-relative shadow-sm h-100">
+        <i class="fa fa-heart wishlist-icon"></i>
 
-        <div class="row g-4">
-          <!-- Loop Products -->
-          {% for product in products %}
-          <div class="col-md-4 col-sm-6">
-            <div class="card product-card position-relative shadow-sm">
-              <i class="fa fa-heart wishlist-icon" style="color:#004F44;"></i>
-
-              <!-- Product Image -->
-              {% if product.main_image %}
-                <img src="{{ product.main_image.url }}" class="card-img-top" alt="{{ product.name }}">
+        {% with variant=product.variants.all|first %}
+          {% if variant %}
+            {% with main_img=variant.images.all|first %}
+              {% if main_img %}
+                <img src="{{ main_img.image.url }}" class="card-img-top" alt="{{ product.name }}">
               {% else %}
-                <img src="{% static 'images/no-image.png' %}" class="card-img-top" alt="No image">
+                <img src="/static/images/no-image.png" class="card-img-top" alt="{{ product.name }}">
               {% endif %}
+            {% endwith %}
+          {% else %}
+            <img src="/static/images/no-image.png" class="card-img-top" alt="{{ product.name }}">
+          {% endif %}
+        {% endwith %}
 
-              <div class="card-body text-center d-flex flex-column">
-                <h6 class="card-title">{{ product.name }}</h6>
-                <p class="text-muted mb-2">₹ {{ product.price }}</p>
-                <div class="mt-auto">
-                  <a href="{% url 'user_product_detail' product.id %}" class="btn btn-primary btn-sm">View</a>
-                  {% if product.stock > -1 %}
-                    <button class="btn btn-success btn-sm">Add to Cart</button>
-                  {% else %}
-                    <button class="btn btn-secondary btn-sm" disabled>Out of Stock</button>
-                  {% endif %}
-                </div>
-              </div>
-            </div>
+        <div class="card-body">
+          <h6 class="card-title">{{ product.name }}</h6>
+          <p class="text-muted mb-2">
+            {% if product.min_price and product.max_price %}
+              {% if product.min_price == product.max_price %}
+                ₹ {{ product.min_price|floatformat:0 }}
+              {% else %}
+                ₹ {{ product.min_price|floatformat:0 }} – ₹ {{ product.max_price|floatformat:0 }}
+              {% endif %}
+            {% else %}
+              Price not available
+            {% endif %}
+          </p>
+          <div>
+            <a href="{% url 'user_product_detail' product.id %}" class="btn btn-dark btn-sm">View</a>
+            {% if product.variants.first and product.variants.first.stock > 0 %}
+              <button class="btn btn-success btn-sm">Add to Cart</button>
+            {% else %}
+              <button class="btn btn-secondary btn-sm" disabled>Out of Stock</button>
+            {% endif %}
           </div>
-          {% empty %}
-          <p class="text-center">No products available at the moment.</p>
-          {% endfor %}
         </div>
+
+      </div>
+    </div>
+  {% empty %}
+    <p class="text-center">No products available at the moment.</p>
+  {% endfor %}
+</div>
+
 
         <div class="text-center mt-4">
-          <button class="btn btn-outline-dark">Load More</button>
+          {% if products.has_next %}
+            <button id="load-more" data-page="2" class="btn btn-outline-dark">Load More</button>
+          {% endif %}
         </div>
       </div>
     </div>
   </div>
 </section>
+
+
+
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const loadMoreBtn = document.getElementById("load-more");
+  const container = document.getElementById("product-container");
+
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener("click", function () {
+      let page = this.dataset.page;
+
+      fetch(`?page=${page}`, { headers: { "x-requested-with": "XMLHttpRequest" } })
+      .then(res => res.json())
+      .then(data => {
+        data.products.forEach(p => {
+          let col = document.createElement("div");
+          col.classList.add("col-md-4", "col-sm-6");
+          col.innerHTML = `
+            <div class="card product-card position-relative shadow-sm h-100">
+              <i class="fa fa-heart wishlist-icon"></i>
+              <img src="${p.variant_image || '/static/images/no-image.png'}" class="card-img-top" alt="${p.name}">
+              <div class="card-body text-center d-flex flex-column">
+                <h6 class="card-title">${p.name}</h6>
+                <p class="text-muted mb-2">${p.price}</p>
+                <div class="mt-auto">
+                  <a href="${p.detail_url}" class="btn btn-dark btn-sm">View</a>
+                  ${p.variant_stock > 0
+                    ? `<button class="btn btn-success btn-sm">Add to Cart</button>`
+                    : `<button class="btn btn-secondary btn-sm" disabled>Out of Stock</button>`}
+                </div>
+              </div>
+            </div>
+          `;
+          container.appendChild(col);
+        });
+
+        if (data.has_next) {
+          loadMoreBtn.dataset.page = parseInt(page) + 1;
+        } else {
+          loadMoreBtn.remove();
+        }
+      })
+      .catch(err => console.error("Error loading products:", err));
+    });
+  }
+});
+</script>
+
 
 {% endblock user_products_list %}

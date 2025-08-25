@@ -1,0 +1,19 @@
+# Created by venv;
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+
+# Environment
+venv/
+.env
+
+# Django
+*.log
+
+
+# VS Code
+.vscode/

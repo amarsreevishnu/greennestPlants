@@ -3,8 +3,21 @@
 
 
 {% block user_products_detials %}
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<style>.wishlist-icon { border: 1px solid #ddd; border-radius: 50%; padding: 10px; cursor: pointer; color: #004F44; }  </style>
+
+
+<style>
+  .wishlist-icon {
+    border: 1px solid #ddd;
+    border-radius: 50%;
+    padding: 10px;
+    cursor: pointer;
+    color: #004f44;
+  }
+</style>
+<link
+  href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+  rel="stylesheet"
+/>
 
 
 <!-- Breadcrumb -->
@@ -13,91 +26,159 @@
     <ol class="breadcrumb">
       <li class="breadcrumb-item"><a href="#">Home</a></li>
       <li class="breadcrumb-item"><a href="#">Products</a></li>
-      <li class="breadcrumb-item active" aria-current="page">{{ product.name }}</li>
+      <li class="breadcrumb-item active" aria-current="page">
+        {{ product.name }}
+      </li>
     </ol>
   </nav>
 </div>
+
+
 <!-- Main product section -->
 <div class="container mb-5">
   <div class="row">
     <!-- Product Images -->
-    
-<div class="col-md-4 d-flex">
-  <!-- Sub Images (Left, vertical) -->
-  <div class="d-flex flex-column align-items-center me-3">
-    {% for img in additional_images %}
-    <img src="{{ img.image.url }}" 
-     class="thumb-image mb-2 shadow-sm" 
-     style="width:60px; height:80px; object-fit:cover; cursor:pointer;">
-    {% endfor %}
-  </div>
-  <!-- Main Image (Big, right) -->
-  <div>
-    <img id="mainImage" src="{{ product.main_image.url }}" class="shadow" style="width:280px; height:360px; object-fit:cover; border-radius:12px;">
-  </div>
-</div>
+    <div class="col-md-4 d-flex">
+      <div class="d-flex flex-column align-items-center me-3" id="thumbs-container">
+        {% for img in additional_images|slice:":3" %}
+          <img
+            
+            src="{{ img.image.url }}"
+            class="thumb-image mb-2 shadow-sm"
+            style="width: 60px; height: 80px; object-fit: cover; cursor: pointer"
+          />
+        {% endfor %}
+      </div>
+      <div>
+        <img
+          id="mainImage"
+          src="{{ main_image.image.url }}"
+          class="shadow"
+          style="
+            width: 280px;
+            height: 360px;
+            object-fit: cover;
+            border-radius: 12px;
+          "
+        />
+      </div>
+    </div>
+
 
     <!-- Product Info -->
     <div class="col-md-5 pl-5">
       <h3 class="product-title">{{ product.name }}</h3>
       <div class="mb-2">
-        <span class="price">₹{{ product.price }}</span>
-        {% comment %} <span class="old-price">₹399</span> {% endcomment %}
-        <span class="offer">-40% off</span>
+        <span class="rating text-warning">&#9733;</span> 4.6 | 814 reviews
       </div>
-      <div class="mb-2"><span class="rating">&#9733; 4.6</span> | 814 reviews</div>
+      <div class="mb-2">
+        {% if cheapest_variant %}
+        <span id="variant-price" class="price">
+          <strong>₹ {{ cheapest_variant.price }}</strong></span
+        >
+        <span class="offer text-success"> - 40% off</span>
+      </div>
+      {% endif %}
+
+
       <div class="product-details mb-2">
         <ul>
-          <li>Bright Indirect Sunlight</li>
-          <li>{{ product.get_size_display }}</li>
-          <li></strong> {{ product.get_light_requirement_display }}</li>
+          <li>Light Requirement: {{ product.get_light_requirement_display }}</li>
+          <li>Size: {{ product.get_size_display }}</li>
+          <li>Category: {{ product.category.name }}</li>
         </ul>
-        <div class="mt-2 text-success"> <strong>Stock:</strong> :{{ product.stock }}</div>
       </div>
-      <form>
-        <div class="mt-3">
-        <label class="fw-semibold">Select Size:</label>
-        <div class="btn-group" role="group">
-          <button type="button" class="btn btn-outline-dark btn-sm">Small</button>
-          <button type="button" class="btn btn-outline-dark btn-sm">Medium</button>
-          <button type="button" class="btn btn-outline-dark btn-sm">Large</button>
+      <!-- Stock/Out of Stock Display -->
+    <div id="stock-display">
+      {% if cheapest_variant %}
+          <div class="mt-2 text-success">
+            <strong>Stock:</strong>
+            <span id="variant-stock">{{ cheapest_variant.stock }}</span>
+          </div>
+        {% else %}
+          <p class="mb-1 text-danger"><strong>Out of Stock</strong></p>
+        
+      {% endif %}
+    </div>
+
+
+      <!-- Variant Options -->
+      {% if variants %}
+      <div class="variants mt-3">
+        <label><strong>Select Variant:</strong></label>
+        <div class="d-flex gap-3 mt-2">
+          {% for variant in variants %}
+          <div>
+            <input type="radio"
+                   name="variant_id"
+                   id="variant_{{ variant.id }}"
+                   value="{{ variant.id }}"
+                   data-price="{{ variant.price }}"
+                   data-stock="{{ variant.stock }}"
+                   data-images="{% for img in variant.images.all %}{{ img.image.url }}{% if not forloop.last %},{% endif %}{% endfor %}"
+                   {% if variant.id == cheapest_variant.id %}checked{% endif %} />
+            <label for="variant_{{ variant.id }}">
+              {{ variant.variant_type  }} <br>| ₹{{ variant.price }} 
+            </label>
+          </div>
+          {% endfor %}
         </div>
       </div>
-        <br>
-        <label>Pots: </label>
-        <select class="form-select d-inline-block w-auto ms-1 mb-3">
-          <option>None</option>
-          <option>Plastic</option>
-          <option>Ceramic</option>
-        </select>
-        <br>
+      {% endif %}
+
+
+      <!-- 🔹 Add to Cart Form -->
+      <form method="POST" action="#">
+        {% csrf_token %}
+        <br />
         <div class="mt-1 d-flex gap-3">
-        <label>Qty: </label>
-        <input type="number" value="1" min="1" max="{{ product.stock }}" class="form-control text-center" style="width:70px; height:30px;">
-        
-        <br>
-        <!-- Add to cart & Wishlist -->
-      
-        <button class="btn btn-success px-4">ADD TO CART</button>
-        <a href=""><i class="fa fa-heart wishlist-icon"></i></a>
-      </div>
-        
+          <label>Qty: </label>
+          <input
+            type="number"
+            name="quantity"
+            value="1"
+            min="1"
+            max="{{ cheapest_variant.stock }}"
+            id="qty-input"
+            class="form-control text-center"
+            style="width: 70px; height: 30px"
+          />
+          <button type="submit" id="add-to-cart-btn" class="btn btn-success px-4">
+            ADD TO CART
+          </button>
+          <a href=""><i class="fa fa-heart wishlist-icon"></i></a>
+        </div>
       </form>
     </div>
+
+
     <!-- Cart Summary -->
     <div class="col-md-3">
       <div class="cart-summary mb-4">
         <strong>Your Cart</strong>
         <div class="d-flex align-items-center mt-2">
-          
-          <img src="{{ product.main_image.url }}" class="me-2" style="width:50px; height:50px; object-fit:cover; border-radius:6px;">
+          <img
+            src="{% static "images/Peace Lily Plant.png" %}"
+            class="me-2"
+            style="
+              width: 50px;
+              height: 50px;
+              object-fit: cover;
+              border-radius: 6px;
+            "
+          />
           <div>
-            <div>Air Purifier Money Plant</div>
-            <div class="small text-muted">1 x ₹249</div>
+            <div>{{ product.name }}</div>
+            <div class="small text-muted">
+              1 x ₹{{ cheapest_variant.price }}
+            </div>
           </div>
         </div>
-        <hr>
-        <div>Sub Total: <span class="float-end">₹249.00</span></div>
+        <hr />
+        <div>
+          Sub Total:
+          <span class="float-end">₹{{ cheapest_variant.price }}</span>
+        </div>
         <button class="btn btn-dark btn-sm w-100 mt-2">View Cart</button>
         <button class="btn btn-success btn-sm w-100 mt-2">Checkout</button>
         <div class="small text-muted mt-2">Ships from Kerala GreenNest</div>
@@ -106,54 +187,105 @@
   </div>
 </div>
 
-<!-- Similar Collection -->
+
+<!-- Similar Collection (unchanged) -->
 <div class="container mb-5">
   <h5>Similar Collection</h5>
   <div class="row mt-3">
     {% for related in product.category.products.all|slice:":4" %}
       {% if related.id != product.id %}
-        <div class="col-6 col-md-3 mb-3 text-center">
-          <a href="{% url 'user_product_detail' related.id %}">
-            <img src="{{ related.main_image.url }}" class="shadow-sm"
-                 style="width:100%; max-width:150px; height:180px; object-fit:cover; border-radius:8px;">
-          </a>
-          <div class="mt-2">{{ related.name }}</div>
-          <div class="mt-2">₹{{ related.price }} </div>
-          <div class="mt-1 d-flex justify-content-center gap-3">
-        <button class="btn btn-success  px-1">ADD TO CART</button>
-        <a href=""><i class="fa fa-heart wishlist-icon"></i></a>
-      </div>
-
+      <div class="col-6 col-md-3 mb-3 text-center">
+        <a href="{% url 'user_product_detail' related.id %}">
+          {% if related.variants.first and related.variants.first.images.all %}
+            <img
+              src="{{ related.variants.first.images.all.0.image.url }}"
+              class="shadow-sm"
+              style="
+                width: 100%;
+                max-width: 150px;
+                height: 180px;
+                object-fit: cover;
+                border-radius: 8px;
+              "
+            />
+          {% endif %}
+        </a>
+        <div class="mt-2">{{ related.name }}</div>
+        {% if related.variants.first %}
+        <div class="mt-2">₹{{ related.variants.first.price }}</div>
+        {% else %}
+        <div class="mt-2"><span class="text-danger">Out of Stock</span></div>
+        {% endif %}
+        <div class="mt-1 d-flex justify-content-center gap-3">
+          <button class="btn btn-success px-1">ADD TO CART</button>
+          <a href=""><i class="fa fa-heart wishlist-icon"></i></a>
         </div>
+      </div>
       {% endif %}
     {% endfor %}
   </div>
 </div>
 
 
-
-
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/elevatezoom/3.0.8/jquery.elevatezoom.min.js"></script>
 <script>
-  $(document).ready(function(){
-    // Initialize zoom inside main image
-    $("#mainImage").elevateZoom({
-        zoomType: "inner",   // 🔹 zoom happens inside
-        cursor: "crosshair"  // 🔹 shows crosshair cursor
-    });
+$(document).ready(function () {
+  function updateStockPriceAndImages(stock, price, images) {
+    $("#variant-price").text("₹" + price);
+    $("#variant-stock").text(stock);
+    $("#qty-input").attr("max", stock);
 
-    // Thumbnail click handler (replace main image + re-init zoom)
-    $(".thumb-image").on("click", function(){
-      var newImage = $(this).attr("src");
-      $("#mainImage").attr("src", newImage).data("zoom-image", newImage);
+    // Update Add to Cart button
+    const addBtn = $("#add-to-cart-btn");
+    if (parseInt(stock) > 0) {
+      addBtn.prop("disabled", false).text("ADD TO CART").removeClass("btn-secondary").addClass("btn-success");
+    } else {
+      addBtn.prop("disabled", true).text("Out of Stock").removeClass("btn-success").addClass("btn-secondary");
+    }
 
-      // Remove old zoom container & re-init inner zoom
-      $('.zoomContainer').remove();
-      $("#mainImage").elevateZoom({
-        zoomType: "inner",
-        cursor: "crosshair"
+    // Update main image and thumbnails
+    if (images && images.length > 0) {
+      $("#mainImage").attr("src", images[0]).data("zoom-image", images[0]);
+
+      // Remove old zoom
+      $(".zoomContainer").remove();
+      $("#mainImage").elevateZoom({ zoomType: "inner", cursor: "crosshair" });
+
+      // Update thumbnails
+      const thumbsContainer = $("#thumbs-container");
+      thumbsContainer.empty();
+      images.forEach(function (img) {
+        thumbsContainer.append('<img src="' + img + '" class="thumb-image" style="width: 70px; height: 80px; cursor:pointer;">');
       });
-    });
+
+      // Reattach click handler for new thumbnails
+      $(".thumb-image").off("click").on("click", function () {
+        var newImage = $(this).attr("src");
+        $("#mainImage").attr("src", newImage).data("zoom-image", newImage);
+        $(".zoomContainer").remove();
+        $("#mainImage").elevateZoom({ zoomType: "inner", cursor: "crosshair" });
+      });
+    }
+  }
+
+  $("input[name='variant_id']").on("change", function () {
+    var price = $(this).data("price");
+    var stock = $(this).data("stock");
+
+    // Images stored as comma-separated URLs
+    var imagesData = $(this).data("images"); 
+    var images = imagesData ? imagesData.split(",") : [];
+
+    updateStockPriceAndImages(stock, price, images);
   });
+
+  // Trigger change on page load for default checked variant
+  $("input[name='variant_id']:checked").trigger("change");
+});
+
 </script>
-{% endblock user_products_detials %} 
+
+
+{% endblock user_products_detials %}
+  

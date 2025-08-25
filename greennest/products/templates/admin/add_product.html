@@ -4,269 +4,263 @@
 {% block admin_add_products %}
 <link  href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet"/>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
 <style>
   .img-thumb {
-    width: 60px;
-    height: 60px;
+    width: 80px;
+    height: 80px;
     object-fit: cover;
     border-radius: 4px;
   }
 </style>
 
-<!-- Main content area -->
-    <div class="col-lg-10 p-0" style="background: #f8f9fa;">
-      <div class="main-content">
 
-        <!-- Top section -->
-        <div class="content-section d-flex justify-content-between align-items-center flex-wrap">
-          <div>
-            <h4 class="fw-bold mb-1">Add Products</h4>
-            <div class="text-muted small">Admin &gt; Products</div>
-          </div>
-          <div class="d-flex align-items-center mt-2 mt-lg-0 me-5 ">
-            <form class="d-none d-md-block me-5">
-              <input class="form-control rounded-pill px-3" placeholder="Search " type="search" style="min-width:200px;">
-            </form>
-            <div class="d-flex align-items-center">
+<div class="col-lg-10 p-0" style="background: #f8f9fa;">
+  <div class="main-content">
 
-               
-              
-            </div>
+    <!-- Top Section -->
+    <div class="content-section d-flex justify-content-between align-items-center flex-wrap">
+      <div>
+        <h4 class="fw-bold mb-1">Add Products</h4>
+        <div class="text-muted small">Admin &gt; Products</div>
+      </div>
+    </div>
+
+    <!-- Add Product Form -->
+    <section class="content-section d-flex justify-content-between align-items-center flex-wrap ">
+      <form method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="row g-4">
+
+        <!-- Product Title -->
+        <div class="col-md-6">
+          <label class="form-label">Product Title</label>
+          <input type="text" class="form-control" name="name" placeholder="Enter product name" required>
+        </div>
+
+        <!-- Category -->
+        <div class="col-md-6">
+          <label class="form-label">Category</label>
+          <select class="form-select" name="category" required>
+            <option value="">Select Category</option>
+            {% for cat in categories %}
+              <option value="{{ cat.id }}">{{ cat.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Watering Instructions -->
+        <div class="col-md-6">
+          <label class="form-label">Watering Instructions</label>
+          <input type="text" class="form-control" name="watering" placeholder="e.g., Water twice a week">
+        </div>
+
+        <!-- Light Requirement -->
+        <div class="col-md-6">
+          <label class="form-label">Light Requirement</label>
+          <input type="text" class="form-control" name="light_requirement" placeholder="e.g., Full Sun / Partial Shade / Indoor">
+        </div>
+
+        <!-- Description -->
+        <div class="col-12">
+          <label class="form-label">Description</label>
+          <textarea class="form-control" name="description" rows="3"></textarea>
+        </div>
+
+        <!-- Active Checkbox -->
+        <div class="col-12">
+          <div class="form-check">
+            <input type="checkbox" class="form-check-input" name="is_active" id="is_active">
+            <label class="form-check-label" for="is_active">Active</label>
           </div>
         </div>
 
-        <!-- Table section -->
-        <div class="content-section">
-          <div class="table-responsive">
-            <!-- Add Product Form -->
-      <section class="rounded-form mx-3 my-3">
-       
-        
-   <form method="POST" enctype="multipart/form-data">
-  {% csrf_token %}
-  <div class="row g-4">
+        <!-- Variants Section -->
+        <div class="col-12">
+          <h5>Variants</h5>
+          <div id="variants-container">
+            <!-- First variant displayed by default -->
+            <div class="variant-wrapper">
+              <div class="mb-2 d-flex gap-2 align-items-center">
+                <input type="text" name="variant_type[]" class="form-control" placeholder="Enter variant name" required>
+                <input type="number" name="price[]" class="form-control" placeholder="Price" step="0.01" required>
+                <input type="number" name="stock[]" class="form-control" placeholder="Stock" min="0" required>
+              </div>
 
-    <!-- Product Name -->
-    <div class="col-md-6">
-      <label class="form-label">Product Title</label>
-      <input type="text" class="form-control" name="name" placeholder="Enter product title" required>
-    </div>
+              <div class="mb-2">
+                <label>Variant Images (max 3)</label>
+                <input type="file" class="form-control" name="variant_images_0" accept="image/*" multiple onchange="previewVariantImages(this, 0)">
+                <div id="variantPreview_0" class="d-flex gap-2 mt-2 flex-wrap"></div>
+              </div>
+            </div>
+          </div>
 
-    <!-- Category Dropdown -->
-    <div class="col-md-6">
-      <label class="form-label">Category</label>
-      <select class="form-select" name="category" required>
-        <option value="">Select Category</option>
-        {% for cat in categories %}
-          <option value="{{ cat.id }}">{{ cat.name }}</option>
-        {% endfor %}
-      </select>
-    </div>
+          <button type="button" class="btn btn-sm btn-secondary mt-2" onclick="addVariant()">+ Add Variant</button>
+        </div>
 
-    <!-- Price -->
-    <div class="col-md-6">
-      <label class="form-label">Price</label>
-      <input type="number" class="form-control" name="price" placeholder="Enter price" step="0.01" required>
-    </div>
 
-    <!-- Size -->
-    <div class="col-md-6">
-      <label class="form-label">Size</label>
-      <input type="text" class="form-control" name="size" placeholder="Eg: S, M, L">
-    </div>
+        <!-- Submit -->
+        <div class="col-12 mt-3">
+          <button type="submit" class="btn px-4 text-white" style="background:#004F44">Save Product</button>
+        </div>
 
-    <!-- Light Requirement -->
-    <div class="col-md-6">
-      <label class="form-label">Light Requirement</label>
-      <input type="text" class="form-control" name="light_requirement" placeholder="Eg: Bright Indirect Sun">
-    </div>
+      </div>
+    </form>
+  </div>
+</div>
 
-    
-    <!--Main Image Upload -->
-<div class="col-md-6">
-  <label class="form-label">Main Image</label>
-  <input type="file" id="mainImageInput" class="form-control form-control-sm" 
-         name="main_image" accept="image/*" required>
-  <input type="hidden" name="main_image_cropped" id="mainImageCropped">
-  
-  <!-- Modal for Cropping -->
-  <div id="cropModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; 
-       background:rgba(255,255,255,0.95); align-items:center; justify-content:center;z-index:9999;">
-    <div style="background:#fff; padding:15px; border-radius:8px; max-width:600px; box-shadow:0 4px 10px rgba(0,0,0,0.3);">
-      <img id="cropImage" style="max-width:100%; max-height:400px;">
-      <div class="mt-3 d-flex justify-content-end">
-        <button type="button" id="cropOk" class="btn btn-success btn-sm">Crop</button>
-        <button type="button" id="useOriginal" class="btn btn-primary btn-sm ms-2">Use Original</button>
-        <button type="button" id="cropCancel" class="btn btn-secondary btn-sm ms-2">Cancel</button>
+<!-- Cropper Modal -->
+<div class="modal fade" id="cropperModal" tabindex="-1">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Crop Image</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="overflow:auto; text-align:center;">
+        <img id="cropperImage" style="width:100%; max-height:80vh; object-fit:contain;">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-success" id="saveCrop">Save Crop</button>
       </div>
     </div>
   </div>
-  
-  <!-- Cropped preview -->
-  <div class="mt-2">
-    <img id="previewCropped" class="img-thumb" style="display:none;">
+</div>
+
+<!-- View Image Modal -->
+<div class="modal fade" id="viewImageModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-body text-center">
+        <img id="viewImage" style="width:100%; max-height:80vh; object-fit:contain;">
+      </div>
+    </div>
+  </div>
+</div>
+
+    </section>
+
   </div>
 </div>
 
 
-    <!-- Additional Images -->
-    <div class="col-12">
-      <label class="form-label">Additional Images</label>
-      <input type="file" class="form-control form-control-sm" name="extra_images" multiple accept="image/*">
-    </div>
 
-    <!-- Description -->
-    <div class="col-6">
-      <label class="form-label">Description</label>
-      <textarea class="form-control" rows="3" name="description" placeholder="Describe the product"></textarea>
-    </div>
-
-    <!-- Add Stock details -->
-    <div class="col-md-6">
-      <label class="form-label">Stock</label>
-      <input type="number" name="stock" class="form-control" placeholder="Enter stock quantity" min="0">
-    </div>
-    
-    <!-- Active Checkbox -->
-    <div class="col-12">
-      <div class="form-check">
-        <input type="checkbox" class="form-check-input" id="is_active" name="is_active">
-        <label class="form-check-label" for="is_active">Active</label>
-      </div>
-    </div>
-
-    <!-- Product Variants -->
-    <div class="col-12">
-      <h5>Variants</h5>
-      <div id="variants" class="mb-2">
-        <div class="variant mb-1 d-flex gap-2 align-items-center">
-          <input type="text" name="growth_stage[]" class="form-control" placeholder="Growth Stage">
-          <input type="number" name="additional_price[]" class="form-control" placeholder="Additional Price">
-          <button type="button" class="btn btn-sm btn-light p-1" style="color:red; font-weight:bold;" onclick="removeVariant(this)">×</button>
-        </div>
-      </div>
-      <button type="button" class="btn btn-sm btn-secondary" onclick="addVariant()">Add Variant</button>
-    </div>
-
-    <!-- Submit Button -->
-    <div class="col-12">
-      <button type="submit" class="btn mt-4 px-4 text-white" style="background-color:#004F44">Save Product</button>
-    </div>
-
-  </div>
-</form>
-
-
-
-      </section>
-
-      </div>
-    </div>
-
-
-
-
-
-
-
-
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script>
+
+let variantIndex = 1;
+let cropper, currentPreviewElem, currentHiddenInput;
+
 function addVariant() {
-  const container = document.getElementById('variants');
+  const container = document.getElementById('variants-container');
+
   const div = document.createElement('div');
-  div.classList.add('variant', 'mb-1', 'd-flex', 'gap-2', 'align-items-center');
+  div.classList.add('variant-wrapper');
+
   div.innerHTML = `
-    <input type="text" name="growth_stage[]" class="form-control" placeholder="Growth Stage">
-    <input type="number" name="additional_price[]" class="form-control" placeholder="Additional Price">
-    <button type="button" class="btn btn-sm btn-light p-1" style="color:red; font-weight:bold;" onclick="removeVariant(this)">×</button>
+    <div class="mb-2 d-flex gap-2 align-items-center">
+      <input type="text" name="variant_type[]" class="form-control" placeholder="Enter variant name" required>
+      <input type="number" name="price[]" class="form-control" placeholder="Price" step="0.01" required>
+      <input type="number" name="stock[]" class="form-control" placeholder="Stock" min="0" required>
+      <button type="button" class="btn btn-sm btn-light" onclick="removeVariant(this)">×</button>
+    </div>
+
+    <div class="mb-2">
+      <label>Variant Images (max 3)</label>
+      <input type="file" class="form-control" name="variant_images_${variantIndex}" accept="image/*" multiple onchange="previewVariantImages(this, ${variantIndex})">
+      <div id="variantPreview_${variantIndex}" class="d-flex gap-2 mt-2 flex-wrap"></div>
+    </div>
   `;
+
   container.appendChild(div);
+  variantIndex++;
 }
 
 function removeVariant(button) {
-  button.parentElement.remove();
+  button.closest('.variant-wrapper').remove();
+}
+
+// Preview images + crop button
+function previewVariantImages(input, index) {
+  const previewContainer = document.getElementById(`variantPreview_${index}`);
+  previewContainer.innerHTML = "";
+
+  const files = Array.from(input.files).slice(0, 3); // limit to 3 images
+  files.forEach((file, i) => {
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      const wrapper = document.createElement('div');
+      wrapper.classList.add('position-relative');
+
+      wrapper.innerHTML = `
+        <img src="${evt.target.result}" class="img-thumb" data-original="${evt.target.result}">
+        <input type="hidden" name="variant_${index}_cropped_${i}" id="variantHidden_${index}_${i}">
+        
+        <!-- Crop Button -->
+        <button type="button" class="btn btn-sm btn-light position-absolute bottom-0 end-0 me-5"
+                onclick="openCropper(this.parentElement.querySelector('img'), 'variantHidden_${index}_${i}')">
+          <i class="bi bi-crop"></i>
+        </button>
+
+        <!-- View Button -->
+        <button type="button" class="btn btn-sm btn-light position-absolute bottom-0 end-0"
+                onclick="viewImage(this.parentElement.querySelector('img'))">
+          <i class="bi bi-eye"></i>
+        </button>
+      `;
+      previewContainer.appendChild(wrapper);
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 
-document.addEventListener("DOMContentLoaded", function () {
-    const fileInput = document.getElementById("mainImageInput");
-    const cropModal = document.getElementById("cropModal");
-    const cropImage = document.getElementById("cropImage");
-    const cropOk = document.getElementById("cropOk");
-    const useOriginal = document.getElementById("useOriginal");
-    const cropCancel = document.getElementById("cropCancel");
-    const croppedInput = document.getElementById("mainImageCropped");
-    const previewCropped = document.getElementById("previewCropped");
-    let cropper;
-    let originalFileBase64 = "";
+// Cropper modal functions
+function openCropper(previewElem, hiddenInputId) {
+  currentPreviewElem = previewElem;
+  currentHiddenInput = hiddenInputId;
 
-    // When user selects a file
-    fileInput.addEventListener("change", function (event) {
-        const file = event.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                cropImage.src = e.target.result;
-                originalFileBase64 = e.target.result; // store original in base64
-                cropModal.style.display = "flex";   // Show modal
-                if (cropper) cropper.destroy();     // Reset old cropper
-                cropper = new Cropper(cropImage, {
-                    aspectRatio: 1,  // square crop
-                    viewMode: 1
-                });
-            };
-            reader.readAsDataURL(file);
-        }
-    });
+  // Use original (not 80px thumbnail)
+  document.getElementById('cropperImage').src = previewElem.dataset.original;
 
-    // Crop option
-    cropOk.addEventListener("click", function () {
-        if (cropper) {
-            const canvas = cropper.getCroppedCanvas({
-                width: 600,
-                height: 600
-            });
-            canvas.toBlob(function (blob) {
-                const reader = new FileReader();
-                reader.onloadend = function () {
-                    croppedInput.value = reader.result;  // base64 cropped
-                    previewCropped.src = reader.result;
-                    previewCropped.style.display = "block";
-                };
-                reader.readAsDataURL(blob);
-            }, "image/jpeg", 0.9);
-            cropModal.style.display = "none";
-            cropper.destroy();
-            cropper = null;
-        }
-    });
+  const modal = new bootstrap.Modal(document.getElementById('cropperModal'));
+  modal.show();
 
-    // Use Original (no crop)
-    useOriginal.addEventListener("click", function () {
-        croppedInput.value = ""; // leave hidden input empty → backend will use file
-        previewCropped.src = originalFileBase64; // preview original
-        previewCropped.style.display = "block";
-        cropModal.style.display = "none";
-        if (cropper) {
-            cropper.destroy();
-            cropper = null;
-        }
+  document.getElementById('cropperImage').onload = function() {
+    if (cropper) cropper.destroy();
+    cropper = new Cropper(document.getElementById('cropperImage'), { 
+      aspectRatio: 1,
+      viewMode: 1
     });
+  };
+}
 
-    // Cancel button
-    cropCancel.addEventListener("click", function () {
-        cropModal.style.display = "none";
-        if (cropper) {
-            cropper.destroy();
-            cropper = null;
-        }
-        fileInput.value = ""; // reset input
-        previewCropped.style.display = "none";
-    });
+document.getElementById('saveCrop').addEventListener('click', function() {
+  const canvas = cropper.getCroppedCanvas({
+    width: 500,
+    height: 500,
+  });
+
+  // Convert cropped image to base64
+  const croppedBase64 = canvas.toDataURL("image/jpeg");
+
+  // Update preview image
+  currentPreviewElem.src = croppedBase64;
+
+  // Save cropped base64 into hidden input
+  document.getElementById(currentHiddenInput).value = croppedBase64;
+
+  bootstrap.Modal.getInstance(document.getElementById('cropperModal')).hide();
 });
 
+
+
+function viewImage(previewElem) {
+  document.getElementById('viewImage').src = previewElem.src;
+  const modal = new bootstrap.Modal(document.getElementById('viewImageModal'));
+  modal.show();
+}
+
 </script>
+
 {% endblock %}

@@ -26,10 +26,10 @@ urlpatterns = [
     path('users/', include('users.urls')),
 
     #  <- admin side products and user side products
-    path('greenneest_admin/products/', include('products.admin_urls')),  
+    path('greennest_admin/products/', include('products.admin_urls')),  
     path('users/products/', include('products.urls')),                         
 
-    path('greenneest_admin/', include('greenest_admin.urls')), 
+    path('greennest_admin/', include('greenest_admin.urls')), 
 
     path('accounts/', include('allauth.urls')),  # <--- Allauth URLs
 ]

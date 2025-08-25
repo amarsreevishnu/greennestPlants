@@ -83,77 +83,65 @@
                 <a href="#" class="btn btn-outline-light px-4"><i class="bi bi-play-circle me-2"></i>Watch Video</a>
             </div>
         </div>
-        <!-- <div class="side-numbers position-absolute top-50 end-0 translate-middle-y text-white pe-4">
-            <p>01</p>
-            <p>02</p>
-            <p>03</p>
-        </div> -->
     </section>
 
 
+   
     <!-- Featured Products Carousel -->
     <section class="py-5 bg-light" id="products">
-        <div class="container">
-            <h2 class="mb-4">Featured</h2>
-            <div id="featuredCarousel" class="carousel slide" data-bs-ride="carousel">
-                <div class="carousel-inner">
-                    <!-- First slide -->
-                    <div class="carousel-item active">
-                        <div class="row text-center">
-                            <div class="col-md-3">
-                                <div class="card">
-                                    <img src="{% static 'images/plant-1.jpeg' %}"
-                                        class="card-img-top" alt="Areca Palm">
-                                    <div class="card-body">
-                                        <h5 class="card-title">Areca Palm</h5>
-                                        <p class="card-text">From $15</p>
-                                        <button class="btn btn-outline-success">Add to cart</button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="card">
-                                    <img src="{% static 'images/plant-1.jpeg' %}"
-                                        class="card-img-top" alt="Areca Palm">
-                                    <div class="card-body">
-                                        <h5 class="card-title">Areca Palm</h5>
-                                        <p class="card-text">From $15</p>
-                                        <button class="btn btn-outline-success">Add to cart</button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="card">
-                                    <img src="{% static 'images/plant-1.jpeg' %}"
-                                        class="card-img-top" alt="Areca Palm">
-                                    <div class="card-body">
-                                        <h5 class="card-title">Areca Palm</h5>
-                                        <p class="card-text">From $15</p>
-                                        <button class="btn btn-outline-success">Add to cart</button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="card">
-                                    <img src="{% static 'images/plant-1.jpeg' %}"
-                                        class="card-img-top" alt="Areca Palm">
-                                    <div class="card-body">
-                                        <h5 class="card-title">Areca Palm</h5>
-                                        <p class="card-text">From $15</p>
-                                        <button class="btn btn-outline-success">Add to cart</button>
-                                    </div>
-                                </div>
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0">Featured</h2>
+            <a href="{% url 'user_product_list' %}" class="btn btn-outline-custom btn-sm" >
+                View All
+            </a>
+        </div>
+
+        <div id="featuredCarousel" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-inner">
+                {% for product in products %}
+                    {% if forloop.counter0|divisibleby:4 %}
+                        <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                            <div class="row text-center">
+                    {% endif %}
+
+                    <!-- Product Card -->
+                    <div class="col-md-3">
+                        <div class="card h-100">
+                            {% with variant=product.variants.all|dictsort:"price"|first %}
+                                {% if variant and variant.images.first %}
+                                    <img src="{{ variant.images.first.image.url }}" class="card-img-top" alt="{{ product.name }}">
+                                {% else %}
+                                    <img src="/static/images/no-image.png" class="card-img-top" alt="{{ product.name }}">
+                                {% endif %}
+                                {% endwith %}
+
+                            <div class="card-body">
+                                <h5 class="card-title">{{ product.name }}</h5>
+                                <p class="card-text">From ${{ product.price }}</p>
+                                <button class="btn btn-outline-success">Add to cart</button>
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Add more slides here if you have more products -->
-                     
-                </div>
-                
+
+                    {% if forloop.counter|divisibleby:4 or forloop.last %}
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
             </div>
+
+            <!-- Carousel Controls -->
+            <button class="carousel-control-prev " type="button" data-bs-target="#featuredCarousel" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon"></span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#featuredCarousel" data-bs-slide="next">
+                <span class="carousel-control-next-icon"></span>
+            </button>
         </div>
-    </section>
+    </div>
+</section>
+
 
     <!-- Top Picks -->
     <section class="py-5">

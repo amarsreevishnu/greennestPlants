@@ -1,4 +1,6 @@
 import random
+import re
+
 from django.contrib import messages
 from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -12,6 +14,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 
 from .models import EmailOTP
+from products.models import Product
 
 
 User = get_user_model()  # Gets CustomUser model
@@ -30,6 +33,14 @@ def user_signup(request):
             messages.error(request, "All fields are required.")
             return redirect('user_signup')
         
+        if not re.match(r'^[A-Za-z ]+$', name):
+            messages.error(request, "Name should only contain letters and spaces.")
+            return redirect('user_signup')
+
+        if len(password)<4:
+            messages.error(request,"Password length must be at least four.")
+            return redirect('user_signup')
+
         if password != password_confirm:
             messages.error(request, "Passwords do not match.")
             return redirect('user_signup')
@@ -42,20 +53,19 @@ def user_signup(request):
             email=email,
             first_name=name,  
             password=make_password(password),  
-            is_active=False # User is inactive until email verification
+            is_active=False  
         )
         # Store user id in session
         request.session['pending_user_id'] = user.id
-        # Send OTP email
-        send_otp_email(user)
-
-       
+        
+        send_otp_email(user) 
         return redirect('verify_otp')
 
     return render(request, 'users/user_signup.html')
 
 def send_otp_email(user):
     otp = f"{random.randint(1000, 9999)}"
+    print(otp)
     EmailOTP.objects.update_or_create(user=user, defaults={'otp': otp, 'created_at': timezone.now()})
     send_mail(
         "Your OTP Code",
@@ -65,10 +75,10 @@ def send_otp_email(user):
     )
 
 def verify_otp(request):
-    
+    # redirect to signup if no session
     user_id = request.session.get('pending_user_id')
     if 'pending_user_id' not in request.session:
-        return redirect('user_signup')  # redirect to signup if no session
+        return redirect('user_signup')  
     
 
     user = get_object_or_404(User, pk=user_id)
@@ -81,8 +91,12 @@ def verify_otp(request):
         request.POST.get("otp3", "") +
         request.POST.get("otp4", "")
         )
+        if len(entered_otp) != 4:
+            messages.error(request, "Please enter the complete 4-digit OTP.")
+            return render(request, "users/verify_otp.html")
         
         if otp_obj.is_expired():
+            otp_obj.delete()
             context = {"otp_expired": True}
             return render(request, "users/verify_otp.html", context)
         
@@ -92,7 +106,7 @@ def verify_otp(request):
             otp_obj.delete()
             del request.session['pending_user_id']
             messages.success(request, "Your account has been verified! Please log in.")
-            return redirect('user_login')
+            return redirect('user_home')
         else:
             messages.error(request, "Invalid OTP. Please try again.")
     
@@ -122,6 +136,7 @@ def resend_otp_ajax(request):
         return JsonResponse({"success": True, "message": "New OTP sent successfully."})
 
     return JsonResponse({"success": False, "message": "Invalid request."})
+
 
 @never_cache
 def user_login(request):
@@ -153,9 +168,10 @@ def user_logout(request):
     return redirect('user_login')
 
 @never_cache
-@login_required
+@login_required(login_url='user_login')
 def user_home(request):
-    return render(request, 'users/user_home.html', {'user': request.user})
+    products = Product.objects.filter(is_active=True)
+    return render(request, 'users/user_home.html', {'user': request.user,'products':products})
 
 def forget_password(request):
     if request.method == "POST":
@@ -222,14 +238,14 @@ def reset_password(request):
     if request.method == "POST":
         new_password = request.POST.get("new_password")
         confirm_password = request.POST.get("confirm_password")
-
+        print(new_password,confirm_password)
         # Password match check
         if new_password != confirm_password:
             messages.error(request, "Passwords do not match.")
             return redirect('reset_password')
 
         # Update password
-        user.password = make_password(new_password)
+        user.set_password(new_password)
         user.save()
 
         # Clear reset session

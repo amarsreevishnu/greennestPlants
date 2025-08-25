@@ -10,6 +10,8 @@
     object-fit: cover;
     border-radius: 4px;
   }
+
+  
 </style>
 
 <!-- Main content area -->
@@ -26,10 +28,7 @@
             <form class="d-none d-md-block me-5">
               <input class="form-control rounded-pill px-3" placeholder="Search " type="search" style="min-width:200px;">
             </form>
-            <div class="d-flex align-items-center">
-
-               
-              
+            <div class="d-flex align-items-center"> 
             </div>
           </div>
         </div>
@@ -62,46 +61,17 @@
       </select>
     </div>
 
-    <!-- Price -->
+    <!-- Watering  -->
     <div class="col-md-6">
-      <label class="form-label">Price</label>
-      <input type="number" class="form-control" name="price" placeholder="Enter price" step="0.01" required>
+      <label class="form-label">Watering Instructions</label>
+      <input type="text" class="form-control" name="watering" value="{{ product.watering }}" >
     </div>
-
-    <!-- Size -->
-    <div class="col-md-6">
-      <label class="form-label">Size</label>
-       <input type="text" class="form-control" name="size" value="{{ product.size }}">
-    </div>
-
+    
     <!-- Light Requirement -->
     <div class="col-md-6">
       <label class="form-label">Light Requirement</label>
       <input type="text" class="form-control" name="light_requirement" value="{{ product.light_requirement }}">
     </div>
-
-    <!-- Main Image -->
-    <div class="col-md-6">
-      <label class="form-label">Main Image</label>
-      {% if product.main_image %}
-        <div class="mb-2">
-          <img src="{{ product.main_image.url }}" alt="Main Image" class="img-thumb">
-        </div>
-      {% endif %}
-      <input type="file" class="form-control form-control-sm" name="main_image" accept="image/*">
-    </div>
-
-    <!-- Additional Images -->
-    <div class="col-12">
-      <label class="form-label">Additional Images</label>
-      <div class="mb-2 d-flex gap-2 flex-wrap">
-        {% for img in images %}
-          <img src="{{ img.image.url }}" class="img-thumb" alt="Additional Image">
-        {% endfor %}
-      </div>
-      <input type="file" class="form-control form-control-sm" name="extra_images" multiple accept="image/*">
-    </div>
-
     <!-- Description -->
     <div class="col-12">
       <label class="form-label">Description</label>
@@ -117,60 +87,118 @@
     </div>
 
     <!-- Product Variants -->
-    <div class="col-12">
-      <h5>Variants</h5>
-      <div id="variants" class="mb-2">
-        {% for var in variants %}
-        <div class="variant mb-1 d-flex gap-2 align-items-center">
-          <input type="text" name="growth_stage[]" class="form-control" value="{{ var.growth_stage }}" placeholder="Growth Stage">
-          <input type="number" name="additional_price[]" class="form-control" value="{{ var.additional_price }}" placeholder="Additional Price">
-          <button type="button" class="btn btn-sm btn-light p-1" style="color:red; font-weight:bold;" onclick="removeVariant(this)">×</button>
-        </div>
-        {% endfor %}
+    <div id="variants" class="mb-2">
+   {% for variant in variants %}
+  <div class="variant mb-1 d-flex gap-2 align-items-center" data-variant-id="{{ variant.id }}">
+    <input type="hidden" name="variant_id[]" value="{{ variant.id }}">
+<div class="row g-2 align-items-center">
+      <div class="col-md-4">
+          <input type="text" name="variant_type[]" class="form-control" placeholder="Growth Stage" value="{{ variant.variant_type }}" required>
       </div>
-      <button type="button" class="btn btn-sm btn-secondary" onclick="addVariant()">Add Variant</button>
+      <div class="col-md-3">
+          <input type="number" name="price[]" class="form-control" placeholder="Price" step="0.01" value="{{ variant.price }}" required>
+      </div>
+      <div class="col-md-3">
+          <input type="number" name="stock[]" class="form-control" placeholder="Stock" value="{{ variant.stock }}">
+      </div>
+      <div class="col-md-2">
+          <button type="button" class="btn btn-danger btn-sm" onclick="removeVariant(this)">Remove</button>
+      </div>
     </div>
+    <div class="variant-images mt-3">
+                    {% for img in variant.ordered_images %}
+                        <div class="variant-image-container" data-image-id="{{ img.id }}">
+                            <img src="{{ img.image.url }}" class="img-thumb" alt="Variant Image">
+                            <button type="button" class="remove-image-btn" onclick="removeImage(this)">×</button>
+                            <input type="hidden" name="existing_variant_images_{{ forloop.parentloop.counter0 }}[]" value="{{ img.id }}">
+                        </div>
+                    {% endfor %}
 
+                    {% for i in "012" %}
+                        <div style="margin-left:10px;">
+                             <input type="file" name="variant_images_{{ forloop.parentloop.counter0 }}_{{ i }}" onchange="previewImage(event, this)">
+                            <input type="hidden" name="variant_{{ forloop.parentloop.counter0 }}_cropped_{{ i }}">
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% empty %}
+            <p>No variants found.</p>
+        {% endfor %}
+    </div>
+    <button type="button" class="btn btn-sm btn-secondary" onclick="addVariant()">Add Variant</button>
     <!-- Submit Button -->
     <div class="col-12">
       <button type="submit" class="btn mt-4 px-4 text-white" style="background-color:#004F44">Update Product</button>
     </div>
-
   </div>
-</form>
-
-
-
-      </section>
-
-      </div>
-    </div>
-
-
-
-
-
-
-
+  </form>
+    </section>
+   </div>
+</div>
 
 
 
 <script>
-function addVariant() {
-  const container = document.getElementById('variants');
-  const div = document.createElement('div');
-  div.classList.add('variant', 'mb-1', 'd-flex', 'gap-2', 'align-items-center');
-  div.innerHTML = `
-    <input type="text" name="growth_stage[]" class="form-control" placeholder="Growth Stage">
-    <input type="number" name="additional_price[]" class="form-control" placeholder="Additional Price">
-    <button type="button" class="btn btn-sm btn-light p-1" style="color:red; font-weight:bold;" onclick="removeVariant(this)">×</button>
-  `;
-  container.appendChild(div);
-}
+    function removeVariant(button) {
+        button.closest('.variant-item').remove();
+    }
 
-function removeVariant(button) {
-  button.parentElement.remove();
-}
+    function removeImage(button) {
+        const container = button.parentElement;
+        const hiddenInput = container.querySelector('input[type=hidden]');
+        if (hiddenInput) hiddenInput.remove();
+        container.remove();
+    }
+
+    function addVariant() {
+        const container = document.getElementById('variants-container');
+        const index = container.children.length;
+
+        const variantHtml = `
+            <div class="variant-item border rounded p-3 mb-3" data-variant-id="">
+                <input type="hidden" name="variant_id[]" value="">
+                <div class="row g-2 align-items-center">
+                    <div class="col-md-4">
+                        <input type="text" name="variant_type[]" class="form-control" placeholder="Growth Stage" required>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="number" name="price[]" class="form-control" placeholder="Price" step="0.01" required>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="number" name="stock[]" class="form-control" placeholder="Stock" value="0">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removeVariant(this)">Remove</button>
+                    </div>
+                </div>
+
+                <div class="variant-images mt-3">
+                    <div style="margin-left:10px;">
+                        <input type="file" name="variant_images_${index}_0" onchange="previewImage(event, this)">
+                        <input type="hidden" name="variant_${index}_cropped_0">
+                    </div>
+                    <div style="margin-left:10px;">
+                        <input type="file" name="variant_images_${index}_1" onchange="previewImage(event, this)">
+                        <input type="hidden" name="variant_${index}_cropped_1">
+                    </div>
+                    <div style="margin-left:10px;">
+                        <input type="file" name="variant_images_${index}_2" onchange="previewImage(event, this)">
+                        <input type="hidden" name="variant_${index}_cropped_2">
+                    </div>
+                </div>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', variantHtml);
+    }
+
+    function previewImage(event, input) {
+        // Optional: Implement client-side image preview or cropping here
+        // For now, just placeholder to hook in image cropping if needed
+    }
 </script>
+
+
+
 
 {% endblock admin_edit_products%}

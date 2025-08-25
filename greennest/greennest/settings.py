@@ -14,21 +14,24 @@ import os
 from pathlib import Path
 from django.contrib import messages
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-cm!#3lycz&t!y$9594(ix*+lkk@w(p@622(!=)kd(4&_@#&+iw'
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DEBUG") == "True"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
+CSRF_TRUSTED_ORIGINS=['https://a603bca1a092.ngrok-free.app']
+
 
 
 
@@ -111,11 +114,11 @@ WSGI_APPLICATION = 'greennest.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'greennest',     # database name
-        'USER': 'postgres',      # default PostgreSQL superuser
-        'PASSWORD': 'admin123',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': os.getenv("DB_NAME", os.path.join(BASE_DIR, "greennest")),     # database name
+        'USER': os.getenv("DB_USER", ""),      # default PostgreSQL superuser
+        'PASSWORD': os.getenv("DB_PASSWORD", ""),
+        'HOST': os.getenv("DB_HOST", "localhost"),
+        'PORT': os.getenv("DB_PORT", "5432"),
     }
 }
 
@@ -179,8 +182,8 @@ MESSAGE_TAGS = {
 
 #Configure email-OTP verification
 
-#EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend' # This Send Otp via SMTP 
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' # This will print the email to console instead of sending it
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend' # This Send Otp via SMTP 
+#EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' # This will print the email to console instead of sending it
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True

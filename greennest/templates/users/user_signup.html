@@ -1,4 +1,6 @@
-{% extends "base.html" %} {%load static %} {% block user_signup %}
+{% extends "base.html" %} 
+{%load static %} 
+{% block user_signup %}
 {% load socialaccount %}
 
 <!-- user-Signup-section -->
@@ -18,16 +20,16 @@
       <div class="col-md-6">
         <h3 class="fw-bold">Register</h3>
         <p class="text-muted text-uppercase small">Join to us</p>
-{% if messages %}
-    {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    {% endfor %}
-{% endif %}
+          {% if messages %}
+              {% for message in messages %}
+                  <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                      {{ message }}
+                      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                  </div>
+              {% endfor %}
+          {% endif %}
 
-        <form action="" method="post" class="registration-form">
+        <form action="" method="post" class="registration-form" autocomplete="off">
           {% csrf_token %}
           <!-- Name -->
           <div class="mb-3">
@@ -37,8 +39,9 @@
               class="form-control"
               id="name"
               placeholder="John Doe"
-              autocomplete="none"
+              
               name="name"
+              required
             />
           </div>
 
@@ -52,6 +55,7 @@
               placeholder="Example@gmail.com"
               name="email"
               autocomplete="none"
+              required
             />
           </div>
 
@@ -66,6 +70,7 @@
                 placeholder="•••"
                 name="password"
                 autocomplete="none"
+                required
               />
               <span class="input-group-text" id="togglePassword" style="cursor: pointer"
                 ><i class="bi bi-eye"  id="passwordIcon" ></i
@@ -86,6 +91,7 @@
                 placeholder="•••"
                 name="password_confirm"
                 autocomplete="none"
+                required
               />
               <span
                 class="input-group-text"
@@ -121,4 +127,38 @@
   </div>
 </section>
 
+
+<script>
+  // Toggle main password
+  document.getElementById("togglePassword").addEventListener("click", function () {
+    const passwordInput = document.getElementById("password");
+    const icon = document.getElementById("passwordIcon");
+
+    if (passwordInput.type === "password") {
+      passwordInput.type = "text";
+      icon.classList.remove("bi-eye");
+      icon.classList.add("bi-eye-slash");
+    } else {
+      passwordInput.type = "password";
+      icon.classList.remove("bi-eye-slash");
+      icon.classList.add("bi-eye");
+    }
+  });
+
+  // Toggle confirm password
+  document.getElementById("toggleConfirmPassword").addEventListener("click", function () {
+    const confirmPasswordInput = document.getElementById("confirmPassword");
+    const icon = document.getElementById("confirmPasswordIcon");
+
+    if (confirmPasswordInput.type === "password") {
+      confirmPasswordInput.type = "text";
+      icon.classList.remove("bi-eye");
+      icon.classList.add("bi-eye-slash");
+    } else {
+      confirmPasswordInput.type = "password";
+      icon.classList.remove("bi-eye-slash");
+      icon.classList.add("bi-eye");
+    }
+  });
+</script>
 {% endblock %}

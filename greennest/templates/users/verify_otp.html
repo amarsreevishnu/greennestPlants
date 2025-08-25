@@ -9,13 +9,27 @@
         <div class="container">
             <div class="otp-box mx-auto p-4 text-center">
                 <h4 class="mb-4">Verify Your OTP</h4>
+                    <div id="otpMessage" class="text-center mb-2"></div>
+                    {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% if otp_expired %}
+                        <div class="alert alert-danger">
+                            OTP has expired. Please request a new one.
+                        </div>
+                    {% endif %}
 
                 <!-- OTP Inputs -->
                 <div class="d-flex justify-content-center mb-3">
-                    <input type="text" maxlength="1" class="otp-input mx-1" required name="otp1">
-                    <input type="text" maxlength="1" class="otp-input mx-1" required name="otp2">
-                    <input type="text" maxlength="1" class="otp-input mx-1" required name="otp3">
-                    <input type="text" maxlength="1" class="otp-input mx-1" required name="otp4">
+                    <input type="text" maxlength="1" class="otp-input mx-1"  name="otp1">
+                    <input type="text" maxlength="1" class="otp-input mx-1"  name="otp2">
+                    <input type="text" maxlength="1" class="otp-input mx-1"  name="otp3">
+                    <input type="text" maxlength="1" class="otp-input mx-1"  name="otp4">
                 </div>
 
                  <input type="hidden" name="otp" id="otpValue">
@@ -25,7 +39,8 @@
                         Didn’t get the OTP?
                         <a href="#" class="fw-bold" style="color: #004F44;" id="resendOtpBtn">Resend OTP</a>
                     </small>
-                    <small id="timer" id="timerText">00:56</small>
+                    <small id="timer">01:00</small>
+                    
                 </div>
 
                 <!-- Submit Button -->
@@ -36,33 +51,33 @@
     </section>
 
 
-    <script>
-  let timeLeft = 60; // seconds
-  const timerEl = document.getElementById('timer');
-  const countdownEl = document.getElementById('countdown');
-  const resendSectionEl = document.getElementById('resendSection');
-  const resendBtn = document.getElementById('resendOtpBtn');
+<script>
+let timeLeft = 60; // seconds
+const timerEl = document.getElementById('timer');
+const resendBtn = document.getElementById('resendOtpBtn');
+const messageEl = document.getElementById('otpMessage');
 
-  function updateTimer() {
+resendBtn.style.pointerEvents = 'none'; // disable initially
+
+function updateTimer() {
     let minutes = Math.floor(timeLeft / 60);
     let seconds = timeLeft % 60;
-    timerEl.textContent = 
-      `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    timerEl.textContent = `${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
 
-    if (timeLeft <= 0) {
-      clearInterval(timerInterval);
-      countdownEl.classList.add('hidden');
-      resendSectionEl.classList.remove('hidden');
+    if(timeLeft <= 0){
+        clearInterval(timerInterval);
+        resendBtn.style.pointerEvents = 'auto'; // enable resend
+        messageEl.innerHTML = "<span style='color:red'>OTP expired. Please resend.</span>";
     }
     timeLeft--;
-  }
+}
 
-  // Start countdown immediately
-  updateTimer();
-  let timerInterval = setInterval(updateTimer, 1000);
+// start timer
+let timerInterval = setInterval(updateTimer, 1000);
 
-  // Handle resend click (AJAX to Django)
-  resendBtn.addEventListener("click", function() {
+// Resend OTP click
+resendBtn.addEventListener("click", function(e){
+    e.preventDefault();
     fetch("{% url 'resend_otp_ajax' %}", {
         method: "POST",
         headers: {
@@ -72,15 +87,20 @@
     })
     .then(res => res.json())
     .then(data => {
-        if (data.remaining) {
-            timeLeft = data.remaining;
-            resendSectionEl.classList.add('hidden');
-            countdownEl.classList.remove('hidden');
-            updateTimer();
+        if(data.success){
+            messageEl.innerHTML = "<span style='color:green'>New OTP sent!</span>";
+            timeLeft = 60; // **reset timer only on successful resend**
+            resendBtn.style.pointerEvents = 'none';
+            clearInterval(timerInterval);
             timerInterval = setInterval(updateTimer, 1000);
+        } else if(data.remaining){
+            messageEl.innerHTML = `<span style='color:red'>Please wait ${data.remaining}s before requesting a new OTP.</span>`;
+        } else {
+            messageEl.innerHTML = `<span style='color:red'>${data.message}</span>`;
         }
     });
-  });
+});
+
 </script>
 
 

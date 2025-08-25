@@ -19,27 +19,27 @@
                 <div class="col-md-6">
                     <h3 class="fw-bold text-center">Welcome Back</h3>
                     <p class="text-muted text-uppercase small text-center">Login to continue</p>
-{% if messages %}
-    {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    {% endfor %}
-{% endif %}
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
                     <form action="" method="post" class="login-form">
                         {% csrf_token %}
                         <!-- Email -->
                         <div class="mb-3">
                             <label for="email" class="form-label">Email Address</label>
-                            <input type="email" class="form-control" id="email" placeholder="Example@gmail.com" name="email" autocomplete="none">
+                            <input type="email" class="form-control" id="email" placeholder="Example@gmail.com" name="email" autocomplete="none" required> 
                         </div>
 
                         <!-- Password -->
                         <div class="mb-3">
                             <label for="password" class="form-label">Password</label>
                             <div class="input-group">
-                                <input type="password" class="form-control" id="password" placeholder="•••" name="password" autocomplete="none">
+                                <input type="password" class="form-control" id="loginPassword" placeholder="•••" name="password" autocomplete="none" required>
                                  <span class="input-group-text" id="toggleLoginPassword" style="cursor: pointer;">
                                     <i class="bi bi-eye" id="loginPasswordIcon"></i></span>
                             </div>
@@ -71,6 +71,32 @@
         </div>
     </section>
 
+
+<script>
+   
+  setTimeout(function() {
+    const container = document.getElementById('message-container');
+    if (container) {
+      container.style.display = 'none';
+    }
+  }, 5000); // 5000 ms = 5 seconds
+
+  // Toggle Login Password
+  document.getElementById("toggleLoginPassword").addEventListener("click", function () {
+    const loginPasswordInput = document.getElementById("loginPassword");
+    const loginIcon = document.getElementById("loginPasswordIcon");
+
+    if (loginPasswordInput.type === "password") {
+      loginPasswordInput.type = "text";
+      loginIcon.classList.remove("bi-eye");
+      loginIcon.classList.add("bi-eye-slash");
+    } else {
+      loginPasswordInput.type = "password";
+      loginIcon.classList.remove("bi-eye-slash");
+      loginIcon.classList.add("bi-eye");
+    }
+  });
+</script>
   {% endblock user_login %}
 
   

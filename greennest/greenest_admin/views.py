@@ -1,25 +1,30 @@
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import user_passes_test, login_required
+from django.contrib.auth.decorators import user_passes_test, login_required, user_passes_test
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import get_user_model
+from django.views.decorators.cache import never_cache
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
-
+from functools import wraps
 from users.views import User
 
 User = get_user_model()
 
 # Only superusers can access
-def superuser_required(view_func):
-    return user_passes_test(lambda u: u.is_superuser, login_url='admin_login')(view_func)
+def admin_required(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if request.user.is_authenticated and request.user.is_superuser:
+            return view_func(request, *args, **kwargs)
+        return redirect("/greennest_admin/")  
+    return _wrapped_view
 
 
+@never_cache
 def admin_login(request):
     if request.user.is_authenticated and request.user.is_superuser:
-        messages.error(request, 'You are not authorized as admin.')
         return redirect('admin_dashboard')
 
     if request.method == 'POST':
@@ -31,7 +36,7 @@ def admin_login(request):
         if user is not None:
             if user.is_superuser:
                 login(request, user)
-                return redirect('admin_dashboard')  # redirect to admin_dashboard page
+                return redirect('admin_dashboard')  
             else:
                 messages.error(request, 'You are not authorized as admin.')
         else:
@@ -40,26 +45,27 @@ def admin_login(request):
     return render(request, 'admin_login.html')
 
 
-@login_required(login_url='admin_login')
+
+@admin_required
 def admin_logout(request):
     logout(request)
+    request.session.flush() 
     return redirect('admin_login')
 
 
-@login_required
-@superuser_required
+@admin_required
+@never_cache
 def admin_dashboard(request):
-    # Render the admin dashboard template
     return render(request, 'admin_dashboard.html')
 
 
 
-@login_required(login_url='admin_login')
-@superuser_required
+@admin_required
+@never_cache
 def user_list(request):
     query = request.GET.get('q', '')
 
-    # Filter users (exclude superusers)
+    
     users = User.objects.filter(is_superuser=False)
 
     # Search by first_name, last_name, or email
@@ -70,7 +76,6 @@ def user_list(request):
             Q(email__icontains=query)
         )
 
-    # Order by latest first
     users = users.order_by('-id')
 
     # Pagination: 10 users per page
@@ -79,12 +84,12 @@ def user_list(request):
     page_obj = paginator.get_page(page_number)
 
     return render(request, 'admin_user_list.html', {
-        'users': page_obj,   # send paginated users
+        'users': page_obj,   
         'query': query
     })
-# Toggle user status
-@login_required(login_url='admin_login')
-@superuser_required
+
+@admin_required
+@never_cache
 def toggle_user_status(request, user_id):
     user = get_object_or_404(User, id=user_id)
 

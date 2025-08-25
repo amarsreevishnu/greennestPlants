@@ -111,7 +111,6 @@ input::placeholder {
     transform: translateY(-50%);
 }
 
-
 .card {
   min-height: 350px;
 }
@@ -286,7 +285,7 @@ footer {
 }
 
 .btn-submit {
-    background-color: #006b56;
+    background-color: #004F44;
     color: white;
     border: none;
     border-radius: 8px;
@@ -310,7 +309,7 @@ footer {
     font-size: 24px;
 }
 .discount {
-    color: green;
+    color: #004F44;
     font-size: 14px;
 }
 .product-details ul {
@@ -319,7 +318,7 @@ footer {
 }
 .product-details ul li::before {
     content: "✔";
-    color: green;
+    color: #004F44;
     margin-right: 8px;
 }
 .wishlist-icon { border: 1px solid #ddd; border-radius: 50%; padding: 10px; cursor: pointer; color: #004F44; }

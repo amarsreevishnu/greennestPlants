@@ -31,25 +31,29 @@ document.querySelectorAll(".otp-input").forEach((input, index, inputs) => {
   });
 });
 
-function setupPasswordToggle(inputId, toggleId, iconId) {
-    const input = document.getElementById(inputId);
-    const toggle = document.getElementById(toggleId);
-    const icon = document.getElementById(iconId);
 
-    toggle.addEventListener("click", function () {
-        const type = input.getAttribute("type") === "password" ? "text" : "password";
-        input.setAttribute("type", type);
+// function setupPasswordToggle(inputId, toggleId, iconId) {
+//   const input = document.getElementById(inputId);
+//   const toggle = document.getElementById(toggleId);
+//   const icon = document.getElementById(iconId);
 
-        // Toggle icon classes
-        icon.classList.toggle("bi-eye");
-        icon.classList.toggle("bi-eye-slash");
-    });
-}
+//   // ✅ run only if all 3 elements exist
+//   if (input && toggle && icon) {
+//     toggle.addEventListener("click", function () {
+//       const type = input.getAttribute("type") === "password" ? "text" : "password";
+//       input.setAttribute("type", type);
 
-// Register page
-setupPasswordToggle("password", "togglePassword", "passwordIcon");
-setupPasswordToggle("confirmPassword", "toggleConfirmPassword", "confirmPasswordIcon");
+//       // Toggle icon classes
+//       icon.classList.toggle("bi-eye");
+//       icon.classList.toggle("bi-eye-slash");
+//     });
+//   }
+// }
 
-// Login page
-setupPasswordToggle("loginPassword", "toggleLoginPassword", "loginPasswordIcon");
+// Calls (safe even on pages without these fields)
+// setupPasswordToggle("password", "togglePassword", "passwordIcon");
+// setupPasswordToggle("confirmPassword", "toggleConfirmPassword", "confirmPasswordIcon");
+// setupPasswordToggle("loginPassword", "toggleLoginPassword", "loginPasswordIcon");
+
+
 
