@@ -174,15 +174,13 @@
           {% endif %}
         {% endwith %}
 
-        <div class="card-body">
+        <div class="card-body text-center">
           <h6 class="card-title">{{ product.name }}</h6>
           <p class="text-muted mb-2">
             {% if product.min_price and product.max_price %}
-              {% if product.min_price == product.max_price %}
-                ₹ {{ product.min_price|floatformat:0 }}
-              {% else %}
-                ₹ {{ product.min_price|floatformat:0 }} – ₹ {{ product.max_price|floatformat:0 }}
-              {% endif %}
+              
+                ₹ {{ product.min_price|floatformat:0 }} 
+              
             {% else %}
               Price not available
             {% endif %}

@@ -15,6 +15,13 @@ urlpatterns = [
 
 
     path("profile/", views.profile_detail, name="profile_detail"),
+    path('profile/edit/', views.profile_edit, name='profile_edit'),
+    path('profile/change_password/',views.profile_change_password,name='profile_change_password'),
+    path('profile/change_email/',views.change_email,name='profile_change_email'),
+
+    
+
+
     path("addresses/", views.address_list, name="address_list"),
     path("addresses/add/", views.address_add, name="address_add"),
     path("addresses/<int:pk>/edit/", views.address_edit, name="address_edit"),

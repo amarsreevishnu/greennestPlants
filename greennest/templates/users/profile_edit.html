@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load static %}
+{% block user_profile_details %}
+
+
+<!-- Breadcrumb -->
+<div class="container py-3">
+  <div class="row">
+   
+    {% include "users/user_profile_sidebar.html" %}
+
+
+    </div>
+    
+    <!-- Profile Edit Form -->
+<div class="col-md-9 py-5">
+    <div class="profile-card p-4 border rounded shadow-sm bg-light">
+        <h3 class="mb-4">Edit Profile</h3>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="mb-3 row">
+                <label class="col-sm-3 col-form-label">Full Name</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" name="full_name" value="{{ request.user.first_name }}">
+                </div>
+            </div>
+
+            
+
+            <div class="mb-3 row">
+                <label class="col-sm-3 col-form-label">Mobile</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" name="phone" value="{{ profile.phone }}">
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <label class="col-sm-3 col-form-label">Date of Birth</label>
+                <div class="col-sm-9">
+                    <input type="date" class="form-control" name="dob" value="{{ profile.dob|date:'Y-m-d' }}">
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <label class="col-sm-3 col-form-label">Gender</label>
+                <div class="col-sm-9">
+                    <select name="gender" class="form-control">
+                        <option value="" {% if not profile.gender %}selected{% endif %}>Select Gender</option>
+                        <option value="male" {% if profile.gender == 'male' %}selected{% endif %}>Male</option>
+                        <option value="female" {% if profile.gender == 'female' %}selected{% endif %}>Female</option>
+                    </select>
+                </div>
+            </div>
+
+
+            <div class="mb-3 row">
+                <label class="col-sm-3 col-form-label">Change Image</label>
+                <div class="col-sm-9">
+                     <input type="file" class="form-control" name="image" id="imageInput" accept="image/*">
+                </div>
+            </div>
+
+            <div class="mb-3 text-center">
+                 <img id="previewImage" src="#" alt="Preview" class="rounded-circle mb-2" width="120" height="120" style="display:none;">
+            </div>
+
+            <div class="text-end">
+                <button type="submit" class="btn edit-btn">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+      
+    </div>
+  </div>
+</div>
+
+
+<script>
+document.getElementById("imageInput").addEventListener("change", function(event) {
+    let preview = document.getElementById("previewImage");
+    let file = event.target.files[0];
+
+    if (file) {
+        preview.src = URL.createObjectURL(file);
+        preview.style.display = "block";
+    } else {
+        preview.style.display = "none";
+    }
+});
+</script>
+{% endblock %}

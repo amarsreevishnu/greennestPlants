@@ -1,198 +1,48 @@
 {% extends "base.html" %}
 {% load static %}
 {% block user_profile_details %}
-<style>
-    
-    .breadcrumb a{
-        text-decoration: none;
-        color: Black;
-        
-    }
-    .sidebar {
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-    .sidebar img {
-      width: 120px;
-      border-radius: 50%;
-      margin-bottom: 10px;
-    }
-    .sidebar h5 {
-      margin: 10px 0 5px;
-    }
-    .sidebar p {
-      font-size: 14px;
-      color: #6c757d;
-    }
-    .sidebar .btn {
-      background-color: #004F3d;
-      color: #fff;
-      border-radius: 25px;
-      width: 100%;
-      margin: 10px 0;
-    }
-    .sidebar ul {
-      list-style: none;
-      padding: 0;
-      margin-top: 15px;
-    }
-    .sidebar ul li {
-      padding: 10px 0;
-      border-bottom: 1px solid #e9ecef;
-      font-size: 15px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .sidebar ul li:last-child {
-      border-bottom: none;
-    }
-    .profile-card {
-      border-radius: 10px;
-      background: #fff;
-      padding: 20px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-    }
-    .profile-row {
-      border-bottom: 1px solid #e9ecef;
-      padding: 10px 0;
-    }
-    .profile-row:last-child {
-      border-bottom: none;
-    }
-    .label {
-      font-weight: 600;
-      color: #495057;
-    }
-    .value {
-      color: #212529;
-    }
-    .edit-btn {
-      background-color: #009688;
-      border: none;
-    }
-    .edit-btn:hover {
-      background-color: #00796b;
-    }
-.sidebar .nav-link {
-  color: #333;
-  padding: 10px;
-  border-radius: 8px;
-  text-decoration: none;
-  display: flex;              /* use flexbox */
-  justify-content: space-between; /* text left, icon right */
-  align-items: center;
-  width: 100%;          /* each link takes full sidebar width */
-  text-align: left;     /* align text to left */
-  box-sizing: border-box;
-  
-}
-
-.sidebar .nav-link:hover {
-  background: #f1f1f1;
-}
-
-.sidebar .nav-link.active {
-  background: #044F44;  /* Bootstrap green */
-  color: #fff !important;
-  font-weight: 600;
-}
-
-
-  </style>
 
 <!-- Breadcrumb -->
 <div class="container py-3">
   <div class="row">
-    <!-- Sidebar -->
-    <div class="col-md-3">
-        <div class="container">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb ">
-                <li class="breadcrumb-item"><a href="#">Home</a></li>
-                <li class="breadcrumb-item"><a href="#">Profile</a></li>
-                </ol>
-            </nav>
-        </div> 
-        <div class="sidebar text-center">
-            <div>
-                <img src="{% static 'images/user-profile.jpg' %}" alt="Profile" class="img-fluid rounded-circle" width="100">
-                <div class="profile-icons ">
-                <i class="bi bi-pencil-fill text-primary"></i>
-                <i class="bi bi-trash-fill text-danger"></i>
-            </div>  
-        </div>
-    <div class="">
-        <h5>Vishnu raj R</h5>
-        <p>vishnuraj555@gmail.com</p>
-        <ul class="nav flex-column mt-3">
-            <li>
-            <a class="nav-link active" href="{% url "profile_detail" %}">
-                Account Info <i class="bi bi-arrow-right"></i>
-            </a>
-            </li>
-            <li>
-            <a class="nav-link " href="#">
-                My Orders <i class="bi bi-arrow-right"></i>
-            </a>
-            </li>
-            <li>
-            <a class="nav-link -active" href="#">
-                Wallet <i class="bi bi-arrow-right"></i>
-            </a>
-            </li>
-            <li>
-            <a class="nav-link " href="#">
-                Coupon <i class="bi bi-arrow-right"></i>
-            </a>
-            </li>
-            <li>
-            <a class="nav-link " href="#">
-                My Address <i class="bi bi-arrow-right"></i>
-            </a>
-            </li>
-            <li>
-            <a class="nav-link " href="#">
-                Change Password <i class="bi bi-arrow-right"></i>
-            </a>
-            </li>
-        </ul>
-  </div>
-</div>
+    
+    
+
+        {% include "users/user_profile_sidebar.html" %}
+
 
     </div>
     
     <!-- Profile Details -->
-    <div class="col-md-9 py-5">
+    <div class="col-md-9 py-2">
         <div class="profile-card">
             <div class="profile-row d-flex justify-content-between">
             <span class="label">Full Name</span>
-            <span class="value">Kenneth Valdez</span>
+            <span class="value">{{ profile.user.first_name }}</span>
             </div>
             <div class="profile-row d-flex justify-content-between">
             <span class="label">Email</span>
-            <span class="value">fip@jukmuh.al</span>
-            </div>
-            <div class="profile-row d-flex justify-content-between">
-            <span class="label">Phone</span>
-            <span class="value">(239) 816-9029</span>
+            <span class="value">{{ profile.user.email }}</span>
             </div>
             <div class="profile-row d-flex justify-content-between">
             <span class="label">Mobile</span>
-            <span class="value">(320) 380-4539</span>
+            <span class="value">{{ profile.phone }}</span>
             </div>
             <div class="profile-row d-flex justify-content-between">
-            <span class="label">Address</span>
-            <span class="value">Bay Area, San Francisco, CA</span>
+            <span class="label">Date of Birth</span>
+            <span class="value">{{ profile.dob }}</span>
+            </div>
+            <div class="profile-row d-flex justify-content-between">
+            <span class="label">Gender</span>
+            <span class="value">{{ profile.gender }}</span>
             </div>
             <div class="text-end mt-3">
-            <button class="btn btn-sm btn-primary edit-btn">Edit</button>
+            <button class="btn btn-sm btn-sucess edit-btn"><a href="{% url "profile_edit" %}" style="text-decoration:none; color:#ffffffff">Edit</a></button>
             </div>
 
             
       <div class="profile- py-4">
+        <h5>Addres (Defalut)</h5>
         <div class="profile-row d-flex justify-content-between">
           <span class="label">Full Name</span>
           <span class="value">Kenneth Valdez</span>
@@ -213,9 +63,7 @@
           <span class="label">Address</span>
           <span class="value">Bay Area, San Francisco, CA</span>
         </div>
-        <div class="text-end mt-3">
-          <button class="btn btn-sm btn-primary edit-btn">Edit</button>
-        </div>
+        
       </div>
     </div>
         

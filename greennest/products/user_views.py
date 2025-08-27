@@ -90,7 +90,7 @@ def user_product_list(request):
             })
         return JsonResponse({"products": data, "has_next": page_obj.has_next()})
 
-    all_categories = Category.objects.all()
+    all_categories = Category.objects.filter(is_active=True)
     context = {
         "products": page_obj,
         "search_query": search_query,

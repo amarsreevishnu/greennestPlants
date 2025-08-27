@@ -12,6 +12,10 @@ from django.utils import timezone
 from datetime import timedelta
 from django.contrib import messages
 from django.http import JsonResponse
+from datetime import datetime
+from django.contrib.auth import update_session_auth_hash
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 
 from .models import EmailOTP,Profile, Address
 from products.models import Product
@@ -250,20 +254,132 @@ def reset_password(request):
 
         # Clear reset session
         request.session.pop('reset_user_id', None)
-        request.session.pop('otp_verified_for_reset', None)  # if you set this earlier
+        request.session.pop('otp_verified_for_reset', None)  
 
         messages.success(request, "Password reset successful! Please log in.")
         return redirect('user_login')
 
     return render(request, "users/user_reset_password.html")
 
-# user profile section
+# user profile section------------------------------------------------------------------------
 
-@login_required
+@login_required(login_url='user_login')
+@never_cache
 def profile_detail(request):
-    # Profile is guaranteed by signal; use select_related for efficiency
-    #profile = request.user.profile
-    return render(request, "users/profile_detail.html")
+    
+    profile = request.user.profile
+    return render(request, "users/profile_detail.html",{"profile": profile})
+
+@login_required(login_url='user_login')
+@never_cache
+def profile_edit(request):
+    user = request.user
+    profile, created = Profile.objects.get_or_create(user=user)
+
+    if request.method == "POST":
+        # Get User model fields
+        full_name = request.POST.get("full_name")
+        email = request.POST.get("email")
+
+        # Get Profile model fields
+        phone = request.POST.get("phone")
+        dob_str = request.POST.get("dob")
+        gender = request.POST.get("gender")
+        avatar = request.FILES.get("image")  
+
+        # Update User model fields
+        user.first_name = full_name  
+        user.save()
+
+        # Update Profile model fields
+        profile.phone = phone
+        profile.gender = gender
+
+        if dob_str:
+            try:
+                profile.dob = datetime.strptime(dob_str, "%Y-%m-%d").date()
+            except ValueError:
+                messages.error(request, "Invalid date format.")
+                return redirect("profile_edit")
+
+        if avatar:
+            profile.avatar = avatar 
+        profile.save()
+
+        messages.success(request, "Profile updated successfully!")
+        return redirect("profile_detail")
+
+    return render(request, "users/profile_edit.html", {"profile": profile})
+
+@login_required(login_url='user_login')
+@never_cache
+def profile_change_password(request):
+    
+
+    if request.method=="POST":
+        current_password=request.POST.get("current_password")
+        new_password=request.POST.get("new_password")
+        confirm_new_password=request.POST.get("confirm_new_password")
+
+        user = request.user
+        if user.check_password(current_password):
+            if new_password == confirm_new_password:
+                user.set_password(new_password)
+                user.save()
+                update_session_auth_hash(request, user)
+                messages.success(request, "Password changed successfully.")
+                return redirect("profile_detail")
+            else:
+                messages.error(request, "New passwords do not match.")
+        else:
+            messages.error(request, "Current password is incorrect.")
+
+
+    return render(request,"users/profile_change_password.html")
+
+
+
+@login_required(login_url="user_login")
+@never_cache
+def change_email(request):
+    
+    if request.method=="POST":
+        current_email=request.POST.get("current_email","").strip()
+        new_email = request.POST.get("new_email", "").strip()
+
+        if not new_email or not current_email:
+            messages.error(request, "Both current and new email are required.")
+            return redirect("profile_change_email")
+
+        if current_email != request.user.email:
+            messages.error(request, "Current email does not match your account.")
+            return redirect("update_email")
+        
+        if new_email == request.user.email:
+            messages.error(request, "New email cannot be the same as your current email.")
+            return redirect("update_email")
+        
+        # 2. Format check (basic)
+        try:
+            validate_email(new_email)
+        except ValidationError:
+            messages.error(request, "Enter a valid New Email address.")
+            return redirect("profile_change_email")
+
+        # 3. Unique check in DB (ignore current user)
+        if User.objects.filter(email=new_email).exclude(pk=request.user.pk).exists():
+            messages.error(request, "This New Email is already in use.")
+            return redirect("profile_change_email")
+
+        # 4. Update email
+        request.user.email = new_email
+        request.user.save()
+        messages.success(request, "Your email was updated successfully.")
+        return redirect("profile_detail")
+        
+        
+    
+    return render(request,'users/profile_change_email.html')
 
 
 @login_required

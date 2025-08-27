@@ -1,0 +1,99 @@
+
+    .breadcrumb a{
+        text-decoration: none;
+        color: Black;
+        
+    }
+    .sidebar {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .sidebar img {
+      width: 120px;
+      border-radius: 50%;
+      margin-bottom: 10px;
+    }
+    .sidebar h5 {
+      margin: 10px 0 5px;
+    }
+    .sidebar p {
+      font-size: 14px;
+      color: #6c757d;
+    }
+    .sidebar .btn {
+      background-color: #004F3d;
+      color: #fff;
+      border-radius: 25px;
+      width: 100%;
+      margin: 10px 0;
+    }
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+      margin-top: 15px;
+    }
+    .sidebar ul li {
+      padding: 10px 0;
+      border-bottom: 1px solid #e9ecef;
+      font-size: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .sidebar ul li:last-child {
+      border-bottom: none;
+    }
+    .profile-card {
+      border-radius: 10px;
+      background: #fff;
+      padding: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    .profile-row {
+      border-bottom: 1px solid #e9ecef;
+      padding: 10px 0;
+    }
+    .profile-row:last-child {
+      border-bottom: none;
+    }
+    .label {
+      font-weight: 600;
+      color: #495057;
+    }
+    .value {
+      color: #212529;
+    }
+    .edit-btn {
+      background-color: #009688;
+      border: none;
+    }
+    .edit-btn:hover {
+      background-color: #00796b;
+    }
+.sidebar .nav-link {
+  color: #333;
+  padding: 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  display: flex;              /* use flexbox */
+  justify-content: space-between; /* text left, icon right */
+  align-items: center;
+  width: 100%;          /* each link takes full sidebar width */
+  text-align: left;     /* align text to left */
+  box-sizing: border-box;
+  
+}
+
+.sidebar .nav-link:hover {
+  background: #f1f1f1;
+}
+
+.sidebar .nav-link.active {
+  background: #044F44;  /* Bootstrap green */
+  color: #fff !important;
+  font-weight: 600;
+}
+
+
