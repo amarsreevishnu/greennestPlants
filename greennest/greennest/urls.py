@@ -28,7 +28,8 @@ urlpatterns = [
     # <- admin side products and user side products
     path('greennest_admin/products/', include('products.admin_urls')),  
     path('users/products/', include('products.urls')),  
-    path('users/cart/',include('cart.urls')),                       
+    path('users/cart/',include('cart.urls')), 
+    path('users/orders/', include('orders.urls')),                      
     path('greennest_admin/', include('greenest_admin.urls')), 
     
     path('users/wishlist/', include('wishlist.urls')),

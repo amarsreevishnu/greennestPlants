@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'greenest_admin', 
     'cart',
     'wishlist',
+    'orders',
     
     
     # Needed for allauth 
