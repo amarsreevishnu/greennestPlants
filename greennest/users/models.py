@@ -53,7 +53,7 @@ class Address(models.Model):
         max_length=20, choices=ADDRESS_TYPES, default="home"
     )
     full_name = models.CharField(max_length=150)
-    phone = models.CharField(max_length=20)
+    phone = models.CharField(max_length=20,)
     line1 = models.CharField("Address Line 1", max_length=255)
     line2 = models.CharField("Address Line 2", max_length=255, blank=True)
     city = models.CharField(max_length=100)

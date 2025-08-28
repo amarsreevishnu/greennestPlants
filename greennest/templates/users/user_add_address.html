@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% load static %}
+{% block user_profile_details %}
+
+<!-- Breadcrumb -->
+<div class="container py-3">
+  <div class="row">
+    
+    
+
+        {% include "users/user_profile_sidebar.html" %}
+
+
+    </div>
+    
+    <!-- Profile Details -->
+    <div class="col-md-9 py-2">
+        <div class="profile-card">
+
+            <!-- show message -->
+            {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+            {% endif %}
+
+        <form method="POST">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label">Select Address Type</label>
+                <select name="address_type" class="form-control">
+                    <option value="home" {% if address and address.address_type == "home" %}selected{% endif %}>Home</option>
+                    <option value="office" {% if address and address.address_type == "office" %}selected{% endif %}>Office</option>
+                    <option value="other" {% if address and address.address_type == "other" %}selected{% endif %}>Other</option>
+                </select>
+            </div>
+            
+            
+            <div class="mb-3">
+                <label class="form-label">Full Name</label>
+                <input type="text" name="full_name" class="form-control" 
+                        value="{{ address.full_name|default:'' }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Phone</label>
+                <input type="text" name="phone" class="form-control" 
+                        value="{{ address.phone|default:'' }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Line 1</label>
+                <input type="text" name="line1" class="form-control" 
+                        value="{{ address.line1|default:'' }}" required>
+            </div>
+
+            
+            <div class="mb-3">
+                <label class="form-label">Street</label>
+                <input type="text" name="line2" class="form-control" 
+                        value="{{ address.line2|default:'' }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">City</label>
+                <input type="text" name="city" class="form-control" 
+                        value="{{ address.city|default:'' }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">State</label>
+                <input type="text" name="state" class="form-control" 
+                        value="{{ address.state|default:'' }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Zip Code</label>
+                <input type="text" name="postal_code" class="form-control" 
+                        value="{{ address.postal_code|default:'' }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Country</label>
+                <input type="text" name="country" class="form-control" 
+                        value="{{ address.country|default:'' }}" required>
+            </div>
+
+            <!-- Default Address -->
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" name="is_default" id="is_default" value="{{ address.is_default|default:'' }}"
+                        {% if address and address.is_default %}checked{% endif %}>
+                <label class="form-check-label" for="is_default">
+                    Set as default address
+                </label>
+            </div>
+
+            <div class="d-flex justify-content-between mt-3">
+                <a href="{% url 'address_list' %}" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-success">
+                    {% if address %} Update {% else %} Save {% endif %}
+                </button>
+            </div>
+        </form>               
+             
+        
+    </div>
+        
+      
+    </div>
+  </div>
+</div>
+{% endblock %}
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    

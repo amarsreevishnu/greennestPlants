@@ -20,18 +20,21 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf.urls.static import static
 urlpatterns = [
+    
     path('admin/', admin.site.urls),
     
     path('', include('home.urls')),  
     path('users/', include('users.urls')),
-
-    #  <- admin side products and user side products
+    # <- admin side products and user side products
     path('greennest_admin/products/', include('products.admin_urls')),  
     path('users/products/', include('products.urls')),                         
 
     path('greennest_admin/', include('greenest_admin.urls')), 
+    
+    path('users/wishlist/', include('wishlist.urls')),
 
-    path('accounts/', include('allauth.urls')),  # <--- Allauth URLs
+     # <--- Allauth URLs---->
+    path('accounts/', include('allauth.urls')), 
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

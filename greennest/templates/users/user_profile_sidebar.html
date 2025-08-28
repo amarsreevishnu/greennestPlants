@@ -1,0 +1,62 @@
+{% load static %}
+
+
+<nav aria-label="breadcrumb" class="mx-4">
+                <ol class="breadcrumb ">
+                <li class="breadcrumb-item"><a href="#">Home</a></li>
+                <li class="breadcrumb-item"><a href="{% url "profile_detail" %}">Profile</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ current_page }}</li>
+                </ol>
+            </nav>
+
+<!-- Sidebar -->
+    <div class="col-md-3 mt-2">
+        <div class="container">
+            
+        </div> 
+        <div class="sidebar text-center">
+            <div>
+                <img src="{{ request.user.profile.avatar.url }}" alt="Profile" 
+                class="img-fluid rounded-circle" width="100">  
+            </div>
+
+        <h5>{{ request.user.profile.user.first_name }}</h5>
+        <p>{{ request.user.profile.user.email }}</p>
+        <ul class="nav flex-column mt-3">
+            <li>
+            <a class="nav-link {% if request.path == '/users/profile/' %} active{% endif %}" href="{% url "profile_detail" %}">
+                Account Info <i class="bi bi-arrow-right"></i>
+            </a>
+            </li>
+            <li>
+            <a class="nav-link{% if request.path == '/users/orders/' %} active{% endif %}"   href="">
+                My Orders <i class="bi bi-arrow-right"></i>
+            </a>
+            </li>
+            <li>
+            <a class="nav-link -active {% if request.path == '/users/wallet/' %} active{% endif %}" href="#">
+                Wallet <i class="bi bi-arrow-right"></i>
+            </a>
+            </li>
+            <li>
+            <a class="nav-link {% if request.path == '/users/coupon/' %} active{% endif %}" href="#">
+                Coupon <i class="bi bi-arrow-right"></i>
+            </a>
+            </li>
+            <li>
+            <a class="nav-link {% if request.path == '/users/addresses/' %} active{% endif %}" href="{% url "address_list" %}">
+                My Address <i class="bi bi-arrow-right"></i>
+            </a>
+            </li>
+            <li>
+            <a class="nav-link {% if request.path == '/users/profile/change_password/' %} active{% endif %}" href="{% url "profile_change_password" %}">
+                Change Password <i class="bi bi-arrow-right"></i>
+            </a>
+            </li>
+            <li>
+            <a class="nav-link " href="{% url "profile_change_email" %}">
+                Update Email <i class="bi bi-arrow-right"></i>
+            </a>
+            </li>
+        </ul>
+  </div>

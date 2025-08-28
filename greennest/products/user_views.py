@@ -24,16 +24,20 @@ def user_product_list(request):
     max_price = request.GET.get("max_price")
     sort_option = request.GET.get("sort", "")
     
-    products = Product.objects.filter(is_active=True).prefetch_related(
-        Prefetch(
-            "variants",
-            queryset=ProductVariant.objects.order_by("price"),
-            to_attr="sorted_variants"
-        )
+    variant_qs = ProductVariant.objects.filter(
+        is_active=True,
+        stock__gt=0  # Only variants with stock
+    ).order_by("price")
+
+    products = Product.objects.filter(
+        is_active=True,
+        variants__stock__gt=0  # Ensure product has at least one variant in stock
+    ).prefetch_related(
+        Prefetch("variants", queryset=variant_qs, to_attr="available_variants")
     ).annotate(
-        min_price=Min("variants__price"),
+        min_price=Min("variants__price"),  # Min price among all variants
         max_price=Max("variants__price"),
-    )
+    ).distinct()
 
     if search_query:
         products = products.filter(name__icontains=search_query)
@@ -90,7 +94,7 @@ def user_product_list(request):
             })
         return JsonResponse({"products": data, "has_next": page_obj.has_next()})
 
-    all_categories = Category.objects.all()
+    all_categories = Category.objects.filter(is_active=True)
     context = {
         "products": page_obj,
         "search_query": search_query,

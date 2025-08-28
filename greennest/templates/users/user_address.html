@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load static %}
+{% block user_profile_details %}
+
+<!-- Breadcrumb -->
+<div class="container py-3">
+  <div class="row">
+    
+    
+
+        {% include "users/user_profile_sidebar.html" %}
+
+
+    </div>
+    
+    <!-- Profile Details -->
+    <div class="col-md-9 py-2">
+        <div class="profile-card">
+                       
+             <!-- show message -->
+                {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+                {% endif %}
+
+            <div class="profile- py-4">
+                <h5>Addresses</h5>
+
+                {% for address in addresses %}
+                <div class="address-card mb-3 p-3 border rounded">
+                    <div class="profile-row d-flex justify-content-between">
+                        <span class="label">Full Name</span>
+                        <span class="value">{{ address.full_name }}</span>
+                    </div>
+
+                    <div class="profile-row d-flex justify-content-between">
+                        <span class="label">Phone</span>
+                        <span class="value">{{ address.phone }}</span>
+                    </div>
+
+                    <div class="profile-row d-flex justify-content-between">
+                        <span class="label">Line 1</span>
+                        <span class="value">{{ address.line1|default:'' }}</span>
+                    </div>
+
+                     <div class="profile-row d-flex justify-content-between">
+                        <span class="label">Line 2</span>
+                        <span class="value">{{ address.line2|default:'' }}</span>
+                    </div>
+
+                    <div class="profile-row d-flex justify-content-between">
+                        <span class="label">City</span>
+                        <span class="value">{{ address.city|default:'' }}</span>
+                    </div>
+
+                    <div class="profile-row d-flex justify-content-between">
+                        <span class="label">State</span>
+                        <span class="value">{{ address.state|default:'Kerala' }}</span>
+                    </div>
+
+                    <div class="profile-row d-flex justify-content-between">
+                        <span class="label">Country</span>
+                        <span class="value">{{ address.country}}</span>
+                    </div>
+
+                    <div class="profile-row d-flex justify-content-between mt-2">
+                        <a href="{% url 'address_edit' address.pk %}" class="btn btn-sm btn-primary">Edit</a>
+                        <a href="{% url 'address_delete' address.pk %}" class="btn btn-sm btn-danger">Delete</a>
+                    </div>
+                </div>
+                {% empty %}
+                    <p>No addresses found.</p>
+                {% endfor %}
+            </div> 
+        <a href="{% url 'address_add' %}" class="btn btn-success">Add Address</a>
+    </div>
+        
+      
+    </div>
+  </div>
+</div>
+{% endblock %}

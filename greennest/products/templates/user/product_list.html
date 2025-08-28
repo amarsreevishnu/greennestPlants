@@ -86,25 +86,7 @@
               {% endfor %}
 
           </div>
-          {% comment %} <div class="mb-4">
-            <div class="filter-title">Plant Size</div>
-            <div class="form-check">
-              <input type="checkbox" name="sizes" id="small" value="S" class="form-check-input"
-                {% if "S" in sizes %}checked{% endif %}>
-              <label class="form-check-label" for="small">Small</label>
-            </div>
-            <div class="form-check">
-              <input type="checkbox" name="sizes" id="medium" value="M" class="form-check-input"
-                {% if "M" in sizes %}checked{% endif %}>
-              <label class="form-check-label" for="medium">Medium</label>
-            </div>
-            <div class="form-check">
-              <input type="checkbox" name="sizes" id="large" value="L" class="form-check-input"
-                {% if "L" in sizes %}checked{% endif %}>
-              <label class="form-check-label" for="large">Large</label>
-            </div>
-        </div> {% endcomment %}
-
+          
         <div class="mb-4">
           <div class="filter-title">Light Requirement</div>
           <div class="form-check">
@@ -174,15 +156,13 @@
           {% endif %}
         {% endwith %}
 
-        <div class="card-body">
+        <div class="card-body text-center">
           <h6 class="card-title">{{ product.name }}</h6>
           <p class="text-muted mb-2">
             {% if product.min_price and product.max_price %}
-              {% if product.min_price == product.max_price %}
-                ₹ {{ product.min_price|floatformat:0 }}
-              {% else %}
-                ₹ {{ product.min_price|floatformat:0 }} – ₹ {{ product.max_price|floatformat:0 }}
-              {% endif %}
+              
+                ₹ {{ product.min_price|floatformat:0 }} 
+              
             {% else %}
               Price not available
             {% endif %}
@@ -190,7 +170,7 @@
           <div>
             <a href="{% url 'user_product_detail' product.id %}" class="btn btn-dark btn-sm">View</a>
             {% if product.variants.first and product.variants.first.stock > 0 %}
-              <button class="btn btn-success btn-sm">Add to Cart</button>
+              <a href="" class="btn btn-success btn-sm">Add to Cart</a>
             {% else %}
               <button class="btn btn-secondary btn-sm" disabled>Out of Stock</button>
             {% endif %}

@@ -20,6 +20,7 @@
     
 
     <link rel="stylesheet" href="{% static "css/styles.css" %}">
+    <link rel="stylesheet" href="{% static "css/user_profile.css" %}">
     
   </head>
 
@@ -61,7 +62,7 @@
                 <span class="navbar-text">WELCOME</span> Login
               </a>
                {% elif request.user.is_authenticated %}
-              <a class="nav-link" href="">
+              <a class="nav-link" href="{% url 'profile_detail'%}">
                 <span class="navbar-text">{{ request.user.first_name }}</span> 
                 
               </a>
@@ -87,7 +88,7 @@
 
           <!-- Cart Icon -->
           <li class="nav-item">
-            <a class="nav-link position-relative" href="#">
+            <a class="nav-link position-relative" href=""> 
               <i class="bi bi-cart fs-5"></i>
             </a>
           </li>
@@ -131,13 +132,20 @@
      {% endblock user_products_list %}
 
      {% block user_products_detials %}
-
      <!-- User Product Details Section -->
     {% endblock user_products_detials %} 
 
     {% block user_profile_details %}
-    <!-- User profile_details Section -->
+    <!-- User Profile Details Section -->
     {% endblock user_profile_details %}
+
+
+
+
+    {% block cart %}
+    <!-- User Carts Section -->
+    {% endblock cart %}
+    
     
 
 

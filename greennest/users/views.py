@@ -12,6 +12,10 @@ from django.utils import timezone
 from datetime import timedelta
 from django.contrib import messages
 from django.http import JsonResponse
+from datetime import datetime
+from django.contrib.auth import update_session_auth_hash
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 
 from .models import EmailOTP,Profile, Address
 from products.models import Product
@@ -250,56 +254,196 @@ def reset_password(request):
 
         # Clear reset session
         request.session.pop('reset_user_id', None)
-        request.session.pop('otp_verified_for_reset', None)  # if you set this earlier
+        request.session.pop('otp_verified_for_reset', None)  
 
         messages.success(request, "Password reset successful! Please log in.")
         return redirect('user_login')
 
     return render(request, "users/user_reset_password.html")
 
-# user profile section
 
-@login_required
+# ---------------------user profile section-------------------------------------------------
+
+
+@login_required(login_url='user_login')
+@never_cache
 def profile_detail(request):
-    # Profile is guaranteed by signal; use select_related for efficiency
-    #profile = request.user.profile
-    return render(request, "users/profile_detail.html")
+    
+    profile = request.user.profile
+    default_address = Address.objects.filter(user=request.user, is_default=True).first()
+    return render(request, "users/profile_detail.html",{"profile": profile, "default_address":default_address})
+
+@login_required(login_url='user_login') 
+@never_cache
+def profile_edit(request):
+    user = request.user
+    profile, created = Profile.objects.get_or_create(user=user)
+
+    if request.method == "POST":
+        # Get User model fields
+        full_name = request.POST.get("full_name")
+        email = request.POST.get("email")
+
+        # Get Profile model fields
+        phone = request.POST.get("phone")
+        dob_str = request.POST.get("dob")
+        gender = request.POST.get("gender")
+        avatar = request.FILES.get("image")  
+
+        # Update User model fields
+        user.first_name = full_name  
+        user.save()
+
+        # Update Profile model fields
+        profile.phone = phone
+        profile.gender = gender
+
+        if dob_str:
+            try:
+                profile.dob = datetime.strptime(dob_str, "%Y-%m-%d").date()
+            except ValueError:
+                messages.error(request, "Invalid date format.")
+                return redirect("profile_edit")
+
+        if avatar:
+            profile.avatar = avatar 
+        profile.save()
+
+        messages.success(request, "Profile updated successfully!")
+        return redirect("profile_detail")
+
+    return render(request, "users/profile_edit.html", {"profile": profile})
+
+@login_required(login_url='user_login')
+@never_cache
+def profile_change_password(request):
+    
+
+    if request.method=="POST":
+        current_password=request.POST.get("current_password")
+        new_password=request.POST.get("new_password")
+        confirm_new_password=request.POST.get("confirm_new_password")
+
+        user = request.user
+        if user.check_password(current_password):
+            if new_password == confirm_new_password:
+                user.set_password(new_password)
+                user.save()
+                update_session_auth_hash(request, user)
+                messages.success(request, "Password changed successfully.")
+                return redirect("profile_detail")
+            else:
+                messages.error(request, "New passwords do not match.")
+        else:
+            messages.error(request, "Current password is incorrect.")
+
+
+    return render(request,"users/profile_change_password.html")
+
+
+
+@login_required(login_url="user_login")
+@never_cache
+def change_email(request):
+    
+    if request.method=="POST":
+        current_email=request.POST.get("current_email","").strip()
+        new_email = request.POST.get("new_email", "").strip()
+
+        if not new_email or not current_email:
+            messages.error(request, "Both current and new email are required.")
+            return redirect("profile_change_email")
+
+        if current_email != request.user.email:
+            messages.error(request, "Current email does not match your account.")
+            return redirect("update_email")
+        
+        if new_email == request.user.email:
+            messages.error(request, "New email cannot be the same as your current email.")
+            return redirect("update_email")
+        
+        # 2. Format check (basic)
+        try:
+            validate_email(new_email)
+        except ValidationError:
+            messages.error(request, "Enter a valid New Email address.")
+            return redirect("profile_change_email")
+
+        # 3. Unique check in DB (ignore current user)
+        if User.objects.filter(email=new_email).exclude(pk=request.user.pk).exists():
+            messages.error(request, "This New Email is already in use.")
+            return redirect("profile_change_email")
+
+        # 4. Update email
+        request.user.email = new_email
+        request.user.save()
+        messages.success(request, "Your email was updated successfully.")
+        return redirect("profile_detail")
+        
+        
+    
+    return render(request,'users/profile_change_email.html')
 
 
 @login_required
 def address_list(request):
     addresses = request.user.addresses.all()
-    return render(request, "users/address_list.html", {"addresses": addresses})
+    return render(request, "users/user_address.html", {"addresses": addresses})
 
 
 @login_required
+@never_cache
 def address_add(request):
-    # if request.method == "POST":
-    #     #form = AddressForm(request.POST)
-    #     if form.is_valid():
-    #         address = form.save(commit=False)
-    #         address.user = request.user
-    #         address.save()
-    #         messages.success(request, "Address added successfully!")
-    #         return redirect("address_list")
-    # else:
-    #     form = AddressForm()
-    return render(request, "users/address_form.html")
+    
+    if request.method == "POST":
+        full_name = request.POST.get("full_name")
+        phone = request.POST.get("phone")
+        line1 = request.POST.get("line1")   
+        line2 = request.POST.get("street")   
+        city = request.POST.get("city")
+        state = request.POST.get("state")
+        postal_code = request.POST.get("postal_code")
+        country = request.POST.get("country")
+        is_default = request.POST.get("is_default") == "on"
+        print(full_name)
+        Address.objects.create(
+            user=request.user,
+            full_name=full_name,
+            phone=phone,
+            line1=line1,
+            line2=line2,
+            city=city,
+            state=state,
+            postal_code=postal_code,
+            country=country,
+            is_default=is_default
+        )
+        messages.success(request, "Address updated successfully!")
+        return redirect("address_list")
+    return render(request, "users/user_add_address.html")
 
 
 @login_required
 def address_edit(request, pk):
-    # address = get_object_or_404(Address, pk=pk, user=request.user)
-    # if request.method == "POST":
-    #     form = AddressForm(request.POST, instance=address)
-    #     if form.is_valid():
-    #         form.save()
-    #         messages.success(request, "Address updated successfully!")
-    #         return redirect("address_list")
-    # else:
-    #     form = AddressForm(instance=address)
-    return render(request, "users/address_form.html")
+    address = get_object_or_404(Address, pk=pk, user=request.user)
+    if request.method == "POST":
+        address.full_name = request.POST.get("full_name")
+        address.phone = request.POST.get("phone")
+        address.line1 = request.POST.get("line1")
+        address.line2 = request.POST.get("line2")
+        address.city = request.POST.get("city")
+        address.state = request.POST.get("state")
+        address.postal_code = request.POST.get("postal_code")
+        address.country = request.POST.get("country")
+        address.address_type = request.POST.get("address_type")
+        address.is_default = request.POST.get("is_default") == "on"
 
+        address.save()
+        messages.success(request, "Address updated successfully!")
+        return redirect("address_list")
+
+    
+    return render(request, "users/user_add_address.html", {"address": address})
 
 @login_required
 def address_delete(request, pk):

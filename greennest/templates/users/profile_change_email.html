@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load static %}
+{% block user_profile_details %}
+
+
+<!-- Breadcrumb -->
+<div class="container py-3">
+    <div class="row">
+        
+        {% include "users/user_profile_sidebar.html" with current_page="Update Email" %}
+    
+
+
+    </div>
+    
+    <!-- Profile change password -->
+    <div class="col-md-9 py-2">
+        <div class="profile-card">
+            
+           
+                <!-- show message -->
+                {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+                {% endif %}
+
+                <section class="otp-section py-5">
+                    <form action="" method="POST" >
+                        {% csrf_token %}
+                        <div class="container">
+                            <div class="otp-box mx-auto p-4 text-center">
+                                <h4 class="mb-4">Update Email</h4>
+                                <div class="d-flex justify-content-center ">
+                                    <input type="email" class="form-control my-3" placeholder="Current Email" name="current_email" required>
+                                </div>
+                                <div class="d-flex justify-content-center ">
+                                    <input type="email" class="form-control my-3" placeholder="New Email" name="new_email" required>
+                                </div>
+                                
+                                <!-- Submit Button -->
+                                <button class="btn btn-success px-5">Submit</button>
+                            </div>
+                        </div>
+                    </form>   
+                 </section>
+            
+    
+        
+        </div>
+    </div>
+        
+      
+    </div>
+  </div>
+</div>
+{% endblock %}
