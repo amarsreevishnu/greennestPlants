@@ -140,10 +140,18 @@
   {% for product in products %}
     <div class="col-md-4 col-sm-6">
       <div class="card product-card position-relative shadow-sm h-100">
-        <i class="fa fa-heart wishlist-icon"></i>
+        
 
         {% with variant=product.variants.all|first %}
           {% if variant %}
+          <a href="{% url 'toggle_wishlist' variant.id %}">
+        {% if variant.id in wishlist_variant_ids %}
+            <i class="fa fa-heart wishlist-icon text-warning"></i> <!-- Already in wishlist -->
+        {% else %}
+            <i class="fa fa-heart wishlist-icon"></i> <!-- Not in wishlist -->
+        {% endif %}
+    </a>
+          
             {% with main_img=variant.images.all|first %}
               {% if main_img %}
                 <img src="{{ main_img.image.url }}" class="card-img-top" alt="{{ product.name }}">

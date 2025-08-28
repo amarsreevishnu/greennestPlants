@@ -128,12 +128,11 @@
 
 
       <!-- 🔹 Add to Cart Form -->
-      <form method="POST" action="#">
-        {% csrf_token %}
-        <br />
-        <div class="mt-1 d-flex gap-3">
-          <label>Qty: </label>
-          <input
+      <form method="POST" action="{% url 'add_to_cart' cheapest_variant.id %}">
+    {% csrf_token %}
+    <div class="mt-1 d-flex gap-3">
+        <label>Qty: </label>
+        <input
             type="number"
             name="quantity"
             value="1"
@@ -142,13 +141,14 @@
             id="qty-input"
             class="form-control text-center"
             style="width: 70px; height: 30px"
-          />
-          <button type="submit" id="add-to-cart-btn" class="btn btn-success px-4">
+        />
+        <button type="submit" id="add-to-cart-btn" class="btn btn-success px-4">
             ADD TO CART
-          </button>
-          <a href=""><i class="fa fa-heart wishlist-icon"></i></a>
-        </div>
-      </form>
+        </button>
+        <a href="#"><i class="fa fa-heart wishlist-icon"></i></a>
+    </div>
+</form>
+
     </div>
 
 

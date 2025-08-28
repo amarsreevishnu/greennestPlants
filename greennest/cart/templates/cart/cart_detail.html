@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load static %}
+{% block cart %}
+
+<!-- Cart Section -->
+<div class="container my-5">
+  <h3 class="mb-4">My Cart</h3>
+  <div class="row">
+    <!-- Cart Items -->
+    <div class="col-lg-8 mb-4">
+      <table class="table cart-table border rounded text-center align-middle">
+        <thead class="table-light">
+          <tr>
+            <th class="text-start">Product</th>
+            <th>Price</th>
+            <th>Quantity</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in cart.items.all %}
+          <tr class="{% if item.variant.stock == 0 %}text-muted{% endif %}">
+            <!-- Product with Image -->
+            <td class="text-start">
+              <div class="d-flex align-items-center">
+                {% with first_image=item.variant.images.all|slice:":1"|first %}
+                  {% if first_image %}
+                    <img src="{{ first_image.image.url }}" alt="{{ item.variant.name }}" width="80" class="me-3 rounded">
+                  {% else %}
+                    <img src="https://via.placeholder.com/80" alt="{{ item.variant.name }}" class="me-3 rounded">
+                  {% endif %}
+                {% endwith %}
+                <div>
+                  <p class="mb-1 fw-bold">{{ item.variant.product.name }}</p>
+                  {% if item.variant.stock > 0 %}
+                    <small class="text-success">In Stock</small>
+                  {% else %}
+                    <small class="text-danger">Out of Stock</small>
+                  {% endif %}
+                  <br>
+                  <a href="{% url 'remove_from_cart' item.id %}" class="text-danger small">Remove</a>
+                </div>
+              </div>
+            </td>
+
+            <!-- Price -->
+            <td class="align-middle">₹{{ item.variant.price }}</td>
+
+            <!-- Quantity -->
+            <td class="align-middle">
+              <div class="d-flex justify-content-center align-items-center gap-2">
+                {% if item.variant.stock > 0 %}
+                  <a href="{% url 'update_cart_quantity' item.id 'decrement' %}" class="btn btn-outline-secondary btn-sm">-</a>
+                  <span>{{ item.quantity }}</span>
+                  {% if item.quantity < item.variant.stock and item.quantity < 5 %}
+                  <a href="{% url 'update_cart_quantity' item.id 'increment' %}" class="btn btn-outline-secondary btn-sm">+</a>
+                {% else %}
+                <span title="Max quantity reached">+</span>
+                {% endif %}
+                {% else %}
+                  Out of stock
+                {% endif %}
+              </div>
+            </td>
+
+            <!-- Total -->
+            <td class="align-middle">₹{{ item.total_price }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4">Your cart is empty.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Order Summary -->
+    <div class="col-lg-4">
+      <div class="order-summary border p-3 rounded">
+        <h5 class="mb-3">Order Summary</h5>
+        <p class="d-flex justify-content-between">
+          <span>Item Sub Total</span> <span>₹{{ cart.total_price }}</span>
+        </p>
+        <p class="d-flex justify-content-between">
+          <span>Shipping</span> <span>Free</span>
+        </p>
+        <hr>
+        <p class="d-flex justify-content-between fw-bold">
+          <span>Total</span> <span>₹{{ cart.total_price }}</span>
+        </p>
+        <button class="btn btn-success w-100">CHECKOUT</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock cart %}

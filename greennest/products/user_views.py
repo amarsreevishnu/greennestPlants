@@ -39,6 +39,10 @@ def user_product_list(request):
         max_price=Max("variants__price"),
     ).distinct()
 
+    wishlist_variant_ids = []
+    if request.user.is_authenticated:
+        wishlist_variant_ids = request.user.wishlist_items.all().values_list('variant_id', flat=True)
+
     if search_query:
         products = products.filter(name__icontains=search_query)
     if categories:
@@ -105,6 +109,7 @@ def user_product_list(request):
         "min_price": min_price,
         "max_price": max_price,
         "sort_option": sort_option,
+        'wishlist_variant_ids': wishlist_variant_ids,
     }
     return render(request, "user/product_list.html", context)
 

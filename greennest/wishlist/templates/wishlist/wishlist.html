@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load static %}
+{% block wishlist %}
+   
+<!-- templates/wishlist.html -->
+{% for item in user.wishlist_items.all %}
+<div class="wishlist-item">
+    {{ item.variant.product.name }} - {{ item.variant.variant_type }}
+    <a href="{% url 'add_to_cart' item.variant.id %}">Add to Cart</a>
+    <a href="{% url 'remove_from_wishlist' item.variant.id %}" class="btn btn-danger">Remove</a>
+</div>
+{% empty %}
+<p>Your wishlist is empty</p>
+{% endfor %}
+
+
+
+
+
+
+{% endblock wishlist %}

@@ -46,7 +46,7 @@ INSTALLED_APPS = [
     'users',
     'products',
     'greenest_admin', 
-    
+    'cart',
     'wishlist',
     
     

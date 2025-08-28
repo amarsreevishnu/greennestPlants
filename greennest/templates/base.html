@@ -81,14 +81,14 @@
         <ul class="navbar-nav mx-auto gap-3">
           <!-- Wishlist Icon -->
           <li class="nav-item">
-            <a class="nav-link position-relative" href="#">
+            <a class="nav-link position-relative" href="{% url "wishlist_view" %}">
               <i class="bi bi-heart fs-5"></i>
             </a>
           </li>
 
           <!-- Cart Icon -->
           <li class="nav-item">
-            <a class="nav-link position-relative" href=""> 
+            <a class="nav-link position-relative" href="{% url "cart_detail" %}"> 
               <i class="bi bi-cart fs-5"></i>
             </a>
           </li>
@@ -140,12 +140,14 @@
     {% endblock user_profile_details %}
 
 
-
-
     {% block cart %}
     <!-- User Carts Section -->
     {% endblock cart %}
+
     
+    {% block wishlist %}
+    <!-- User Wishlist Section -->
+    {% endblock wishlist %}
     
 
 
