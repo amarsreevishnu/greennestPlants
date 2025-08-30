@@ -399,13 +399,17 @@ def address_add(request):
         full_name = request.POST.get("full_name")
         phone = request.POST.get("phone")
         line1 = request.POST.get("line1")   
-        line2 = request.POST.get("street")   
+        line2 = request.POST.get("line2")   
         city = request.POST.get("city")
         state = request.POST.get("state")
         postal_code = request.POST.get("postal_code")
         country = request.POST.get("country")
         is_default = request.POST.get("is_default") == "on"
-        print(full_name)
+        
+        if is_default:
+            # Remove default from other addresses
+            Address.objects.filter(user=request.user, is_default=True).update(is_default=False)
+
         Address.objects.create(
             user=request.user,
             full_name=full_name,
@@ -438,6 +442,10 @@ def address_edit(request, pk):
         address.address_type = request.POST.get("address_type")
         address.is_default = request.POST.get("is_default") == "on"
 
+        if address.is_default:
+            # Remove default from other addresses
+            Address.objects.filter(user=request.user, is_default=True).exclude(pk=address.pk).update(is_default=False)
+            
         address.save()
         messages.success(request, "Address updated successfully!")
         return redirect("address_list")

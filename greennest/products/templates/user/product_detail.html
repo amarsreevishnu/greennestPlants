@@ -128,9 +128,11 @@
 
 
       <!-- 🔹 Add to Cart Form -->
-      <form method="POST" action="{% url 'add_to_cart' cheapest_variant.id %}">
+      <form method="POST" id="addToCartForm" action="{% url 'add_to_cart' 0 %}">
     {% csrf_token %}
-    <div class="mt-1 d-flex gap-3">
+    <!-- Hidden input to store selected variant -->
+    <input type="hidden" name="variant_id" id="hidden-variant-id" value="{{ cheapest_variant.id }}">
+    <div class="mt-1 d-flex gap-3 py-3">
         <label>Qty: </label>
         <input
             type="number"
@@ -145,12 +147,25 @@
         <button type="submit" id="add-to-cart-btn" class="btn btn-success px-4">
             ADD TO CART
         </button>
-        <a href="#"><i class="fa fa-heart wishlist-icon"></i></a>
+            {% with variant=product.available_variants.0 %}
+                {% if variant %}
+                    <a href="{% url 'toggle_wishlist' variant.id %}">
+                        {% if variant.id in wishlist_variant_ids %}
+                            <i class="fa fa-heart wishlist-icon text-warning"></i> <!-- Already in wishlist -->
+                        {% else %}
+                            <i class="fa fa-heart wishlist-icon"></i> <!-- Not in wishlist -->
+                        {% endif %}
+                    </a>
+                {% endif %}
+        {% endwith %}
     </div>
 </form>
 
-    </div>
 
+    </div>
+</form>
+
+   
 
     <!-- Cart Summary -->
     <div class="col-md-3">
@@ -186,6 +201,7 @@
     </div>
   </div>
 </div>
+ </div>
 
 
 <!-- Similar Collection (unchanged) -->
@@ -231,59 +247,51 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/elevatezoom/3.0.8/jquery.elevatezoom.min.js"></script>
 <script>
 $(document).ready(function () {
-  function updateStockPriceAndImages(stock, price, images) {
-    $("#variant-price").text("₹" + price);
-    $("#variant-stock").text(stock);
-    $("#qty-input").attr("max", stock);
+    const form = $("#addToCartForm");
 
-    // Update Add to Cart button
-    const addBtn = $("#add-to-cart-btn");
-    if (parseInt(stock) > 0) {
-      addBtn.prop("disabled", false).text("ADD TO CART").removeClass("btn-secondary").addClass("btn-success");
-    } else {
-      addBtn.prop("disabled", true).text("Out of Stock").removeClass("btn-success").addClass("btn-secondary");
-    }
+    // Update hidden input and form action whenever variant is selected
+    $("input[name='variant_id']").on("change", function () {
+        const variantId = $(this).val();
+        $("#hidden-variant-id").val(variantId);
+        // Update form action to point to the correct variant
+        form.attr("action", "{% url 'add_to_cart' 0 %}".replace("0", variantId));
 
-    // Update main image and thumbnails
-    if (images && images.length > 0) {
-      $("#mainImage").attr("src", images[0]).data("zoom-image", images[0]);
+        // Update stock max and price dynamically
+        const stock = $(this).data("stock");
+        const price = $(this).data("price");
+        const imagesData = $(this).data("images");
+        const images = imagesData ? imagesData.split(",") : [];
 
-      // Remove old zoom
-      $(".zoomContainer").remove();
-      $("#mainImage").elevateZoom({ zoomType: "inner", cursor: "crosshair" });
+        $("#variant-stock").text(stock);
+        $("#qty-input").attr("max", stock);
+        $("#variant-price").text("₹" + price);
 
-      // Update thumbnails
-      const thumbsContainer = $("#thumbs-container");
-      thumbsContainer.empty();
-      images.forEach(function (img) {
-        thumbsContainer.append('<img src="' + img + '" class="thumb-image" style="width: 70px; height: 80px; cursor:pointer;">');
-      });
+        // Enable/disable Add to Cart button based on stock
+        const addBtn = $("#add-to-cart-btn");
+        if (parseInt(stock) > 0) {
+            addBtn.prop("disabled", false).removeClass("btn-secondary").addClass("btn-success").text("ADD TO CART");
+        } else {
+            addBtn.prop("disabled", true).removeClass("btn-success").addClass("btn-secondary").text("Out of Stock");
+        }
 
-      // Reattach click handler for new thumbnails
-      $(".thumb-image").off("click").on("click", function () {
-        var newImage = $(this).attr("src");
-        $("#mainImage").attr("src", newImage).data("zoom-image", newImage);
-        $(".zoomContainer").remove();
-        $("#mainImage").elevateZoom({ zoomType: "inner", cursor: "crosshair" });
-      });
-    }
-  }
+        // Update main image and thumbnails
+        if (images.length > 0) {
+            $("#mainImage").attr("src", images[0]);
+            const thumbsContainer = $("#thumbs-container");
+            thumbsContainer.empty();
+            images.forEach(function(img) {
+                thumbsContainer.append('<img src="' + img + '" class="thumb-image mb-2 shadow-sm" style="width:60px;height:80px;object-fit:cover;cursor:pointer;">');
+            });
+            $(".thumb-image").off("click").on("click", function () {
+                const newImage = $(this).attr("src");
+                $("#mainImage").attr("src", newImage);
+            });
+        }
+    });
 
-  $("input[name='variant_id']").on("change", function () {
-    var price = $(this).data("price");
-    var stock = $(this).data("stock");
-
-    // Images stored as comma-separated URLs
-    var imagesData = $(this).data("images"); 
-    var images = imagesData ? imagesData.split(",") : [];
-
-    updateStockPriceAndImages(stock, price, images);
-  });
-
-  // Trigger change on page load for default checked variant
-  $("input[name='variant_id']:checked").trigger("change");
+    // Trigger change on page load to initialize form with default variant
+    $("input[name='variant_id']:checked").trigger("change");
 });
-
 </script>
 
 

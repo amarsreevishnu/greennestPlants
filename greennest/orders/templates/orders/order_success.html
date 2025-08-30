@@ -1,12 +1,96 @@
 {% extends "base.html" %}
-{% block content %}
-<div class="text-center">
-    <h2>Thank You for Your Order!</h2>
-    <p>Your order #{{ order.id }} has been placed successfully.</p>
-    <img src="{% static 'images/order_success.png' %}" alt="Order Success" width="200">
-    <div class="mt-3">
-        <a href="{% url 'order_detail' order.id %}" class="btn btn-info">View Order Details</a>
-        <a href="{% url 'product_list' %}" class="btn btn-success">Continue Shopping</a>
-    </div>
+{% load static %}
+{% block order_success %}
+<style>
+    body {
+      background: #fff;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    .navbar {
+      background-color: #0d716d;
+    }
+    .navbar-brand img {
+      height: 40px;
+    }
+    .confirmation-card {
+      border: 2px solid #0d716d;
+      border-radius: 20px;
+      padding: 48px;
+      background: #fff;
+      max-width: 600px;
+      margin: 48px auto 32px;
+      box-shadow: none;
+      text-align: center;
+    }
+    .confirmation-card .text-success {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .confirmation-card .order-num {
+      color: #d6422b;
+      font-size: 1.15rem;
+      font-weight: 500;
+      margin-bottom: 24px;
+      margin-top: 12px;
+    }
+    .confirmation-card .btn-group {
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .confirmation-card .btn {
+      background: #0d716d;
+      color: #fff;
+      border-radius: 20px;
+      padding: 8px 28px;
+      border: none;
+      min-width: 130px;
+    }
+    .footer {
+      background: #10453b;
+      color: #fff;
+      padding: 40px 0 20px;
+      margin-top: 32px;
+    }
+    .footer a {
+      color: #fff;
+      text-decoration: none;
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+    .footer .social-icons a {
+      margin-right: 16px;
+      font-size: 22px;
+      color: #fff;
+      display: inline-block;
+    }
+    @media (max-width: 768px) {
+      .confirmation-card {
+        padding: 24px 10px;
+        margin: 24px auto;
+      }
+    }
+  </style>
+
+<!-- Main Confirmation Section -->
+<div class="confirmation-card">
+  <h2 class="mb-4">THANK YOU FOR YOUR ORDER!</h2>
+  <div class="text-success">
+    <i class="bi bi-check-circle-fill"></i>
+    Payment done successful
+  </div>
+  <div>Your order has been successfully placed.</div>
+  <div class="order-num">Order Number: <span>#{{ order.id }}</span></div>
+  <div class="btn-group d-flex justify-content-center">
+    <a href="{% url 'order_list'%}" class="btn">My orders</a>
+    <a href="{% url 'user_product_list' %}" class="btn">Continue shopping</a>
+  </div>
 </div>
-{% endblock %}
+
+
+{% endblock order_success %}

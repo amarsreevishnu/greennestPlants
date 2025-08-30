@@ -2,16 +2,53 @@
 {% load static %}
 {% block wishlist %}
    
-<!-- templates/wishlist.html -->
-{% for item in user.wishlist_items.all %}
-<div class="wishlist-item">
-    {{ item.variant.product.name }} - {{ item.variant.variant_type }}
-    <a href="{% url 'add_to_cart' item.variant.id %}">Add to Cart</a>
-    <a href="{% url 'remove_from_wishlist' item.variant.id %}" class="btn btn-danger">Remove</a>
+<!-- Wishlist Section -->
+<div class="container my-5">
+    <h4 class="mb-3 text-center">My Wishlist</h4>
+    <div class="table-responsive">
+        <table class="table align-middle rounded-3 overflow-hidden shadow bg-white text-center">
+            <thead class="bg-light">
+                <tr>
+                    <th>Product</th>
+                    <th>Details</th>
+                    <th>Price</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in user.wishlist_items.all %}
+                <tr>
+                    <td>
+                          {% with first_image=item.variant.images.all|slice:":1"|first %}
+                  {% if first_image %}
+                    <img src="{{ first_image.image.url }}" alt="{{ item.variant.name }}" width="80" class="me-3 rounded">
+                  {% else %}
+                    
+                  
+                        <img src="https://img.icons8.com/color/96/000000/plant-under-sun.png"
+                            class="img-fluid" style="width:60px;">
+                            {% endif %}
+                {% endwith %}
+                        <div class="text-muted small"><a href="{% url 'remove_from_wishlist' item.variant.id %}"  class="text-danger text-decoration-none ">Remove</a></div>
+                    </td>
+                    <td>
+                        <strong>{{ item.variant.product.name }} - {{ item.variant.variant_type }}</strong>
+                    </td>
+                    <td>
+                        ₹249
+                    </td>
+                    <td>
+                        <a href="{% url 'add_to_cart' item.variant.id %}" class="btn btn-primary btn-sm">Add to Cart</a>
+                        
+                    </td>
+                </tr>
+                {% empty %}
+                <p>Your wishlist is empty</p>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
-{% empty %}
-<p>Your wishlist is empty</p>
-{% endfor %}
 
 
 

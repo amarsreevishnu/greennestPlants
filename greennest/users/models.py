@@ -55,7 +55,7 @@ class Address(models.Model):
     full_name = models.CharField(max_length=150)
     phone = models.CharField(max_length=20,)
     line1 = models.CharField("Address Line 1", max_length=255)
-    line2 = models.CharField("Address Line 2", max_length=255, blank=True)
+    line2 = models.CharField("Address Line 2", max_length=255, blank=True,null=True)
     city = models.CharField(max_length=100)
     state = models.CharField(max_length=100)
     postal_code = models.CharField(max_length=20)

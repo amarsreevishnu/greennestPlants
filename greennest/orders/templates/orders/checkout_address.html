@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block Checkout %}
+
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <!-- Shipping & Address Form -->
+    <div class="col-lg-7 mb-4">
+      <div class="border rounded-3 p-4 bg-white">
+        <h5 class="mb-3"><strong>Shipping Address</strong></h5> 
+        <div class="mb-3 border-bottom pb-2"></div>
+
+        <!-- Form for add/edit address and proceed -->
+        <form method="POST">
+          {% csrf_token %}
+          <!-- Hidden field to track editing -->
+          <input type="hidden" name="edit_address_id" id="edit_address_id" value="">
+
+          <!-- Address Selection -->
+          <div class="row">
+            {% for addr in addresses %}
+              <div class="col-md-6 mb-3">
+                <div class="border rounded-2">
+                  <div class="form-check">
+                    <input type="radio" name="address" value="{{ addr.id }}" id="address{{ addr.id }}" {% if addr.is_default or forloop.first %}checked{% endif %}>
+                    <label class="form-check-label" for="address{{ addr.id }}">
+                      {{ addr.full_name }}<br>
+                      {{ addr.line1 }}, {{ addr.line2 }}, {{ addr.city }}<br>
+                      {{ addr.state }}, {{ addr.postal_code }}, {{ addr.country }}
+                    </label>
+                    <br>
+                    <!-- FIX: add edit-btn class -->
+                    <a href="#" class="add-edit-btn small text-decoration-none text-primary"
+                      data-id="{{ addr.id }}"
+                      data-full_name="{{ addr.full_name }}"
+                      data-phone="{{ addr.phone }}"
+                      data-line1="{{ addr.line1 }}"
+                      data-line2="{{ addr.line2 }}"
+                      data-city="{{ addr.city }}"
+                      data-state="{{ addr.state }}"
+                      data-postal_code="{{ addr.postal_code }}"
+                      data-country="{{ addr.country }}"
+                      data-address_type="{{ addr.address_type }}">
+                      Edit
+                    </a>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+
+          <!-- Address Form -->
+          <div class="row g-2 mb-3">
+            <div class="col-md-6"><input type="text" name="full_name" id="full_name" class="form-control" placeholder="Full Name"></div>
+            <div class="col-md-6"><input type="text" name="phone" id="phone" class="form-control" placeholder="Phone Number"></div>
+            <div class="col-md-6"><input type="text" name="line1" id="line1" class="form-control" placeholder="Line 1"></div>
+            <div class="col-md-6"><input type="text" name="line2" id="line2" class="form-control" placeholder="Line 2"></div>
+            <div class="col-md-12"><input type="text" name="city" id="city" class="form-control" placeholder="City"></div>
+            <div class="col-md-6"><input type="text" name="state" id="state" class="form-control" placeholder="State"></div>
+            <div class="col-md-6"><input type="text" name="postal_code" id="postal_code" class="form-control" placeholder="Postal Code"></div>
+            <div class="col-md-12"><input type="text" name="country" id="country" class="form-control" placeholder="Country" value="India"></div>
+            <div class="col-md-12 mt-2">
+              <select name="address_type" id="address_type" class="form-control">
+                <option value="home">Home</option>
+                <option value="office">Office</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" name="action" value="add_edit" class="btn btn-dark mb-2 w-100">Add / Update Address</button>
+          <button type="submit" name="action" value="proceed" class="btn btn-success w-100">Continue to Payment</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Order Summary -->
+    <div class="col-lg-5 mb-4">
+      <div class="border rounded-3 p-4 bg-white">
+        <h6 class="mb-3">Order Summary</h6>
+        <ul class="list-unstyled mb-3">
+          <li class="d-flex justify-content-between">
+            <span>Item Sub Total</span>
+            <span>₹{{ subtotal }}</span>
+          </li>
+          <li class="d-flex justify-content-between">
+            <span>Shipping</span>
+            <span>{% if shipping > 0 %}₹{{ shipping }}{% else %}Free{% endif %}</span>
+          </li>
+        </ul>
+        <div class="d-flex justify-content-between border-top pt-2 mb-3">
+          <strong>Total</strong>
+          <strong>₹{{ total }}</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JS to prefill form when editing -->
+<script>
+document.querySelectorAll(".add-edit-btn").forEach(btn => {
+    btn.addEventListener("click", function(e){
+        e.preventDefault();
+        document.getElementById("full_name").value = this.dataset.full_name;
+        document.getElementById("phone").value = this.dataset.phone;
+        document.getElementById("line1").value = this.dataset.line1;
+        document.getElementById("line2").value = this.dataset.line2;
+        document.getElementById("city").value = this.dataset.city;
+        document.getElementById("state").value = this.dataset.state;
+        document.getElementById("postal_code").value = this.dataset.postal_code;
+        document.getElementById("country").value = this.dataset.country;
+        document.getElementById("address_type").value = this.dataset.address_type;
+
+        // Set hidden edit field
+        document.getElementById("edit_address_id").value = this.dataset.id;
+
+        // Auto-select this address radio
+        document.getElementById("address" + this.dataset.id).checked = true;
+    });
+});
+</script>
+
+{% endblock Checkout %}

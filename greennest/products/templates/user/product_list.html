@@ -176,12 +176,8 @@
             {% endif %}
           </p>
           <div>
-            <a href="{% url 'user_product_detail' product.id %}" class="btn btn-dark btn-sm">View</a>
-            {% if product.variants.first and product.variants.first.stock > 0 %}
-              <a href="" class="btn btn-success btn-sm">Add to Cart</a>
-            {% else %}
-              <button class="btn btn-secondary btn-sm" disabled>Out of Stock</button>
-            {% endif %}
+            <a href="{% url 'user_product_detail' product.id %}" class="btn btn-success btn-sm w-100">View</a>
+            
           </div>
         </div>
 

@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% load static %}
+{% block Checkout_payment %}
+
+<style>
+    body {
+      background: #fff;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    .navbar {
+      background-color: #0d716d;
+    }
+    .navbar-brand img {
+      height: 40px;
+    }
+    .address-card {
+      border: 1px solid #ced4da;
+      border-radius: 8px;
+      padding: 16px;
+      background: #fff;
+      margin-bottom: 20px;
+    }
+    .order-summary {
+      background: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid #ced4da;
+      padding: 20px;
+      min-width: 220px;
+    }
+    .payment-modes .form-check {
+      margin-bottom: 12px;
+    }
+    .pay-btn {
+      background: #0d716d;
+      color: #fff;
+      border-radius: 20px;
+      padding: 10px 32px;
+      margin-top: 16px;
+      border: none;
+    }
+    .footer {
+      background: #10453b;
+      color: #fff;
+      padding: 40px 0 20px;
+    }
+    .footer a {
+      color: #fff;
+      text-decoration: none;
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+    .footer .social-icons a {
+      margin-right: 16px;
+      font-size: 22px;
+      color: #fff;
+      display: inline-block;
+    }
+    @media (max-width: 768px) {
+      .order-summary {
+        margin-bottom: 24px;
+      }
+    }
+  </style>
+
+
+
+<!-- Main Section -->
+<div class="container py-5">
+  <div class="row g-5">
+    <div class="col-lg-8">
+      <!-- Address -->
+      <div class="address-card d-flex justify-content-between align-items-start">
+        <div>
+          <strong>Shipping Address</strong><br>
+          {{ address.full_name }}<br>
+          {{ address.line1 }},{{ address.line2 }}<br>
+          {{ address.city }}, {{ address.state }}, {{ address.postal_code }}<br>
+          917957654309
+        </div>
+      </div>
+      <hr>
+      <!-- Payment Modes -->
+      <div>
+        <strong>Payment Mode</strong>
+        <form class="payment-modes mt-3" method="POST">
+        {% csrf_token %}
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="paymentOption" id="payUpi">
+            <label class="form-check-label" for="payUpi">UPI</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="paymentOption" id="payWallet">
+            <label class="form-check-label" for="payWallet">Wallet</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="paymentOption" id="payCard">
+            <label class="form-check-label" for="payCard">Credit/Debit Card</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="paymentOption" id="payNetBanking">
+            <label class="form-check-label" for="payNetBanking">Net Banking</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="paymentOption" id="payEmi">
+            <label class="form-check-label" for="payEmi">EMI</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="payment_method" id="payCOD" value="Cash on Delivery" checked>
+            <label class="form-check-label" for="payCOD">Cash On Delivery</label>
+          </div>
+          <button type="submit" class="pay-btn">PAY NOW</button>
+        </form>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <!-- Order Summary -->
+      <div class="order-summary">
+        <strong>Order Summary</strong>
+        <div class="d-flex justify-content-between">
+          <span>Item Sub Total</span>
+          <span>&#8377; {{ subtotal }} </span>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span>Discount</span>
+          <span>&#8377; 0.00</span>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span>Shipping</span>
+          <span>&#8377;{{ shipping }}</span>
+        </div>
+        <hr>
+        <div class="d-flex justify-content-between fw-bold">
+          <span>Total</span>
+          <span>&#8377; {{ total }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+{% endblock Checkout_payment %}
