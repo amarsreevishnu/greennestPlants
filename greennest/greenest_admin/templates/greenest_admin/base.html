@@ -30,7 +30,7 @@
         <a class="nav-link {% if request.path == '/greenneest_admin/users/' %}active{% endif %}" href="{%url "admin_user_list"%}"><i class="bi bi-person-lines-fill"></i>Customers</a>
         <a class="nav-link {% if request.path == '/greenneest_admin/products/' %}active{% endif %}" href="{% url "admin_product_list" %}"><i class="bi bi-bag-check"></i>Products</a>
         <a class="nav-link {% if request.path == '/greenneest_admin/Category/' %}active{% endif %}" href="{%url "manage_categories"%}"><i class="bi bi-tags"></i>Category</a>
-        <a class="nav-link {% if request.path == '/greenneest_admin/Orders/' %}active{% endif %}" href="#"><i class="bi bi-cart-check"></i>Orders</a>
+        <a class="nav-link {% if request.path == '/greenneest_admin/Orders/' %}active{% endif %}" href="{% url "admin_order_list" %}"><i class="bi bi-cart-check"></i>Orders</a>
         <a class="nav-link {% if request.path == '/greenneest_admin/Coupons/' %}active{% endif %}" href="#"><i class="bi bi-ticket"></i>Coupons</a>
         
         <a class="nav-link {% if request.path == '/greenneest_admin/Offers/' %}active{% endif %}" href="#"><i class="bi bi-gift"></i>Offers</a>

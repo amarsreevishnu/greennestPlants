@@ -1,14 +1,19 @@
 from django.db import models
 from django.conf import settings
 from products.models import ProductVariant
-from users.models import Address  # Assuming Address model exists
+from users.models import Address
 
 class Order(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('processing', 'Processing'),
+        ('shipped', 'Shipped'),
+        ('delivered', 'Delivered'),
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
+        ('partially_cancelled', 'Partially Cancelled'),
+        ('return_requested', 'Return Requested'),
+        ('returned', 'Returned'),
     ]
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True)
@@ -18,19 +23,68 @@ class Order(models.Model):
     shipping_charge = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     final_amount = models.DecimalField(max_digits=10, decimal_places=2)
     payment_method = models.CharField(max_length=50, default='Cash on Delivery')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
+
+    # Cancellation / Return request info (user side)
+    cancel_requested = models.BooleanField(default=False)
+    cancel_reason = models.TextField(null=True, blank=True)
+    cancel_requested_at = models.DateTimeField(null=True, blank=True)
+
+    cancel_approved = models.BooleanField(default=False)
+    cancel_approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                           on_delete=models.SET_NULL, related_name='approved_cancels')
+    cancel_approved_at = models.DateTimeField(null=True, blank=True)
+
+    return_requested = models.BooleanField(default=False)
+    return_reason = models.TextField(null=True, blank=True)
+    return_requested_at = models.DateTimeField(null=True, blank=True)
+
+    return_approved = models.BooleanField(default=False)
+    return_approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                           on_delete=models.SET_NULL, related_name='approved_returns')
+    return_approved_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"Order #{self.id} by {self.user.username}"
 
+    def recalc_totals(self):
+        # Include only items that are active or delivered
+        items = self.items.filter(status__in=["active", "delivered"])
+        subtotal = sum(item.total_price for item in items)
+        self.total_amount = subtotal
+        self.final_amount = subtotal + self.shipping_charge - self.discount + self.tax
+        self.save()
+
+    @property
+    def display_id(self):
+        """Custom display ID: OID + order id + date in DDMMYYYY format with month as number"""
+        return f"OID{self.id}-{self.created_at.strftime('%d%m%Y')}"
 
 class OrderItem(models.Model):
+    ITEM_STATUS = [
+        ('active', 'Active'),
+        ('cancel_requested', 'Cancel Requested'),
+        ('cancelled', 'Cancelled'),
+        ('delivered', 'Delivered'),
+        ('return_requested', 'Return Requested'),
+        ('returned', 'Returned'),
+    ]
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     variant = models.ForeignKey(ProductVariant, on_delete=models.SET_NULL, null=True)
     quantity = models.PositiveIntegerField()
     price = models.DecimalField(max_digits=8, decimal_places=2)  # Price per unit
     total_price = models.DecimalField(max_digits=10, decimal_places=2)  # price * quantity
+
+    # status + reasons
+    status = models.CharField(max_length=20, choices=ITEM_STATUS, default='active')
+    cancel_reason = models.TextField(null=True, blank=True)   # optional on cancel
+    cancel_requested_at = models.DateTimeField(null=True, blank=True)
+    cancel_approved = models.BooleanField(default=False)
+
+    return_reason = models.TextField(null=True, blank=True)   # required when requesting return
+    return_requested_at = models.DateTimeField(null=True, blank=True)
+    return_approved = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.variant} x {self.quantity}"

@@ -3,17 +3,28 @@
 {% block order_details %}
 
 <style>
-    .action-btn {
-      padding: 2px 18px;
-      border-radius: 20px;
-      font-size: 0.95rem;
-    }
+    .action-btn {padding: 2px 18px;border-radius: 20px;font-size: 0.95rem;}
+
+
+/* Map status to colors */
+.status-badge.pending { color: #0d6efd; }       /* Blue */
+.status-badge.processing { color: #6c757d; }    /* Gray */
+.status-badge.shipped { color: #0dcaf0; }       /* Light Blue */
+.status-badge.delivered { color: #198754; }     /* Green */
+.status-badge.completed { color: #20c997; }     /* Teal */
+.status-badge.cancelled { color: #dc3545; }     /* Red */
+.status-badge.partially_cancelled { color: #fd7e14; } /* Orange */
+.status-badge.return_requested { color: #ffc107; color: #000; } /* Yellow */
+.status-badge.returned { color: #6f42c1; }      /* Purple */
+    
     @media (max-width: 768px) {
       .table-responsive { margin-bottom: 28px; }
     }
-  </style>
+</style>
 
- <div class="container py-3">
+
+
+<div class="container py-3">
     <div class="row">
         {% include "users/user_profile_sidebar.html"  with current_page="Orders" %}
     </div>
@@ -22,75 +33,69 @@
      <!-- Order list - Section -->
       <div class="container">
     
-    <div class="content-section d-flex justify-content-between align-items-center flex-wrap">
-      <div>
-        <div class="text-muted "> <h4 class="fw-bold mb-1 py-4">Orders </h4></div>
-      </div>
-    </div>
-    <!-- Search/filter row -->
-    <div class="row mb-3">
-      <div class="col-md-6 mb-2 mb-md-0">
-        <input type="search" class="form-control" placeholder="Search by order number, product, or date">
-      </div>
-      <div class="col-md-6 text-md-end">
-        <select class="form-select w-auto d-inline-block" style="min-width:140px;">
-          <option value="">All Statuses</option>
-          <option>pending</option>
-          <option>Shipped</option>
-          <option>Delivered</option>
-          <option>Cancelled</option>
-        </select>
-      </div>
-    </div>
-    <!-- Orders Table -->
-    <div class="table-responsive">
-      <table class="table table-bordered align-middle mb-0">
-        <thead class="table-light">
-          <tr>
-            <th>Order ID</th>
-            <th>Date</th>
-            <th>Total</th>
-            <th>Payment</th>
-            <th>Status</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-      {% for order in orders %}
-            <tr>
-              <td>#{{ order.id }}</td>
-              <td>{{ order.created_at|date:"d M Y" }}</td>
-            
-              <td>₹{{ order.final_amount }}</td>
-              <td>{{ order.payment_method }}</td>
-              <td>{{ order.status }}</td>
-              <td>
-                <a href="{% url 'order_detail' order.id %}" class="btn btn-outline-secondary action-btn">View</a>
-                <a href="#" class="btn btn-outline-danger action-btn ms-1">Cancel</a>
-              </td>
-            </tr>
-            {% empty %}
-            <tr>
-              <td colspan="6" class="text-center">No orders found.</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-  </div>
+        <div class="content-section d-flex justify-content-between align-items-center flex-wrap">
+          
+        </div>
+
+        <!-- Search/filter row -->
+        <div class="row mb-3">
+          <div class="col-md-6 mb-2 mb-md-0">
+            <input type="search" class="form-control" placeholder="Search by order number, product, or date">
+          </div>
+          <div class="col-md-6 text-md-end">
+            <select class="form-select w-auto d-inline-block" style="min-width:140px;">
+              <option value="">All Statuses</option>
+              <option>pending</option>
+              <option>Shipped</option>
+              <option>Delivered</option>
+              <option>Cancelled</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Orders Table -->
+        <div class="table-responsive">
+          <table class="table table-bordered align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Order ID</th>
+                <th>Date</th>
+                <th>Products</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for order in orders %}
+              <tr>
+                <td>#{{ order.display_id }}</td>
+                <td>{{ order.created_at|date:"d M Y" }}</td>
+                <td>
+                  {% for item in order.items.all %}
+                    {{ item.variant.product.name }} (x{{ item.quantity }}){% if not forloop.last %}, {% endif %}
+                  {% endfor %}
+                <td>₹{{ order.final_amount }}</td>
+                <td class="status-badge {{ order.status|lower }}">{{ order.status|capfirst }}</td>
+                <td>
+                  <!-- View always -->
+                  <a href="{% url 'order_detail' order.id %}" class="btn btn-outline-secondary action-btn">View</a>
+                  
+                  
 
 
-
-
-            
-      
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="6" class="text-center">No orders found.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 </div>
 
-  
-
-
-
-
-
-{% endblock order_details%}
+{% endblock order_details %}

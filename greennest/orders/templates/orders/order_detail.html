@@ -1,150 +1,134 @@
 {% extends "base.html" %}
+{% load static %}
 {% block order_details %}
 
-
 <style>
-    body {
-      background: #fff;
-    }
-    .order-header {
-      background: #004F44;
-      color: #fff;
-      padding: 32px 0 16px;
-      text-align: center;
-    }
-    .order-status {
-      font-size: 1.1rem;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: #198754;
-      font-weight: 500;
-      margin-bottom: 16px;
-    }
-    .address-card {
-      background: #f8f9fa;
-      border-radius: 8px;
-      padding: 22px;
-      margin-bottom: 20px;
-      border: 1px solid #e1e1e1;
-    }
-    .products-table th, .products-table td {
-      vertical-align: middle;
-    }
-    .tracking-step {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 1.05rem;
-    }
-    .tracking-step i {
-      font-size: 1.3rem;
-    }
-  </style>
-</head>
-<body>
-  <!-- Order header -->
-  <div class="order-header">
-    <hr> 
-    <h3>Order Details</h3>
-    <div>Order : <strong>#{{ order.id }}</strong> | Placed on: {{ order.created_at|date:"d M Y" }}</div>
-  </div>
+  .order-header { background: #004F44; color: #fff; text-align: center; }
+  .order-status { font-size: 1.1rem; display: flex; align-items: center; gap: 8px; color: #198754; font-weight: 500; margin-bottom: 16px; }
+  .address-card { background: #f8f9fa; border-radius: 8px; padding: 22px; margin-bottom: 20px; border: 1px solid #e1e1e1; }
+  .products-table th, .products-table td { vertical-align: middle; }
+</style>
 
-  <div class="container my-4">
-    <div class="row g-4">
-      <!-- Left Column -->
-      <div class="col-lg-8">
-        <!-- Order status section -->
-        <div class="order-status">
-          <i class="bi bi-check-circle-fill"></i>
-          Payment done successful
+<div class="container my-4">
+  <div class="row g-4">
+    <div class="text-center">
+      <h3>Order Details</h3>
+      Order : <strong>#{{ order.id }}</strong> | Placed on: {{ order.created_at|date:"d M Y" }}
+    </div>
+    <hr>
+
+    <!-- Left Column -->
+    <div class="col-lg-8">
+      
+      <!-- Address + Payment -->
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="address-card">
+            <h6>Shipping Address</h6>
+            {{ order.address.full_name }}<br>
+            {{ order.address.line1 }}, {{ order.address.line2 }}, {{ order.address.city }}, {{ order.address.state }}.<br>
+            {{ order.address.phone }}
+          </div>
         </div>
-        <!-- Tracking steps -->
-        <div class="d-flex flex-wrap mb-3">
-          <div class="tracking-step me-4"><i class="bi bi-clipboard-check text-success"></i>Confirmed</div>
-          <div class="tracking-step me-4"><i class="bi bi-box-seam text-warning"></i>Shipped</div>
-          <div class="tracking-step me-4"><i class="bi bi-truck text-info"></i>Out for Delivery</div>
-          <div class="tracking-step"><i class="bi bi-house-door text-success"></i>Delivered</div>
-        </div>
-        <!-- Address sections -->
-        <div class="row g-3">
-          <div class="col-md-6">
-            <div class="address-card">
-              <h6>Shipping Address</h6>
-              {{ order.address.full_name }}<br>
-              {{ order.address.line1 }},{{ order.address.line2 }},
-              {{ order.address.city }},{{ order.address.state }}.<br> 
-              {{ order.address.phone }}<br>
+        <div class="col-md-6">
+          <div class="address-card mt-2">
+            <h6>Payment Method</h6>
+            {{ order.payment_method }}
+            <div class="order-status">
+              <i class="bi bi-check-circle-fill"></i>
+              Payment done
             </div>
-          </div>
-        </div>
-        <!-- Payment method -->
-        <div class="address-card mt-2">
-          <h6>Payment Method</h6>
-         {{ order.payment_method }}
-        </div>
-        <!-- Products Table -->
-        <div class="order-card mt-3">
-          <div class="card-header">
-            <strong>Products Ordered</strong>
-          </div>
-          <div class="card-body p-0">
-            <table class="table table-bordered products-table mb-0">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Unit Price</th>
-                  <th>Qty</th>
-                  <th>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for item in items %}
-                <tr>
-                  <td>{{ item.variant.product.name }}-({{ item.variant.variant_type }})</td>
-                  <td>&#8377; {{ item.price }}</td>
-                  <td>{{ item.quantity }}</td>
-                  <td>&#8377; {{ item.total_price }}</td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
           </div>
         </div>
       </div>
-      <!-- Right Column - Order Summary -->
-      <div class="col-lg-4">
-        <div class="card">
-          <div class="card-header bg-white">
-            <strong>Order Summary</strong>
-          </div>
-          <div class="card-body">
-            <div class="d-flex justify-content-between">
-              <span>Subtotal</span>
-              <span>&#8377; {{ order.final_amount }}</span>
-            </div>
-            <div class="d-flex justify-content-between">
-              <span>Discount</span>
-              <span>&#8377; 0.00</span>
-            </div>
-            <div class="d-flex justify-content-between">
-              <span>Shipping</span>
-              <span>Free</span>
-            </div>
-            <hr>
-            <div class="d-flex justify-content-between fw-bold">
-              <span>Total</span>
-              <span>&#8377; {{ order.final_amount }}</span>
-            </div>
-          </div>
+      
+      <!-- Products Table -->
+      <div class="order-card mt-3">
+        <div class="card-header">
+          <strong>Products Ordered</strong>
         </div>
-        <div class="d-grid mt-4 gap-2">
-          <a href="#" class="btn btn-success btn-block">Track Order</a>
-          <a href="#" class="btn btn-outline-primary btn-block">Contact Support</a>
+        <div class="card-body p-0">
+          <table class="table table-bordered products-table mb-0">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Unit Price</th>
+                <th>Qty</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in order.items.all  %}
+              <tr>
+                <td>{{ item.variant.product.name }} ({{ item.variant.variant_type }})</td>
+                <td>₹{{ item.price }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>₹{{ item.total_price }}</td>
+                <td class="text-capitalize">
+                  {% if item.status == "cancelled" %}
+      <span class="badge bg-danger">Cancelled</span>
+      {% if item.cancel_reason %}
+        <br><small class="text-muted">Reason: {{ item.cancel_reason }}</small>
+      {% endif %}
+      {% endif %}
+                </td>
+                <td>
+                  {% if item.status == "active" %}
+                    <a href="{% url 'cancel_order_item' item.id %}" class="btn btn-outline-danger btn-sm">
+                      Cancel Item
+                    </a>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+              
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
-  </div>
 
+    <!-- Right Column - Order Summary -->
+    <div class="col-lg-4">
+      <div class="cardd">
+        <div class="card-header bg-white text-center">
+          <strong>Order Summary</strong>
+        </div>
+        <div class="card-body">
+          <div class="d-flex justify-content-between">
+            <span>Subtotal</span>
+            <span>₹{{ order.final_amount }}</span>
+          </div>
+          <div class="d-flex justify-content-between">
+            <span>Discount</span>
+            <span>₹0.00</span>
+          </div>
+          <div class="d-flex justify-content-between">
+            <span>Shipping</span>
+            <span>Free</span>
+          </div>
+          <hr>
+          <div class="d-flex justify-content-between fw-bold">
+            <span>Total</span>
+            <span>₹{{ order.final_amount }}</span>
+          </div>
+        </div>
+      </div>
+    
+      <!-- Whole Order Cancel -->
+      {% if order.status == "pending" or order.status == "processing" or order.status == "partially_cancelled" %}
+        <form method="post" action="{% url 'cancel_order' order.id %}" class="mt-3">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-outline-danger w-100">Cancel Whole Order</button>
+        </form>
+       
+      {% endif %}
+
+      <a href="{% url 'order_list' %}" class="btn btn-secondary w-100 mt-2">Go Back</a>
+    </div>
+  </div>
+</div>
 
 {% endblock order_details %}

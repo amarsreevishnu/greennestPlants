@@ -1,0 +1,107 @@
+{% extends "greenest_admin/base.html" %}
+{% load static %}
+
+{% block admin_products_list %}
+<style>
+.badge { padding: 4px 10px; border-radius: 12px; color: #fff; }
+.badge.pending { background-color: #0d6efd; }
+.badge.processing { background-color: #6c757d; }
+.badge.shipped { background-color: #0dcaf0; }
+.badge.delivered { background-color: #198754; }
+.badge.completed { background-color: #20c997; }
+.badge.cancelled { background-color: #dc3545; }
+.badge.partially_cancelled { background-color: #fd7e14; }
+.badge.return_requested { background-color: #ffc107; color: #000; }
+.badge.returned { background-color: #6f42c1; }
+</style>
+
+
+<!-- Main content area -->
+    <div class="col-lg-10 p-0" style="background: #f8f9fa;">
+      <div class="main-content">
+
+        <!-- Top section -->
+        <div class="content-section d-flex justify-content-between align-items-center flex-wrap">
+          <div>
+              <h1>Order Management</h1>
+          </div>
+          <div class="d-flex align-items-center mt-2 mt-lg-0 me-5 ">
+            <form class="d-none d-md-block me-5">
+              <input class="form-control rounded-pill px-3" placeholder="Search Order" type="search" style="min-width:200px;">
+            </form>
+            
+          </div>
+        </div>
+
+
+<div class="content-section">
+  <div class="table-responsive">
+
+  <!-- Table section -->
+    <div class="content-section">
+      <div class="table-responsive">
+    
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Order ID</th>
+                <th>User</th>
+                
+                <th>Date</th>
+                <th>Status</th>
+                <th>Amount</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+                <tr>
+                    <td>00{{ order.id }}</td>
+                    
+                    <td>{{ order.user.first_name }}</td>
+                    <td>{{ order.created_at|date:"d M Y" }}</td>
+                    <td class="badge {{ order.status|lower }}">{{ order.get_status_display }}</td>
+                    <td>{{ order.final_amount }}</td>
+                    <td>
+                        <a href="{% url 'admin_order_detail' order.id %}" class="btn btn-info btn-sm">View</a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+  {% if orders.has_other_pages %}
+      <nav class="mt-4 d-flex justify-content-center">
+        <ul class="pagination mb-0">
+          {% if orders.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ orders.previous_page_number }}">Previous</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">Previous</span></li>
+          {% endif %}
+          {% for num in orders.paginator.page_range %}
+            {% if orders.number == num %}
+              <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% else %}
+              <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+            {% endif %}
+          {% endfor %}
+          {% if orders.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ orders.next_page_number }}">Next</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">Next</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+
+
+        </div>   
+    </div>
+
+  </div>
+</div>
+
+{% endblock  %}
+
+
+

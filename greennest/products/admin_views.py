@@ -4,11 +4,11 @@ import re
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .models import Category, Product, ProductVariant, VariantImage
+from django.views.decorators.cache import never_cache
 from django.core.paginator import Paginator
-from django.contrib import messages
 from django.core.files.base import ContentFile
 from itertools import zip_longest
-from django.views.decorators.cache import never_cache
+from django.contrib import messages
 from io import BytesIO
 from functools import wraps
 
@@ -26,6 +26,7 @@ def admin_required(view_func):
 
 
 # Product List
+
 @login_required(login_url='admin_login')
 @never_cache
 def admin_product_list(request):
@@ -37,6 +38,7 @@ def admin_product_list(request):
 
 
 # Add Product (with variants + images)
+
 @admin_required
 @never_cache
 def admin_add_product(request):
