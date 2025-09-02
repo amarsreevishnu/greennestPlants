@@ -18,6 +18,7 @@ urlpatterns = [
     path('profile/edit/', views.profile_edit, name='profile_edit'),
     path('profile/change_password/',views.profile_change_password,name='profile_change_password'),
     path('profile/change_email/',views.change_email,name='profile_change_email'),
+    path("profile/verify_email_change_otp/", views.verify_email_change_otp, name="verify_email_change_otp"),
 
     
     path("addresses/", views.address_list, name="address_list"),

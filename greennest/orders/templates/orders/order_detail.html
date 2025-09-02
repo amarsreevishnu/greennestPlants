@@ -10,7 +10,7 @@
   
 </style>
 
-<div class="container my-4">
+<div class="container my-5">
   <div class="row g-4">
     <div class="text-center">
       <h3>Order Details</h3>
@@ -21,19 +21,23 @@
     <div class="col-lg-8">
       
 
-      <div class="row g-3">
+      <div class="row g-3 ">
         <div class="col-md-6">
-          <div class="address-card">
+          <div class="">
             <h6>Shipping Address</h6>
+            <hr>
             {{ order.address.full_name }}<br>
             {{ order.address.line1 }}, {{ order.address.line2 }}, {{ order.address.city }}, {{ order.address.state }}.<br>
             {{ order.address.phone }}
+            <hr>
           </div>
         </div>
         <div class="col-md-6">
-          <div class="address-card mt-2">
+          <div class="m-5 ">
             <h6>Payment Method</h6>
+            <span>
             {{ order.payment_method }}
+            </span>
             <div class="order-status">
               
             </div>
@@ -47,6 +51,14 @@
         </div>
         <div class="card-body p-0">
           <table class="table table-bordered products-table mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Product</th>
+                <th>Price</th>
+                <th>Quantity</th>
+                <th>Total</th>
+                <th>Status / Actions</th>
+              </tr>
             <tbody>
   {% for item in items %}
     <tr>
@@ -123,6 +135,13 @@
           </div>
         </div>
       </div>
+      
+
+      {% if order.status == "delivered" or order.status == "completed" %}
+        <a href="{% url 'download_invoice' order.id %}" class="btn btn-success w-100 mt-2">
+          <i class="bi bi-file-earmark-pdf"></i> Download Invoice
+        </a>
+      {% endif %}
       <a href="{% url 'order_list' %}" class="btn btn-outline-secondary w-100 mt-2">Go Back</a>
     </div>
   </div>

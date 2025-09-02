@@ -11,6 +11,15 @@
     <!-- Profile Details -->
     <div class="col-md-9 py-2">
         <div class="profile-card">
+          <!-- show message -->
+{% if messages %}
+{% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+{% endfor %}
+{% endif %}
             <div class="profile-row d-flex justify-content-between">
             <span class="label">Full Name</span>
             <span class="value">{{ profile.user.first_name }}</span>

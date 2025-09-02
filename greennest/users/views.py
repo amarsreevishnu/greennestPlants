@@ -345,45 +345,104 @@ def profile_change_password(request):
 @login_required(login_url="user_login")
 @never_cache
 def change_email(request):
-    
-    if request.method=="POST":
-        current_email=request.POST.get("current_email","").strip()
+    if request.method == "POST":
+        current_email = request.POST.get("current_email", "").strip()
         new_email = request.POST.get("new_email", "").strip()
 
+        # 1. Validation checks
         if not new_email or not current_email:
             messages.error(request, "Both current and new email are required.")
-            return redirect("profile_change_email")
+            return redirect("change_email")
 
         if current_email != request.user.email:
             messages.error(request, "Current email does not match your account.")
-            return redirect("update_email")
-        
+            return redirect("change_email")
+
         if new_email == request.user.email:
             messages.error(request, "New email cannot be the same as your current email.")
-            return redirect("update_email")
-        
-        # 2. Format check (basic)
+            return redirect("change_email")
+
         try:
             validate_email(new_email)
         except ValidationError:
             messages.error(request, "Enter a valid New Email address.")
-            return redirect("profile_change_email")
+            return redirect("change_email")
 
-        # 3. Unique check in DB (ignore current user)
         if User.objects.filter(email=new_email).exclude(pk=request.user.pk).exists():
             messages.error(request, "This New Email is already in use.")
-            return redirect("profile_change_email")
+            return redirect("change_email")
 
-        # 4. Update email
-        request.user.email = new_email
-        request.user.save()
-        messages.success(request, "Your email was updated successfully.")
-        return redirect("profile_detail")
-        
-        
-    
-    return render(request,'users/profile_change_email.html')
+        # 2. Send OTP to new email
+        request.session["pending_email_user_id"] = request.user.id
+        request.session["pending_new_email"] = new_email
 
+        # Temporarily create OTP linked to user
+        send_otp_change_email(request.user, override_email=new_email)
+
+        messages.info(request, "We sent an OTP to your new email. Please verify.")
+        return redirect("verify_email_change_otp")
+
+    return render(request, "users/profile_change_email.html")
+
+
+def send_otp_change_email(user, override_email=None):
+    otp = f"{random.randint(1000, 9999)}"
+    EmailOTP.objects.update_or_create(user=user, defaults={'otp': otp, 'created_at': timezone.now()})
+    try:
+        send_mail(
+            "Your OTP Code",
+            f"Your OTP is {otp}. It expires in 1 minute.",
+            "greennest.ecom@gmail.com",
+            [override_email or user.email],
+        )
+        print("[DEBUG] OTP email sent successfully.")
+    except Exception as e:
+        print(f"[ERROR] Failed to send OTP email: {e}")
+
+
+
+@login_required(login_url="user_login")
+@never_cache
+def verify_email_change_otp(request):
+    user_id = request.session.get("pending_email_user_id")
+    new_email = request.session.get("pending_new_email")
+
+    if not user_id or not new_email:
+        messages.error(request, "Session expired. Please try again.")
+        return redirect("update_email")
+
+    user = get_object_or_404(User, pk=user_id)
+    otp_obj = get_object_or_404(EmailOTP, user=user)
+
+    if request.method == "POST":
+        entered_otp = (
+            request.POST.get("otp1", "") +
+            request.POST.get("otp2", "") +
+            request.POST.get("otp3", "") +
+            request.POST.get("otp4", "")
+        )
+
+        if otp_obj.is_expired():
+            otp_obj.delete()
+            messages.error(request, "OTP expired. Please try again.")
+            return redirect("update_email")
+
+        if entered_otp == otp_obj.otp:
+            # ✅ Update email
+            user.email = new_email
+            user.username = new_email  # if you use email as username
+            user.save()
+
+            otp_obj.delete()
+            del request.session["pending_email_user_id"]
+            del request.session["pending_new_email"]
+
+            messages.success(request, "Your email has been updated successfully.")
+            return redirect("profile_detail")
+        else:
+            messages.error(request, "Invalid OTP. Please try again.")
+
+    return render(request, "users/verify_email_change_otp.html")
 
 @login_required
 def address_list(request):

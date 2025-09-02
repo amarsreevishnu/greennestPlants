@@ -77,7 +77,7 @@ def user_product_list(request):
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
         data = []
         for product in page_obj:
-            variant = product.sorted_variants[0] if product.sorted_variants else None
+            variant = product.available_variants[0] if hasattr(product, "available_variants") and product.available_variants else None
             if variant:
                 price_display = f"₹ {variant.price:.0f}"
                 stock = variant.stock
@@ -94,7 +94,10 @@ def user_product_list(request):
                 "price": price_display,
                 "variant_stock": stock,
                 "variant_image": image_url,
-                "detail_url": reverse("user_product_detail", args=[product.id])
+                "detail_url": reverse("user_product_detail", args=[product.id]),
+                "variant_id": variant.id if variant else None,
+                "in_wishlist": variant.id in wishlist_variant_ids if variant else False,
+                "wishlist_url": reverse("toggle_wishlist", args=[variant.id]) if variant else "#"
             })
         return JsonResponse({"products": data, "has_next": page_obj.has_next()})
 

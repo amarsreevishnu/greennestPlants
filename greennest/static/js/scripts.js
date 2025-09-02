@@ -31,18 +31,7 @@ document.querySelectorAll(".otp-input").forEach((input, index, inputs) => {
   });
 });
 
-// Wishlist count fetch and update
 
-document.addEventListener("DOMContentLoaded", function () {
-    fetch('/wishlist/count/')
-        .then(response => response.json())
-        .then(data => {
-            const countSpan = document.getElementById('wishlist-count');
-            if (countSpan) {
-                countSpan.innerText = data.count;
-            }
-        });
-});
 
 
 

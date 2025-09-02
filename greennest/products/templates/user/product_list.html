@@ -220,16 +220,16 @@ document.addEventListener("DOMContentLoaded", function () {
           col.classList.add("col-md-4", "col-sm-6");
           col.innerHTML = `
             <div class="card product-card position-relative shadow-sm h-100">
-              <i class="fa fa-heart wishlist-icon"></i>
+              <a href="${p.wishlist_url}">
+                <i class="fa fa-heart wishlist-icon ${p.in_wishlist ? 'text-warning' : ''}"></i>
+              </a>
               <img src="${p.variant_image || '/static/images/no-image.png'}" class="card-img-top" alt="${p.name}">
               <div class="card-body text-center d-flex flex-column">
                 <h6 class="card-title">${p.name}</h6>
                 <p class="text-muted mb-2">${p.price}</p>
                 <div class="mt-auto">
-                  <a href="${p.detail_url}" class="btn btn-dark btn-sm">View</a>
-                  ${p.variant_stock > 0
-                    ? `<button class="btn btn-success btn-sm">Add to Cart</button>`
-                    : `<button class="btn btn-secondary btn-sm" disabled>Out of Stock</button>`}
+                  <a href="${p.detail_url}" class="btn btn-success btn-sm w-100">View</a>
+                  
                 </div>
               </div>
             </div>
@@ -247,6 +247,8 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 });
+
+
 </script>
 
 

@@ -232,9 +232,9 @@
         {% else %}
         <div class="mt-2"><span class="text-danger">Out of Stock</span></div>
         {% endif %}
-        <div class="mt-1 d-flex justify-content-center gap-3">
-          <button class="btn btn-success px-1">ADD TO CART</button>
-          <a href=""><i class="fa fa-heart wishlist-icon"></i></a>
+        <div class="mt-1 d-flex justify-content-center gap-2">
+          <a href="{% url 'user_product_detail' related.pk %}." class="btn btn-success px-1 w-100">View</a>
+          <a href="{% url 'toggle_wishlist' related.id %}"><i class="fa fa-heart wishlist-icon"></i></a>
         </div>
       </div>
       {% endif %}

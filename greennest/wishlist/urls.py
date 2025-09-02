@@ -5,5 +5,5 @@ urlpatterns = [
     path('', views.wishlist_view, name='wishlist_view'),
     path('toggle/<int:variant_id>/', views.toggle_wishlist, name='toggle_wishlist'),
     path('remove/<int:variant_id>/', views.remove_from_wishlist, name='remove_from_wishlist'),
-    path('wishlist/count/', views.wishlist_count, name='wishlist_count'),
+    path('count/', views.wishlist_count, name='wishlist_count'),
 ]

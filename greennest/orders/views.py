@@ -1,17 +1,21 @@
+
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
+from django.views.decorators.cache import never_cache
+from django.utils.dateparse import parse_date
 from django.utils import timezone
 from django.http import HttpResponse, Http404
-from django.db.models import Q
+from django.db.models import Q, Prefetch
 
 from cart.models import Cart, CartItem
 from .models import Order, OrderItem
 from users.models import Address
-from django.utils import timezone
+
 
 @login_required
+@never_cache
 def checkout_address(request):
     user = request.user
     cart = Cart.objects.filter(user=user).first()
@@ -23,7 +27,7 @@ def checkout_address(request):
     # Calculate totals
     cart_items = cart.items.all()
     subtotal = sum(item.variant.price * item.quantity for item in cart_items)
-    shipping = 0 if subtotal <= 2500 else 50
+    shipping = 0 if subtotal >= 2500 else 50
     total = subtotal + shipping
 
     if request.method == "POST":
@@ -85,6 +89,7 @@ def checkout_address(request):
 
 
 @login_required
+@never_cache
 def checkout_payment(request):
     user = request.user
     cart = Cart.objects.filter(user=user).first()
@@ -143,33 +148,51 @@ def checkout_payment(request):
 
 
 @login_required
+@never_cache
 def order_success(request, order_id):
     order = Order.objects.get(id=order_id, user=request.user)
     return render(request, 'orders/order_success.html', {'order': order})
 
 
+
 @login_required
+@never_cache
 def order_list(request):
-    orders = Order.objects.filter(user=request.user).order_by("-created_at")
     q = request.GET.get('q', '').strip()
-    orders = Order.objects.filter(user=request.user)
+
+    item_qs = OrderItem.objects.select_related('variant__product')
+    orders = (
+        Order.objects
+        .filter(user=request.user)
+        .prefetch_related(Prefetch('items', queryset=item_qs))
+    )
+
     if q:
-        # search by id, status, variant name, or address, date
-        orders = orders.filter(
-            Q(id__iexact=q) |
+        filters = (
             Q(status__icontains=q) |
             Q(address__line1__icontains=q) |
-            Q(items__variant__name__icontains=q)
-        ).distinct()
+            Q(items__variant__product__name__icontains=q)
+        )
+
+        if q.isdigit():
+            filters |= Q(id=int(q))
+
+        parsed_date = parse_date(q)
+        if parsed_date:
+            filters |= Q(created_at__date=parsed_date)
+
+        orders = orders.filter(filters).distinct()
+
     orders = orders.order_by("-created_at")
     return render(request, "orders/order_list.html", {"orders": orders, "q": q})
 
+
 @login_required
+@never_cache
 def order_detail(request, order_id):
     order = get_object_or_404(Order, id=order_id, user=request.user)
     items = OrderItem.objects.filter(order=order)
 
-    # If you want helper flags, make them consistent with your model
     for item in items:
         item.can_return = (item.status == "delivered")
         item.return_requested_display = (item.status == "return_requested")
@@ -180,14 +203,11 @@ def order_detail(request, order_id):
     })
 
 
-
-
-
-
+#Cancel the entire order
 @login_required
+@never_cache
 def cancel_order(request, order_id):
-    """Cancel the entire order."""
-
+   
     order = get_object_or_404(
         Order.objects.prefetch_related("items"),
         id=order_id,
@@ -225,6 +245,7 @@ def cancel_order(request, order_id):
 
 
 @login_required
+@never_cache
 def cancel_order_item(request, item_id):
     item = get_object_or_404(OrderItem, id=item_id, order__user=request.user)
 
@@ -233,13 +254,13 @@ def cancel_order_item(request, item_id):
         item.status = "cancelled"
         item.cancel_reason = reason
         item.cancel_requested_at = timezone.now()
-        item.cancel_approved = True   # if you want auto-approve for user cancellations
+        item.cancel_approved = True   
         item.save()
 
-        # 🔹 Recalculate order totals after cancellation
+        # Recalculate order totals after cancellation
         item.order.recalc_totals()
 
-        # 🔹 Update order status if only some items are cancelled
+        # Update order status if only some items are cancelled
         active_items = item.order.items.filter(status="active").exists()
         if not active_items:
             item.order.status = "cancelled"
@@ -253,10 +274,11 @@ def cancel_order_item(request, item_id):
     return render(request, "orders/confirm_cancel_item.html", {"item": item})
 
 
-
+#User requests return for the whole order (all delivered items)
 @login_required
+@never_cache
 def request_return_order(request, order_id):
-    """User requests return for the whole order (all delivered items)."""
+    
     order = get_object_or_404(Order, id=order_id, user=request.user)
 
     if order.status != "delivered":
@@ -269,14 +291,12 @@ def request_return_order(request, order_id):
             messages.error(request, "Please provide a reason for return (required).")
             return redirect("order_detail", order_id=order_id)
 
-        # mark each delivered item as return_requested
         for item in order.items.filter(status="delivered"):
             item.status = "return_requested"
             item.return_reason = reason
             item.return_requested_at = timezone.now()
             item.save()
 
-        # mark order
         order.status = "return_requested"
         order.return_requested = True
         order.return_reason = reason
@@ -288,14 +308,15 @@ def request_return_order(request, order_id):
 
     return render(request, "orders/request_return_order.html", {"order": order})
 
-
+#User requests return for a specific item (goes to admin approval).
 @login_required
+@never_cache
 def request_return_item(request, order_id, item_id):
-    """User requests return for a specific item (goes to admin approval)."""
+    
     order = get_object_or_404(Order, id=order_id, user=request.user)
-    item = get_object_or_404(OrderItem, id=item_id, order=order)  # ✅ FIXED
+    item = get_object_or_404(OrderItem, id=item_id, order=order)  
 
-    # ✅ Only delivered items can be requested for return
+    # Only delivered items can be requested for return
     if order.status != "delivered":
         messages.error(request, "This item cannot be returned.")
         return redirect("order_detail", order_id=order_id)
@@ -305,14 +326,12 @@ def request_return_item(request, order_id, item_id):
         if not reason:
             messages.error(request, "Please provide a reason for return.")
             return redirect("request_return_item", order_id=order.id, item_id=item.id)
-
-        # ✅ Mark as return requested
-        item.status = "return_requested"  # change status!
+        
+        item.status = "return_requested"  
         item.return_reason = reason
         item.return_requested_at = timezone.now()
         item.save()
 
-        # ✅ Update order flag if at least one item has return requested
         order.return_requested = True
         order.save(update_fields=["return_requested"])
 
@@ -322,9 +341,11 @@ def request_return_item(request, order_id, item_id):
     return render(request, "orders/request_return_item.html", {"order": order, "item": item})
 
 
+#Generate a simple PDF invoice for the order.
 @login_required
+@never_cache
 def download_invoice(request, order_id):
-    """Generate a simple PDF invoice for the order."""
+
     order = Order.objects.filter(id=order_id, user=request.user).first()
     if not order:
         raise Http404("Order not found")
@@ -340,7 +361,7 @@ def download_invoice(request, order_id):
 
     # header
     c.setFont("Helvetica-Bold", 16)
-    c.drawString(50, height - 50, f"Invoice — Order #{order.id}")
+    c.drawString(50, height - 50, f"Invoice — Order #{order.display_id}")
     c.setFont("Helvetica", 10)
     c.drawString(50, height - 70, f"Date: {order.created_at.strftime('%Y-%m-%d %H:%M')}")
     c.drawString(50, height - 85, f"Customer: {order.user.get_full_name() or order.user.username}")
@@ -353,6 +374,7 @@ def download_invoice(request, order_id):
     if order.address:
         addr_lines = [
             getattr(order.address, 'full_name', ''),
+            getattr(order.address, 'phone', ''),
             getattr(order.address, 'line1', ''),
             getattr(order.address, 'line2', ''),
             f"{getattr(order.address, 'city', '')}, {getattr(order.address, 'state', '')} {getattr(order.address, 'postal_code', '')}",
@@ -379,6 +401,7 @@ def download_invoice(request, order_id):
         c.drawString(300, y, str(item.quantity))
         c.drawString(350, y, f"{item.price:.2f}")
         c.drawString(450, y, f"{item.total_price:.2f}")
+        
 
     # totals
     y -= 30
@@ -398,6 +421,11 @@ def download_invoice(request, order_id):
     c.setFont("Helvetica-Bold", 12)
     c.drawString(350, y, "Final Amount:")
     c.drawString(450, y, f"{order.final_amount:.2f}")
+    y -= 25
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(350, y, "Status:")
+    c.drawString(450, y, str(order.status).capitalize())
+
 
     c.showPage()
     c.save()

@@ -11,6 +11,7 @@
 .badgee.completed { color: #20c997; }
 .badgee.cancelled { color: #dc3545; }
 .badgee.partially_cancelled { color: #fd7e14; }
+.badgee.partially_returned { color: #bb463fff; }
 .badgee.return_requested { color: #ffc107; color: #000; }
 .badgee.returned { color: #6f42c1; }
 
@@ -29,9 +30,9 @@
           <div class="d-flex align-items-center mt-2 mt-lg-0 me-5 ">
             <form method="get" class="d-flex align-items-center gap-2 flex-wrap">
   
-   <div class="d-flex align-items-center gap-1">
+        <div class="d-flex align-items-center gap-1">
               <!-- Search -->
-  <input type="search" name="search" value="{{ search_query }}" 
+        <input type="search" name="search" value="{{ search_query }}" 
          placeholder="Search Order" class="form-control rounded-pill px-3" 
          style="min-width:200px;">
 
@@ -53,22 +54,27 @@
   <button type="submit" class="btn btn-success rounded-pill px-3">Filter</button>
   <a href="{% url 'admin_order_list' %}" class="btn btn-secondary rounded-pill px-3">Clear</a>
 
-</form>
-
-            
+</form>        
           </div>
         </div>
-
-
 <div class="content-section">
   <div class="table-responsive">
 
   <!-- Table section -->
     <div class="content-section">
       <div class="table-responsive">
-    
     <table class="table table-striped">
-        <tbody>
+          <thead> 
+          <tr>
+            <th>Order ID</th>
+            <th>Customer</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Total</th>
+            <th>Action</th>
+          </tr>
+          </thead>
+          <tbody>
     {% for order in orders %}
         <tr>
             <td>00{{ order.display_id }}</td>

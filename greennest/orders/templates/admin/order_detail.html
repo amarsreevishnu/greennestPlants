@@ -10,7 +10,8 @@
 .badge.completed { background-color: #20c997; }
 .ad.cancelled { color: #dc3545; }
 .badge.partially_cancelled { background-color: #fd7e14; }
-.badge.return_requested { background-color: #ffc107; color: #000; }
+.badge.partially_returned { background-color: #fd7e14; }
+.badge.return_requested { background-color: #ffc107; }
 .badge.returned { background-color: #6f42c1; }
 </style>
 
@@ -23,7 +24,7 @@
           <p><strong>Date:</strong> {{ order.created_at }}</p>
           <hr>
           <div class="d-flex justify-content-around my-3">
-            <p><strong>Status:</strong> <span class="ad {{ order.status|lower }}">{{ order.get_status_display }}</span></p>
+            <p><strong>Status:</strong> <span class="badge {{ order.get_status_display|lower }}">{{ order.get_status_display }}</span></p>
             <p><strong>Payment Method:</strong> {{ order.payment_method }}</p>
             <p><strong>Total Amount:</strong> {{ order.final_amount }}</p>
           </div>
@@ -86,9 +87,9 @@
   <div class="d-flex align-items-center gap-2">
     <select name="status" class="form-select w-auto">
       {% for key, value in order.STATUS_CHOICES %}
-  {% if key == "processing" or key == "shipped" or key == "delivered" or key == "completed" %}
+  
     <option value="{{ key }}" {% if order.status == key %}selected{% endif %}>{{ value }}</option>
-  {% endif %}
+ 
 {% endfor %}
 
     </select>
