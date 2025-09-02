@@ -31,29 +31,18 @@ document.querySelectorAll(".otp-input").forEach((input, index, inputs) => {
   });
 });
 
+// Wishlist count fetch and update
 
-// function setupPasswordToggle(inputId, toggleId, iconId) {
-//   const input = document.getElementById(inputId);
-//   const toggle = document.getElementById(toggleId);
-//   const icon = document.getElementById(iconId);
-
-//   // ✅ run only if all 3 elements exist
-//   if (input && toggle && icon) {
-//     toggle.addEventListener("click", function () {
-//       const type = input.getAttribute("type") === "password" ? "text" : "password";
-//       input.setAttribute("type", type);
-
-//       // Toggle icon classes
-//       icon.classList.toggle("bi-eye");
-//       icon.classList.toggle("bi-eye-slash");
-//     });
-//   }
-// }
-
-// Calls (safe even on pages without these fields)
-// setupPasswordToggle("password", "togglePassword", "passwordIcon");
-// setupPasswordToggle("confirmPassword", "toggleConfirmPassword", "confirmPasswordIcon");
-// setupPasswordToggle("loginPassword", "toggleLoginPassword", "loginPasswordIcon");
+document.addEventListener("DOMContentLoaded", function () {
+    fetch('/wishlist/count/')
+        .then(response => response.json())
+        .then(data => {
+            const countSpan = document.getElementById('wishlist-count');
+            if (countSpan) {
+                countSpan.innerText = data.count;
+            }
+        });
+});
 
 
 

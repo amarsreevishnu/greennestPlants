@@ -3,7 +3,6 @@
 
 {% block admin_products_list %}
 <style>
-
 .badge.pending { background-color: #0d6efd; }
 .badge.processing { background-color: #6c757d; }
 .badge.shipped { background-color: #0dcaf0; }
@@ -15,98 +14,94 @@
 .badge.returned { background-color: #6f42c1; }
 </style>
 
-
-<!-- Main content area -->
-    <div class="col-lg-10 p-0" style="background: #f8f9fa;">
-      <div class="main-content">
-
-        
-
-
-<div class="content-section">
-  <div class="table-responsive">
-
+<div class="col-lg-10 p-0" style="background: #f8f9fa;">
+  <div class="main-content">
+    <div class="content-section">
+      <div class="table-responsive">
         <div class="text-center mb-4">
-        <h3>Order #{{ order.display_id }} Details</h3>
-        <p><strong>Date:</strong> {{ order.created_at }}</p>
-        <hr>
-        <div class="d-flex justify-content-around my-3">
-        <p><strong>Status:</strong> <span class="ad {{ order.get_status_display|lower }} ">{{ order.get_status_display }}</span></p>
-        <p><strong>Payment Method:</strong> {{ order.payment_method }}</p>
-        <p><strong>Total Amount:</strong> {{ order.final_amount }}</p>
-        </div>
-        <hr>
-        </div>
-        <div class="address-card">
-            <h6>Shipping Address</h6>
-            {{ order.address.full_name }}<br>
-            {{ order.address.line1 }}, {{ order.address.line2 }}, {{ order.address.city }}, {{ order.address.state }}.<br>
-            {{ order.address.phone }}
+          <h3>Order #{{ order.display_id }} Details</h3>
+          <p><strong>Date:</strong> {{ order.created_at }}</p>
+          <hr>
+          <div class="d-flex justify-content-around my-3">
+            <p><strong>Status:</strong> <span class="ad {{ order.status|lower }}">{{ order.get_status_display }}</span></p>
+            <p><strong>Payment Method:</strong> {{ order.payment_method }}</p>
+            <p><strong>Total Amount:</strong> {{ order.final_amount }}</p>
           </div>
-        
-<hr>
-   
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Product</th>
-            <th>Quantity</th>
-            <th>Price</th>
-            <th>Total</th>
-            <th>Status</th>
-            <th>Stock Available</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for item in order_items %}
-        <tr>
-            <td>{{ item.variant.product.name }} ({{ item.variant.variant_type }})</td>
-            <td>{{ item.quantity }}</td>
-            <td>{{ item.price }}</td>
-            <td>{{ item.total_price }}</td>
-            <td class="ad {{ item.status|lower }}">{{ item.get_status_display }}</td>
-            <td>
-                {% if item.variant %}
-                    {{ item.variant.stock }}
-                {% else %}
-                    N/A
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-    </table>
+          <hr>
+        </div>
 
-    
-    
-<form method="post" class="mb-4 d-flex justify-content-around ">
+        <div class="address-card">
+          <h6>Shipping Address</h6>
+          {{ order.address.full_name }}<br>
+          {{ order.address.line1 }}, {{ order.address.line2 }}, {{ order.address.city }}, {{ order.address.state }}.<br>
+          {{ order.address.phone }}
+        </div>
+        <hr>
+
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Quantity</th>
+              <th>Price</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Stock Available</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in order_items %}
+            <tr>
+              <td>{{ item.variant.product.name }} ({{ item.variant.variant_type }})</td>
+              <td>{{ item.quantity }}</td>
+              <td>{{ item.price }}</td>
+              <td>{{ item.total_price }}</td>
+              <td class="ad {{ item.status|lower }}">{{ item.get_status_display }}</td>
+              <td>{{ item.variant.stock }}</td>
+              <td>
+        {% if item.status == "return_requested" %}
+  <form method="post" class="d-flex align-items-center">
     {% csrf_token %}
-    <div class="d-flex align-items-center gap-2">
-        <h5>Update Order Status</h5>
-        <select name="status" class="form-select w-auto">
-            {% for key, value in order.STATUS_CHOICES %}
-                <option value="{{ key }}" {% if order.status == key %}selected{% endif %}>
-                    {{ value }}
-                </option>
+    <input type="hidden" name="item_id" value="{{ item.id }}">
+    <select name="action" class="form-select w-auto me-2">
+      <option value="approve_return">Approve Return</option>
+      <option value="reject_return">Reject Return</option>
+    </select>
+    <button type="submit" class="btn btn-sm btn-primary">Submit</button>
+  </form>
+{% else %}
+  -
+{% endif %}
+
+      </td>
+            </tr>
             {% endfor %}
-        </select>
-        <button type="submit" class="btn btn-success">Update Status</button>
-        <a href="{% url 'admin_order_list' %}" class="btn btn-primary text-right">Back to Orders</a>
-    </div>
-    
+          </tbody>
+        </table>
+           <h5 class="text-center mt-5">Update Order Status</h5>
+<hr>
+<form method="post" class="mb-4 d-flex justify-content-around">
+  {% csrf_token %}
+  <div class="d-flex align-items-center gap-2">
+    <select name="status" class="form-select w-auto">
+      {% for key, value in order.STATUS_CHOICES %}
+  {% if key == "processing" or key == "shipped" or key == "delivered" or key == "completed" %}
+    <option value="{{ key }}" {% if order.status == key %}selected{% endif %}>{{ value }}</option>
+  {% endif %}
+{% endfor %}
+
+    </select>
+    <button type="submit" class="btn btn-success">Update Status</button>
+    <a href="{% url 'admin_order_list' %}" class="btn btn-primary">Back to Orders</a>
+  </div>
 </form>
-    
-
-  
 
 
-        </div>   
+        
+
+      </div>
     </div>
-
   </div>
 </div>
-
-{% endblock  %}
-
-
-
+{% endblock %}

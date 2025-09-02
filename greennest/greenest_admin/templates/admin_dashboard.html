@@ -3,6 +3,19 @@
 {% block Admin_Dashboard %}
 
 
+<style>
+/* Map status to colors */
+.status-badge.pending { background-color: #0d6efd; }       /* Blue */
+.status-badge.processing { background-color: #6c757d; }    /* Gray */
+.status-badge.shipped { background-color: #0dcaf0; }       /* Light Blue */
+.status-badge.delivered { background-color: #198754; }     /* Green */
+.status-badge.completed { background-color: #20c997; }     /* Teal */
+.status-badge.cancelled { background-color: #dc3545; }     /* Red */
+.status-badge.partially_cancelled { background-color: #fd7e14; } /* Orange */
+.status-badge.return_requested { background-color: #ffc107;} /* Yellow */
+.status-badge.returned { background-color: #6f42c1; }      /* Purple */
+</style>
+
 <div class="col-lg-10 p-0" style="background: #f8f9fa;">
       <div class="main-content">
 
@@ -69,7 +82,7 @@
       <div class="col-md-4">
         <div class="card p-3">
           <h6>Customers</h6>
-          <h3>2,571</h3>
+          <h3>{{user_count}}</h3>
           <div class="small text-muted">THIS MONTH</div>
           <!-- Demo line chart -->
             <div style="height:44px;">
@@ -89,7 +102,7 @@
       <div class="col-md-4">
         <div class="card p-3">
           <h6>Orders</h6>
-          <h3>734</h3>
+          <h3>{{order_count}}</h3>
           <div class="small text-muted">MONTHLY GOALS: 1,000</div>
           <div class="progress mt-2" style="height: 6px;">
             <div class="progress-bar bg-success" style="width: 73%;"></div>
@@ -116,7 +129,7 @@
         <div class="card p-3">
           <div class="d-flex justify-content-between align-items-center">
             <h6>Recent Orders</h6>
-            <a href="#" class="small text-decoration-none">View All</a>
+            <a href="{% url 'admin_order_list' %}" class="small text-decoration-none">View All</a>
           </div>
           <table class="table table-sm mt-2">
             <thead>
@@ -128,36 +141,24 @@
               </tr>
             </thead>
             <tbody>
+              {% for order in orders %}
               <tr>
-                <td>Haworthia Attenuata</td>
-                <td>20 Mar, 2023</td>
-                <td>₹75.00</td>
-                <td><span class="badge bg-warning text-dark">Processing</span></td>
+                <td>
+                  <ul>
+                {% for item in order.items.all %}
+                  <li>
+                {{ item.variant.product.name }} 
+                (x{{ item.quantity }})
+                  </li>
+                {% endfor %}
+                  </ul>
+              </td>
+                <td> {{ order.created_at|date:"d M Y"}} </td>
+                <td>₹{{ order.final_amount }}</td>
+                <td><span class="status-badge {{ order.status|lower }} ">{{ order.get_status_display }}</span></td>
+                
               </tr>
-              <tr>
-                <td>Essential Neutrals</td>
-                <td>19 Mar, 2023</td>
-                <td>₹22.00</td>
-                <td><span class="badge bg-warning text-dark">Processing</span></td>
-              </tr>
-              <tr>
-                <td>Sleek and Cozy Black</td>
-                <td>7 Feb, 2023</td>
-                <td>₹57.00</td>
-                <td><span class="badge bg-success">Completed</span></td>
-              </tr>
-              <tr>
-                <td>MOCKUP Black</td>
-                <td>29 Jan, 2023</td>
-                <td>₹30.00</td>
-                <td><span class="badge bg-success">Completed</span></td>
-              </tr>
-              <tr>
-                <td>Monochromatic Wardrobe</td>
-                <td>27 Jan, 2023</td>
-                <td>₹27.00</td>
-                <td><span class="badge bg-success">Completed</span></td>
-              </tr>
+              {% endfor %}
             </tbody>
           </table>
         </div>

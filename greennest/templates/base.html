@@ -82,7 +82,9 @@
           <!-- Wishlist Icon -->
           <li class="nav-item">
             <a class="nav-link position-relative" href="{% url "wishlist_view" %}">
+              <span id="wishlist-count" class="badge">0
               <i class="bi bi-heart fs-5"></i>
+              </span>
             </a>
           </li>
 
@@ -171,7 +173,8 @@
     <!-- Cancel Order Section -->
     {% endblock cancel_order %}
 
-  
+    {% block return_items %}  
+    {% endblock return_items%}
 
 
 

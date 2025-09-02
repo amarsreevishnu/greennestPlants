@@ -8,7 +8,9 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
 from functools import wraps
+
 from users.views import User
+from orders.models import Order
 
 User = get_user_model()
 
@@ -56,7 +58,16 @@ def admin_logout(request):
 @admin_required
 @never_cache
 def admin_dashboard(request):
-    return render(request, 'admin_dashboard.html')
+    order_count = Order.objects.count()
+    user_count = User.objects.filter(is_superuser=False).count()
+    orders = Order.objects.select_related('user').all().order_by('-created_at')
+
+    context = {
+        'order_count': order_count,
+        'user_count': user_count,
+        'orders': orders[:5],
+    }
+    return render(request, 'admin_dashboard.html', context)
 
 
 

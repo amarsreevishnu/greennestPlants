@@ -164,35 +164,25 @@ def order_list(request):
     orders = orders.order_by("-created_at")
     return render(request, "orders/order_list.html", {"orders": orders, "q": q})
 
-
 @login_required
 def order_detail(request, order_id):
-    order = Order.objects.get(id=order_id, user=request.user)
+    order = get_object_or_404(Order, id=order_id, user=request.user)
     items = OrderItem.objects.filter(order=order)
-    return render(request, "orders/order_detail.html", {"order": order, "items": items})
+
+    # If you want helper flags, make them consistent with your model
+    for item in items:
+        item.can_return = (item.status == "delivered")
+        item.return_requested_display = (item.status == "return_requested")
+
+    return render(request, "orders/order_detail.html", {
+        "order": order,
+        "items": items,
+    })
 
 
-def request_cancel_order(request, order_id):
-    """User requests cancellation of entire order (optional reason)."""
-    order = Order.objects.filter(id=order_id, user=request.user).first()
-    if not order:
-        raise Http404("Order not found")
 
-    # only allow cancel if not delivered/completed/cancelled yet
-    if order.status in ['delivered', 'completed', 'cancelled', 'returned']:
-        messages.error(request, "This order cannot be cancelled.")
-        return redirect('order_detail', order_id=order_id)
 
-    if request.method == 'POST':
-        reason = request.POST.get('reason', '').strip() or None
-        order.cancel_requested = True
-        order.cancel_reason = reason
-        order.cancel_requested_at = timezone.now()
-        order.save()
-        messages.success(request, "Cancellation requested. Admin will review it.")
-        return redirect('order_detail', order_id=order_id)
 
-    return render(request, 'orders/request_cancel_order.html', {'order': order})
 
 @login_required
 def cancel_order(request, order_id):
@@ -234,8 +224,6 @@ def cancel_order(request, order_id):
     return render(request, "orders/confirm_cancel_order.html", {"order": order})
 
 
-
-
 @login_required
 def cancel_order_item(request, item_id):
     item = get_object_or_404(OrderItem, id=item_id, order__user=request.user)
@@ -267,37 +255,71 @@ def cancel_order_item(request, item_id):
 
 
 @login_required
-def request_return_item(request, order_id, item_id):
-    """User requests return for a delivered item. Reason is mandatory."""
-    order = Order.objects.filter(id=order_id, user=request.user).first()
-    if not order:
-        raise Http404("Order not found")
+def request_return_order(request, order_id):
+    """User requests return for the whole order (all delivered items)."""
+    order = get_object_or_404(Order, id=order_id, user=request.user)
 
-    try:
-        item = order.items.get(id=item_id)
-    except OrderItem.DoesNotExist:
-        raise Http404("Item not found")
+    if order.status != "delivered":
+        messages.error(request, "Return can only be requested for delivered orders.")
+        return redirect("order_detail", order_id=order_id)
 
-    if order.status != 'delivered' and item.status != 'delivered':
-        messages.error(request, "Return can only be requested for delivered items.")
-        return redirect('order_detail', order_id=order_id)
-
-    if request.method == 'POST':
-        reason = request.POST.get('reason', '').strip()
+    if request.method == "POST":
+        reason = request.POST.get("reason", "").strip()
         if not reason:
             messages.error(request, "Please provide a reason for return (required).")
-            return redirect('order_detail', order_id=order_id)
-        item.status = 'return_requested'
+            return redirect("order_detail", order_id=order_id)
+
+        # mark each delivered item as return_requested
+        for item in order.items.filter(status="delivered"):
+            item.status = "return_requested"
+            item.return_reason = reason
+            item.return_requested_at = timezone.now()
+            item.save()
+
+        # mark order
+        order.status = "return_requested"
+        order.return_requested = True
+        order.return_reason = reason
+        order.return_requested_at = timezone.now()
+        order.save()
+
+        messages.success(request, "Return requested for the whole order. Admin will review.")
+        return redirect("order_detail", order_id=order_id)
+
+    return render(request, "orders/request_return_order.html", {"order": order})
+
+
+@login_required
+def request_return_item(request, order_id, item_id):
+    """User requests return for a specific item (goes to admin approval)."""
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    item = get_object_or_404(OrderItem, id=item_id, order=order)  # ✅ FIXED
+
+    # ✅ Only delivered items can be requested for return
+    if order.status != "delivered":
+        messages.error(request, "This item cannot be returned.")
+        return redirect("order_detail", order_id=order_id)
+
+    if request.method == "POST":
+        reason = request.POST.get("reason", "").strip()
+        if not reason:
+            messages.error(request, "Please provide a reason for return.")
+            return redirect("request_return_item", order_id=order.id, item_id=item.id)
+
+        # ✅ Mark as return requested
+        item.status = "return_requested"  # change status!
         item.return_reason = reason
         item.return_requested_at = timezone.now()
         item.save()
-        order.return_requested = True
-        order.return_requested_at = timezone.now()
-        order.save()
-        messages.success(request, "Return requested. Admin will review.")
-        return redirect('order_detail', order_id=order_id)
 
-    return render(request, 'orders/request_return_item.html', {'order': order, 'item': item})
+        # ✅ Update order flag if at least one item has return requested
+        order.return_requested = True
+        order.save(update_fields=["return_requested"])
+
+        messages.success(request, "Return request submitted ✅. Admin will review it.")
+        return redirect("order_detail", order_id=order.id)
+
+    return render(request, "orders/request_return_item.html", {"order": order, "item": item})
 
 
 @login_required

@@ -1,6 +1,8 @@
 from django.shortcuts import render
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+
 from .models import WishlistItem
 from products.models import ProductVariant
 
@@ -31,3 +33,11 @@ def remove_from_wishlist(request, variant_id):
 
     # Redirect back to wishlist page
     return redirect('wishlist_view')
+
+
+def wishlist_count(request):
+    if request.user.is_authenticated:
+        count = WishlistItem.objects.filter(user=request.user).count()
+        return JsonResponse({'count': count})
+    else:
+        return JsonResponse({'count': 0})

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% block order_details %}
-
+<div>
 <style>
     .action-btn {padding: 2px 18px;border-radius: 20px;font-size: 0.95rem;}
 
@@ -14,7 +14,7 @@
 .status-badge.completed { color: #20c997; }     /* Teal */
 .status-badge.cancelled { color: #dc3545; }     /* Red */
 .status-badge.partially_cancelled { color: #fd7e14; } /* Orange */
-.status-badge.return_requested { color: #ffc107; color: #000; } /* Yellow */
+.status-badge.return_requested { color: #ffc107; color: #dc35b0ff;; } /* Yellow */
 .status-badge.returned { color: #6f42c1; }      /* Purple */
     
     @media (max-width: 768px) {
@@ -76,12 +76,12 @@
                     {{ item.variant.product.name }} (x{{ item.quantity }}){% if not forloop.last %}, {% endif %}
                   {% endfor %}
                 <td>₹{{ order.final_amount }}</td>
-                <td class="status-badge {{ order.status|lower }}">{{ order.status|capfirst }}</td>
+                <td class="status-badge {{ order.status|lower }}">{{ order.get_status_display|capfirst }}</td>
                 <td>
                   <!-- View always -->
                   <a href="{% url 'order_detail' order.id %}" class="btn btn-outline-secondary action-btn">View</a>
                   
-                  
+                   
 
 
                 </td>
@@ -96,6 +96,7 @@
         </div>
       </div>
     </div>
+</div>
 </div>
 
 {% endblock order_details %}

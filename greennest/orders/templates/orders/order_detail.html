@@ -7,20 +7,20 @@
   .order-status { font-size: 1.1rem; display: flex; align-items: center; gap: 8px; color: #198754; font-weight: 500; margin-bottom: 16px; }
   .address-card { background: #f8f9fa; border-radius: 8px; padding: 22px; margin-bottom: 20px; border: 1px solid #e1e1e1; }
   .products-table th, .products-table td { vertical-align: middle; }
+  
 </style>
 
 <div class="container my-4">
   <div class="row g-4">
     <div class="text-center">
       <h3>Order Details</h3>
-      Order : <strong>#{{ order.id }}</strong> | Placed on: {{ order.created_at|date:"d M Y" }}
+      Order : <strong>#{{ order.display_id }}</strong> | Placed on:<strong>{{ order.created_at|date:"d M Y" }}</strong>
     </div>
     <hr>
 
-    <!-- Left Column -->
     <div class="col-lg-8">
       
-      <!-- Address + Payment -->
+
       <div class="row g-3">
         <div class="col-md-6">
           <div class="address-card">
@@ -35,56 +35,63 @@
             <h6>Payment Method</h6>
             {{ order.payment_method }}
             <div class="order-status">
-              <i class="bi bi-check-circle-fill"></i>
-              Payment done
+              
             </div>
           </div>
         </div>
       </div>
       
-      <!-- Products Table -->
       <div class="order-card mt-3">
         <div class="card-header">
-          <strong>Products Ordered</strong>
+          <strong>Products</strong>
         </div>
         <div class="card-body p-0">
           <table class="table table-bordered products-table mb-0">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Unit Price</th>
-                <th>Qty</th>
-                <th>Total</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
             <tbody>
-              {% for item in order.items.all  %}
-              <tr>
-                <td>{{ item.variant.product.name }} ({{ item.variant.variant_type }})</td>
-                <td>₹{{ item.price }}</td>
-                <td>{{ item.quantity }}</td>
-                <td>₹{{ item.total_price }}</td>
-                <td class="text-capitalize">
-                  {% if item.status == "cancelled" %}
-      <span class="badge bg-danger">Cancelled</span>
-      {% if item.cancel_reason %}
-        <br><small class="text-muted">Reason: {{ item.cancel_reason }}</small>
-      {% endif %}
-      {% endif %}
-                </td>
-                <td>
-                  {% if item.status == "active" %}
-                    <a href="{% url 'cancel_order_item' item.id %}" class="btn btn-outline-danger btn-sm">
-                      Cancel Item
-                    </a>
-                  {% endif %}
-                </td>
-              </tr>
-              {% endfor %}
-              
-            </tbody>
+  {% for item in items %}
+    <tr>
+      <td>{{ item.variant.product.name }} ({{ item.variant.variant_type }})</td>
+      <td>₹{{ item.price }}</td>
+      <td>{{ item.quantity }}</td>
+      <td>₹{{ item.total_price }}</td>
+      <td>
+        {% with item.status|lower as status %}
+
+          {% if order.status in "pending,processing" and item.status == "active" %}
+            <a href="{% url 'cancel_order_item' item.id %}" class="btn btn-sm btn-outline-danger">Cancel</a>
+
+          {% elif order.status == "delivered" and item.status == "active" %}
+            <a href="{% url 'request_return_item' order.id item.id %}" class="btn btn-sm btn-outline-warning">Return</a>
+
+          {% elif item.status == "cancelled" %}
+            <span class="badge bg-danger status-badge">Cancelled</span>
+
+          {% elif item.status == "return_requested" %}
+            <span class="badge bg-info text-dark status-badge">Return Requested</span>
+
+          {% elif item.status == "returned" %}
+            <span class="badge bg-secondary status-badge">Returned</span>
+
+          {% elif item.status == "return_rejected" %}
+            <span class="badge bg-dark text-white status-badge">Return Rejected</span>
+
+          {% else %}
+            <span class="badge bg-primary status-badge">{{ item.status|capfirst }} </span>
+          {% endif %}
+
+        {% endwith %}
+      </td>
+    </tr>
+    
+  {% empty %}
+    <tr>
+      <td colspan="5" class="text-center">No products found.</td>
+    </tr>
+    
+  {% endfor %}
+  
+</tbody>
+
           </table>
         </div>
       </div>
@@ -116,19 +123,10 @@
           </div>
         </div>
       </div>
-    
-      <!-- Whole Order Cancel -->
-      {% if order.status == "pending" or order.status == "processing" or order.status == "partially_cancelled" %}
-        <form method="post" action="{% url 'cancel_order' order.id %}" class="mt-3">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-outline-danger w-100">Cancel Whole Order</button>
-        </form>
-       
-      {% endif %}
-
-      <a href="{% url 'order_list' %}" class="btn btn-secondary w-100 mt-2">Go Back</a>
+      <a href="{% url 'order_list' %}" class="btn btn-outline-secondary w-100 mt-2">Go Back</a>
     </div>
   </div>
 </div>
+
 
 {% endblock order_details %}

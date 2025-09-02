@@ -14,6 +14,7 @@ class Order(models.Model):
         ('partially_cancelled', 'Partially Cancelled'),
         ('return_requested', 'Return Requested'),
         ('returned', 'Returned'),
+        ("partially_returned", "Partially Returned"),
     ]
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True)
@@ -32,8 +33,7 @@ class Order(models.Model):
     cancel_requested_at = models.DateTimeField(null=True, blank=True)
 
     cancel_approved = models.BooleanField(default=False)
-    cancel_approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
-                                           on_delete=models.SET_NULL, related_name='approved_cancels')
+    cancel_approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='approved_cancels')
     cancel_approved_at = models.DateTimeField(null=True, blank=True)
 
     return_requested = models.BooleanField(default=False)
@@ -41,8 +41,7 @@ class Order(models.Model):
     return_requested_at = models.DateTimeField(null=True, blank=True)
 
     return_approved = models.BooleanField(default=False)
-    return_approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
-                                           on_delete=models.SET_NULL, related_name='approved_returns')
+    return_approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='approved_returns')
     return_approved_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
@@ -69,6 +68,7 @@ class OrderItem(models.Model):
         ('delivered', 'Delivered'),
         ('return_requested', 'Return Requested'),
         ('returned', 'Returned'),
+        ("return_rejected", "Return Rejected"),
     ]
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     variant = models.ForeignKey(ProductVariant, on_delete=models.SET_NULL, null=True)
