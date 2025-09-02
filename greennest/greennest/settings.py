@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'cart',
     'wishlist',
     'orders',
+    'wallet',
     
     
     # Needed for allauth 
