@@ -16,14 +16,8 @@
         </div> 
         <div class="sidebar text-center">
             <div>
-                {% if request.user.profile.avatar %}
-            <img src="{{ request.user.profile.avatar.url }}" alt="Profile"
-            class="img-fluid rounded-circle" width="100">
-            {% else %}
-                <img src="{% static 'images/default-avatar.png' %}" alt="Default Profile"
-                    class="img-fluid rounded-circle" width="100">
-            {% endif %}
-
+                <img src="{{ request.user.profile.avatar.url }}" alt="Profile" 
+                class="img-fluid rounded-circle" width="100">  
             </div>
 
         <h5>{{ request.user.profile.user.first_name }}</h5>
@@ -35,7 +29,7 @@
             </a>
             </li>
             <li>
-            <a class="nav-link{% if request.path == '/users/orders/list/' %} active{% endif %}"   href="{% url "order_list" %}">
+            <a class="nav-link{% if request.path == '/users/orders/' %} active{% endif %}"   href="">
                 My Orders <i class="bi bi-arrow-right"></i>
             </a>
             </li>
@@ -50,7 +44,7 @@
             </a>
             </li>
             <li>
-            <a class="nav-link {% if request.path == '/users/addresses/' %} active{% endif %}" href="{% url "address_list" %}">
+            <a class="nav-link {% if request.path == '/users/address/' %} active{% endif %}" href="#">
                 My Address <i class="bi bi-arrow-right"></i>
             </a>
             </li>
@@ -60,7 +54,7 @@
             </a>
             </li>
             <li>
-            <a class="nav-link {% if request.path == '/users/profile/change_email/' %} active{% endif %}"  href="{% url "profile_change_email" %}">
+            <a class="nav-link " href="{% url "profile_change_email" %}">
                 Update Email <i class="bi bi-arrow-right"></i>
             </a>
             </li>
