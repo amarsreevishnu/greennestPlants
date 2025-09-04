@@ -30,7 +30,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = os.getenv("DEBUG") == "True"
 
 ALLOWED_HOSTS = ["*"]
-CSRF_TRUSTED_ORIGINS=['https://a603bca1a092.ngrok-free.app']
+CSRF_TRUSTED_ORIGINS=['https://f14cba0dec8b.ngrok-free.app']
 
 
 
@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'wishlist',
     'orders',
     'wallet',
+    'payments',
     
     
     # Needed for allauth 
@@ -216,3 +217,7 @@ SOCIALACCOUNT_LOGIN_ON_GET = True
 USER_LOGIN_URL = '/users/login/'
 # For admin views (superuser/staff)
 LOGIN_URL = '/users/login/'  # default redirect for admin_required decorator
+
+# Razorpay settings
+RAZORPAY_KEY_ID = 'rzp_test_R7V0e5hoyTOTHo'
+RAZORPAY_KEY_SECRET = 'zFFwYLsv9IpSGyzpKcn2mUsF'

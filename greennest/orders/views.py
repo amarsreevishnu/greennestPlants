@@ -32,14 +32,13 @@ def checkout_address(request):
 
     if request.method == "POST":
         action = request.POST.get("action")
-        edit_address_id = request.POST.get("edit_address_id")  # Hidden field
+        edit_address_id = request.POST.get("edit_address_id")  
 
         # ---------------- Add or Edit Address ----------------
         if action == "add_edit":
             full_name = request.POST.get("full_name")
             if full_name:  
                 if edit_address_id and Address.objects.filter(id=edit_address_id, user=user).exists():
-                    # ✅ Update existing address
                     addr = Address.objects.get(id=edit_address_id, user=user)
                     addr.full_name = full_name
                     addr.phone = request.POST.get("phone")
@@ -53,7 +52,7 @@ def checkout_address(request):
                     addr.save()
                     messages.success(request, "Address updated successfully ✅")
                 else:
-                    # ✅ Always create new address (never overwrite default)
+                    # Always create new address (never overwrite default)
                     Address.objects.create(
                         user=user,
                         full_name=full_name,
@@ -104,20 +103,21 @@ def checkout_payment(request):
     address = Address.objects.get(id=selected_address_id, user=user)
     cart_items = cart.items.all()
     subtotal = sum(item.variant.price * item.quantity for item in cart_items)
-    shipping = 0 if subtotal <= 2500 else 50
+    shipping = 0 if subtotal >= 2500 else 50
     total = subtotal + shipping
 
     if request.method == 'POST':
-        payment_method = request.POST.get('payment_method', 'Cash on Delivery')
+        payment_method = request.POST.get('payment_method')
 
-        # Create order
+        # Create order (not paid yet)
         order = Order.objects.create(
             user=user,
             address=address,
             total_amount=subtotal,
             shipping_charge=shipping,
             final_amount=total,
-            payment_method=payment_method
+            payment_method=payment_method,
+            status="pending"  # stays pending until payment succeeds
         )
 
         for item in cart_items:
@@ -128,13 +128,24 @@ def checkout_payment(request):
                 price=item.variant.price,
                 total_price=item.variant.price * item.quantity
             )
+            # reduce stock (to avoid oversell, restore if payment fails)
             item.variant.stock -= item.quantity
             item.variant.save()
 
+        # clear cart
         cart.items.all().delete()
-        del request.session['selected_address_id']  # Clear session
+        del request.session['selected_address_id']
 
-        return redirect('order_success', order_id=order.id)
+        # Redirect to correct payment flow
+        if payment_method == "cod":
+            return redirect("cod_payment", order_id=order.id)
+        elif payment_method == "wallet":
+            return redirect("wallet_payment", order_id=order.id)
+        elif payment_method == "razorpay":
+            return redirect("razorpay_checkout", order_id=order.id)
+        else:
+            messages.error(request, "Invalid payment method selected")
+            return redirect("checkout_payment")
 
     context = {
         'cart': cart,
@@ -144,7 +155,6 @@ def checkout_payment(request):
         'total': total,
     }
     return render(request, 'orders/checkout_payment.html', context)
-
 
 
 @login_required

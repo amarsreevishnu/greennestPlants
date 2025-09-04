@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block order_details %}
 <div class="container mt-4">
-  <h4>Return Whole Order #{{ order.id }}</h4>
+  <h4>Return Whole Order #{{ order.display_id }}</h4>
   <form method="post">
     {% csrf_token %}
     <div class="mb-3">

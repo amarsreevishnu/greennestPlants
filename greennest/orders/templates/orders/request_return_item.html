@@ -1,26 +1,29 @@
 {% extends "base.html" %}
 {% load static %}
 {% block return_items %}
-<!-- show message -->
 {% if messages %}
-{% for message in messages %}
-    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show w-100 mb-3" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
-{% endfor %}
+  {% endfor %}
 {% endif %}
 
-<div class="container mt-4">
-  <h4>Return Whole Order #{{ order.id }}</h4>
-  <form method="post">
-    {% csrf_token %}
-    <div class="mb-3">
-      <label for="reason" class="form-label">Reason for return</label>
-      <textarea name="reason" id="reason" rows="3" class="form-control" required></textarea>
-    </div>
-    <button type="submit" class="btn btn-warning">Request Return</button>
-    <a href="{% url 'order_detail' order.id %}" class="btn btn-secondary">Cancel</a>
-  </form>
+<div class="container-fluid min-vh-100 d-flex align-items-center justify-content-center bg-light">
+  <div class="card shadow-lg p-4" style="max-width: 600px; width: 100%;">
+    <h4 class="mb-4 text-center text-primary">Return  Order #{{ order.display_id }}</h4>
+    <form method="post">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label for="reason" class="form-label fw-bold">Reason for return</label>
+        <textarea name="reason" id="reason" rows="3" class="form-control" required></textarea>
+      </div>
+      <div class="d-flex justify-content-between">
+        <button type="submit" class="btn btn-warning px-4">Request Return</button>
+        <a href="{% url 'order_detail' order.id %}" class="btn btn-secondary px-4">Cancel</a>
+      </div>
+    </form>
+  </div>
 </div>
 {% endblock %}

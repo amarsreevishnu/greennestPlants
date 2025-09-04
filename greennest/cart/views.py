@@ -1,22 +1,23 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.cache import never_cache
 
 from products.models import ProductVariant, Product
 from wishlist.models import WishlistItem
 from .models import Cart, CartItem
 
-MAX_QTY_PER_PRODUCT = 5  # Max quantity a user can add for a single variant
+MAX_QTY_PER_PRODUCT = 5  
 
 @login_required
+@never_cache
 def add_to_cart(request, variant_id):
     variant = get_object_or_404(ProductVariant, id=variant_id)
 
-    # Check if product or category is inactive
     if not variant.is_active or not variant.product.is_active or not variant.product.category.is_active:
-        return redirect('product_list')  # or show error message
+        return redirect('product_list')  
 
     if variant.stock == 0:
-        return redirect('product_list')  # Optionally show out-of-stock message
+        return redirect('product_list')  
         
     # Get or create cart
     cart, created = Cart.objects.get_or_create(user=request.user)
@@ -25,12 +26,10 @@ def add_to_cart(request, variant_id):
     cart_item, created_item = CartItem.objects.get_or_create(cart=cart, variant=variant)
 
     if not created_item:
-        # Increment quantity if stock allows
         if cart_item.quantity < variant.stock:
             cart_item.quantity += 1
             cart_item.save()
     else:
-        # Ensure starting quantity does not exceed MAX_QTY_PER_PRODUCT
         if cart_item.quantity > MAX_QTY_PER_PRODUCT:
             cart_item.quantity = MAX_QTY_PER_PRODUCT
             cart_item.save()
@@ -42,12 +41,14 @@ def add_to_cart(request, variant_id):
 
 
 @login_required
+@never_cache
 def cart_detail(request):
     cart, created = Cart.objects.get_or_create(user=request.user)
     return render(request, 'cart/cart_detail.html', {'cart': cart})
 
 
 @login_required
+@never_cache
 def remove_from_cart(request, item_id):
     item = get_object_or_404(CartItem, id=item_id, cart__user=request.user)
     item.delete()
@@ -55,8 +56,8 @@ def remove_from_cart(request, item_id):
 
 
 @login_required
+@never_cache
 def update_cart_quantity(request, item_id, action):
-    """Increment or decrement quantity"""
     item = get_object_or_404(CartItem, id=item_id, cart__user=request.user)
     if action == 'increment':
         if item.quantity < item.variant.stock and item.quantity < MAX_QTY_PER_PRODUCT:

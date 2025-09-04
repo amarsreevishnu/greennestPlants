@@ -38,6 +38,8 @@ urlpatterns = [
     path('users/wishlist/', include('wishlist.urls')),
 
     path('users/wallet/', include('wallet.urls')),
+    
+    path('users/payments/', include('payments.urls')),
 
      # <--- Allauth URLs---->
     path('accounts/', include('allauth.urls')), 

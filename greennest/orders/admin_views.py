@@ -93,14 +93,14 @@ def admin_order_detail(request, order_id):
         status = request.POST.get("status")
         item_id = request.POST.get("item_id")
 
-        # ✅ Update whole order status (manual)
+        # Update whole order status (manual)
         if status:
             order.status = status
             order.save(update_fields=['status'])
             messages.success(request, f"Order status updated to {order.get_status_display()}")
             return redirect('admin_order_detail', order_id=order.id)
 
-        # ✅ Approve Return (whole order)
+        # Approve Return (whole order)
         if action == "approve_return" and not item_id:
             order.status = 'returned'
             order.return_approved = True
@@ -118,7 +118,7 @@ def admin_order_detail(request, order_id):
             messages.success(request, "Return approved for the whole order.")
             return redirect('admin_order_detail', order_id=order.id)
 
-        # ✅ Reject Return (whole order)
+        # Reject Return (whole order)
         if action == "reject_return" and not item_id:
             order.return_requested = False
             order.save(update_fields=['return_requested'])
@@ -128,7 +128,7 @@ def admin_order_detail(request, order_id):
             messages.warning(request, "Whole order return request rejected.")
             return redirect('admin_order_detail', order_id=order.id)
 
-        # ✅ Approve Return (single item)
+        # Approve Return (single item)
         if action == "approve_return" and item_id:
             item = get_object_or_404(OrderItem, id=item_id, order=order)
             if item.variant and item.status == "return_requested":
@@ -137,20 +137,20 @@ def admin_order_detail(request, order_id):
             item.status = "returned"
             item.return_approved = True
             item.save()
-            update_order_status(order)  # 🔑 auto update here
+            update_order_status(order)  
             messages.success(request, f"Return approved for item {item.variant}.")
             return redirect('admin_order_detail', order_id=order.id)
 
-        # ✅ Reject Return (single item)
+        #  Reject Return (single item)
         if action == "reject_return" and item_id:
             item = get_object_or_404(OrderItem, id=item_id, order=order)
             item.status = "return_rejected"
             item.save(update_fields=["status"])
-            update_order_status(order)  # 🔑 auto update here
+            update_order_status(order)  
             messages.warning(request, f"Return request rejected for item {item.variant}.")
             return redirect('admin_order_detail', order_id=order.id)
 
-        # ✅ Approve Cancel (whole order)
+        # Approve Cancel (whole order)
         if action == "approve_cancel":
             order.status = 'cancelled'
             order.cancel_approved = True
@@ -168,7 +168,7 @@ def admin_order_detail(request, order_id):
             messages.success(request, "Order cancellation approved.")
             return redirect('admin_order_detail', order_id=order.id)
 
-        # ✅ Reject Cancel (whole order)
+        # Reject Cancel (whole order)
         if action == "reject_cancel":
             order.cancel_requested = False
             order.save(update_fields=['cancel_requested'])
