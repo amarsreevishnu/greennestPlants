@@ -29,11 +29,15 @@ urlpatterns = [
     path('greennest_admin/products/', include('products.admin_urls')),  
     path('users/products/', include('products.urls')),  
 
-    path('users/cart/',include('cart.urls')), 
     path('greennest_admin/orders/', include('orders.admin_urls')),
     path('users/orders/', include('orders.urls')),
 
+    path('greennest_admin/coupons/', include('coupon.admin_urls')),
+    path('users/coupons/', include('coupon.urls')),
+    
     path('greennest_admin/', include('greenest_admin.urls')), 
+
+    path('users/cart/',include('cart.urls')), 
     
     path('users/wishlist/', include('wishlist.urls')),
 

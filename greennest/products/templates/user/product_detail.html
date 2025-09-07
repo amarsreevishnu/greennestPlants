@@ -171,30 +171,25 @@
     <div class="col-md-3">
       <div class="cart-summary mb-4">
         <strong>Your Cart</strong>
+        {% for item in cart.items.all %}
         <div class="d-flex align-items-center mt-2">
-          <img
-            src="{% static "images/Peace Lily Plant.png" %}"
-            class="me-2"
-            style="
-              width: 50px;
-              height: 50px;
-              object-fit: cover;
-              border-radius: 6px;
-            "
-          />
+          {% with first_image=item.variant.images.all|slice:":1"|first %}
+                  {% if first_image %}
+                    <img src="{{ first_image.image.url }}" alt="{{ item.variant.name }}" width="40" class="me-3 rounded">
+                  {% else %}
+                    <img src="https://via.placeholder.com/80" alt="{{ item.variant.name }}" class="me-3 rounded">
+                  {% endif %}
+                {% endwith %}
           <div>
-            <div>{{ product.name }}</div>
-            <div class="small text-muted">
-              1 x ₹{{ cheapest_variant.price }}
-            </div>
+            <div>{{ item.variant.product.name }}
+              <div class="small text-muted">({{ item.variant.variant_type }})  ₹{{ item.variant.price }}</div></div>  
+            <a href="{% url 'remove_from_cart' item.id %}?next={{ request.path }}" class="text-danger small">Remove</a>
           </div>
         </div>
+
+        {% endfor %}
         <hr />
-        <div>
-          Sub Total:
-          <span class="float-end">₹{{ cheapest_variant.price }}</span>
-        </div>
-        <button class="btn btn-dark btn-sm w-100 mt-2">View Cart</button>
+        <a  href="{% url "cart_detail" %}" class="btn btn-dark btn-sm w-100 mt-2">View Cart</a></button>
         <button class="btn btn-success btn-sm w-100 mt-2">Checkout</button>
         <div class="small text-muted mt-2">Ships from Kerala GreenNest</div>
       </div>

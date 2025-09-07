@@ -145,4 +145,4 @@ def razorpay_callback(request):
                 payment.status = "failed"
                 payment.save()
             messages.error(request, "Payment failed ❌")
-            return redirect("checkout_payment")
+            return redirect("order_failure")

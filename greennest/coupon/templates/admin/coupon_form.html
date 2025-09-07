@@ -1,0 +1,7 @@
+<h2>{% if coupon %}Update Coupon{% else %}Create Coupon{% endif %}</h2>
+
+<form method="POST">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">{% if coupon %}Update{% else %}Save{% endif %}</button>
+</form>

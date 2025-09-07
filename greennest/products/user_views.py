@@ -8,6 +8,7 @@ from django.db.models import Min, Max
 from django.db.models import Min, Max, Prefetch
 from django.views.decorators.cache import never_cache
 
+from cart.models import Cart
 from .models import Product, ProductVariant, Category
 
 
@@ -153,6 +154,8 @@ def user_product_detail(request, pk):
         .order_by("?")[:4]
     )
     
+    cart, created = Cart.objects.get_or_create(user=request.user)
+
     context = {
         "product": product,
         "variants": variants,
@@ -161,5 +164,6 @@ def user_product_detail(request, pk):
         "additional_images": additional_images,
         "similar_products": similar_products,
         "stock_status": stock_status, 
+        'cart': cart,
     }
     return render(request, "user/product_detail.html", context)

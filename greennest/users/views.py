@@ -336,6 +336,7 @@ def profile_change_password(request):
                 messages.error(request, "New passwords do not match.")
         else:
             messages.error(request, "Current password is incorrect.")
+        
 
 
     return render(request,"users/profile_change_password.html")

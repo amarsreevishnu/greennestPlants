@@ -33,4 +33,4 @@ def add_money(request):
         else:
             messages.error(request, "Invalid amount entered ❌")
 
-    return render(request, "    add_money.html")
+    return render(request, "add_money.html")

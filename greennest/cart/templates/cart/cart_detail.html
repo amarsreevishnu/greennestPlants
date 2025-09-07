@@ -38,7 +38,7 @@
                     <small class="text-danger">Out of Stock</small>
                   {% endif %}
                   <br>
-                  <a href="{% url 'remove_from_cart' item.id %}" class="text-danger small">Remove</a>
+                  <a href="{% url 'remove_from_cart' item.id %}?next={{ request.path }}" class="text-danger small">Remove</a>
                 </div>
               </div>
             </td>
@@ -77,22 +77,22 @@
 
     <!-- Order Summary -->
     <div class="col-lg-4">
-      <div class="order-summary border p-3 rounded">
+      <div class="order-summary border p-3 rounded bg-white">
         <h5 class="mb-3">Order Summary</h5>
         <p class="d-flex justify-content-between">
           <span>Item Sub Total</span> <span>₹{{ cart.total_price }}</span>
         </p>
         <p class="d-flex justify-content-between">
-          <span>Shipping</span> <span>Free</span>
+        <span>Shipping</span>
+         <span>{% if cart.shipping_charge > 0 %}₹{{ cart.shipping_charge }}{% else %}Free{% endif %}</span>
         </p>
         <hr>
         <p class="d-flex justify-content-between fw-bold">
-          <span>Total</span> <span>₹{{ cart.total_price }}</span>
+          <span>Total</span> <span>₹{{ cart.grand_total }}</span>
         </p>
         <a href="{% url 'checkout_address' %}" class="btn btn-success w-100">
-    CHECKOUT
-</a>
-        {% comment %} <button class="btn btn-success w-100">CHECKOUT</button> {% endcomment %}
+            CHECKOUT
+        </a>
       </div>
     </div>
   </div>

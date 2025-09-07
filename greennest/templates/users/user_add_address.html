@@ -17,16 +17,7 @@
     <div class="col-md-9 py-2">
         <div class="profile-card">
 
-            <!-- show message -->
-            {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            {% endfor %}
-            {% endif %}
-
+           
         <form method="POST">
             {% csrf_token %}
             <div class="mb-3">

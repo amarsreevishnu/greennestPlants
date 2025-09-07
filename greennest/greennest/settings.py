@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'orders',
     'wallet',
     'payments',
+    'coupon',
     
     
     # Needed for allauth 

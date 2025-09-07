@@ -121,7 +121,7 @@
         </div>
         <div class="d-flex justify-content-between">
           <span>Shipping</span>
-          <span>&#8377;{{ shipping }}</span>
+          <span>{% if shipping > 0 %}₹{{ shipping }}{% else %}Free{% endif %}</span>
         </div>
         <hr>
         <div class="d-flex justify-content-between fw-bold">

@@ -12,6 +12,8 @@ from django.db.models import Q, Prefetch
 from cart.models import Cart, CartItem
 from .models import Order, OrderItem
 from users.models import Address
+from wallet.models import Wallet, WalletTransaction
+
 
 
 @login_required
@@ -26,8 +28,8 @@ def checkout_address(request):
 
     # Calculate totals
     cart_items = cart.items.all()
-    subtotal = sum(item.variant.price * item.quantity for item in cart_items)
-    shipping = 0 if subtotal >= 2500 else 50
+    subtotal = cart.total_price()
+    shipping = 0 if subtotal > 500 else 50
     total = subtotal + shipping
 
     if request.method == "POST":
@@ -102,8 +104,8 @@ def checkout_payment(request):
 
     address = Address.objects.get(id=selected_address_id, user=user)
     cart_items = cart.items.all()
-    subtotal = sum(item.variant.price * item.quantity for item in cart_items)
-    shipping = 0 if subtotal >= 2500 else 50
+    subtotal = cart.total_price()
+    shipping = 0 if subtotal >= 500 else 50
     total = subtotal + shipping
 
     if request.method == 'POST':
@@ -162,6 +164,12 @@ def checkout_payment(request):
 def order_success(request, order_id):
     order = Order.objects.get(id=order_id, user=request.user)
     return render(request, 'orders/order_success.html', {'order': order})
+
+@login_required
+@never_cache
+def order_failure(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    return render(request, "orders/order_failure.html", {"order": order})
 
 
 
@@ -258,28 +266,56 @@ def cancel_order(request, order_id):
 @never_cache
 def cancel_order_item(request, item_id):
     item = get_object_or_404(OrderItem, id=item_id, order__user=request.user)
+    order = item.order
 
     if request.method == "POST":
         reason = request.POST.get("reason", "")
         item.status = "cancelled"
         item.cancel_reason = reason
         item.cancel_requested_at = timezone.now()
-        item.cancel_approved = True   
+        item.cancel_approved = True
         item.save()
 
-        # Recalculate order totals after cancellation
-        item.order.recalc_totals()
+        # Increment stock
+        item.variant.stock += item.quantity
+        item.variant.save()
 
-        # Update order status if only some items are cancelled
-        active_items = item.order.items.filter(status="active").exists()
-        if not active_items:
-            item.order.status = "cancelled"
+        # Check if any active items remain
+        active_items_exist = order.items.filter(status="active").exists()
+
+        # Determine refund amount
+        if not active_items_exist:
+            # All items cancelled → refund full order including shipping, tax, discount
+            refund_amount = order.final_amount
         else:
-            item.order.status = "partially_cancelled"
-        item.order.save()
+            # Partial cancellation → refund only cancelled item
+            refund_amount = item.quantity * item.price
+
+        # Refund only if prepaid
+        if order.payment_method in ["Wallet", "Razorpay", "Paypal"]:
+            wallet, _ = Wallet.objects.get_or_create(user=order.user)
+            wallet.balance += refund_amount
+            wallet.save()
+
+            WalletTransaction.objects.create(
+                wallet=wallet,
+                transaction_type="credit",
+                amount=refund_amount,
+                description=f"Refund for {'full order' if not active_items_exist else 'cancelled item'} in Order #{order.display_id}"
+            )
+
+        # Recalculate order totals
+        order.recalc_totals()
+
+        # Update order status
+        if not active_items_exist:
+            order.status = "cancelled"
+        else:
+            order.status = "partially_cancelled"
+        order.save()
 
         messages.success(request, "The item has been cancelled successfully.")
-        return redirect("order_detail", order_id=item.order.id)
+        return redirect("order_detail", order_id=order.id)
 
     return render(request, "orders/confirm_cancel_item.html", {"item": item})
 

@@ -44,7 +44,10 @@ def add_to_cart(request, variant_id):
 @never_cache
 def cart_detail(request):
     cart, created = Cart.objects.get_or_create(user=request.user)
-    return render(request, 'cart/cart_detail.html', {'cart': cart})
+    
+    return render(request, 'cart/cart_detail.html', {
+        'cart': cart,
+    })
 
 
 @login_required
@@ -52,6 +55,9 @@ def cart_detail(request):
 def remove_from_cart(request, item_id):
     item = get_object_or_404(CartItem, id=item_id, cart__user=request.user)
     item.delete()
+    next_url = request.POST.get('next') or request.GET.get('next')
+    if next_url:
+        return redirect(next_url)
     return redirect('cart_detail')
 
 

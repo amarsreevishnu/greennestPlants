@@ -1,0 +1,9 @@
+<div class="text-center p-5">
+    <img src="{% static 'images/failure.png' %}" alt="failure" class="w-32 mx-auto mb-4">
+    <h2 class="text-red-600 font-bold text-2xl">Payment Failed ❌</h2>
+    <p>Your payment for order #{{ order.id }} could not be processed.</p>
+    <div class="mt-4 space-x-2">
+        <a href="{% url 'razorpay_checkout' order.id %}" class="btn btn-danger">Retry Payment</a>
+        <a href="{% url 'order_details' order.id %}" class="btn btn-secondary">Go to Order</a>
+    </div>
+</div>

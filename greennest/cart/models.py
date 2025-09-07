@@ -11,6 +11,16 @@ class Cart(models.Model):
 
     def total_price(self):
         return sum(item.total_price() for item in self.items.all())
+    
+    @property
+    def shipping_charge(self):
+        """Shipping: Free if subtotal > 500, else ₹50"""
+        return 0 if self.total_price() > 500 else 50
+    
+    @property
+    def grand_total(self):
+        """Subtotal + shipping"""
+        return self.total_price() + self.shipping_charge
 
 class CartItem(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items")
