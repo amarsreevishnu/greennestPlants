@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+
+
+
+<div class="col-lg-10 p-0" style="background: #f8f9fa;">
+      <div class="main-content">
+
+        <!-- Top section -->
+        <div class="content-section d-flex justify-content-between align-items-center flex-wrap">
+          <div>
+            <h4 class="fw-bold mb-1">📋 Product Offers</h4>
+           
+          </div>
+          
+          
+            </div>
+          </div>
+        </div>
+
+  <!-- main section -->
+<div class="content-section">
+  <div class="table-responsive">
+            
+        <div class="container mt-5">
+  <h2 class="mb-4">📋 Product Offers</h2>
+  <a href="{% url 'add_product_offer' %}" class="btn btn-primary mb-3">➕ Add Offer</a>
+
+  <table class="table table-bordered table-striped">
+    <thead>
+      <tr>
+        <th>Product</th>
+        <th>Discount %</th>
+        <th>Start Date</th>
+        <th>End Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for offer in offers %}
+      <tr>
+        <td>{{ offer.product.name }}</td>
+        <td>{{ offer.discount_percentage }}%</td>
+        <td>{{ offer.start_date }}</td>
+        <td>{{ offer.end_date }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="4" class="text-center">No offers found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+  
+  </div>
+</div>
+
+
+
+
+
+
+
+{% endblock %}

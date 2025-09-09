@@ -1,24 +1,113 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2>Pay with Razorpay</h2>
-<p>Amount: ₹{{ amount }}</p>
+<style>
+  .payment-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 80vh;
+    background-color: #f9f9f9;
+  }
+  .payment-card {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: 350px;
+  }
+  .payment-card h2 {
+    margin-bottom: 20px;
+    font-size: 24px;
+  }
+  .amount-label {
+    font-size: 20px;
+    margin-bottom: 20px;
+    color: #333;
+  }
+  .pay-btn {
+    background: #004F44;
+    color: #fff;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  .pay-btn:hover {
+    background: #006d60;
+  }
+</style>
 
-<form action="{% url 'razorpay_callback' %}" method="POST">
-  {% csrf_token %}
-  <script
-    src="https://checkout.razorpay.com/v1/checkout.js"
-    data-key="{{ razorpay_key }}"
-    data-amount="{{ amount|floatformat:2|floatformat:"0" }}00"
-    data-currency="INR"
-    data-order_id="{{ razorpay_order_id }}"
-    data-buttontext="Pay with Razorpay"
-    data-name="Green Nest"
-    data-description="Order #{{ order.id }}"
-    data-prefill.name="{{ request.user.username }}"
-    data-prefill.email="{{ request.user.email }}"
-    data-theme.color="#004F44"
-  ></script>
-</form>
+<div class="payment-container">
+  <div class="payment-card">
+    <h2 style="color:#004F44;margin-bottom:10px;">Pay with Razorpay</h2>
+    <p class="amount-label">Amount: ₹{{ amount }}</p>
+    <button id="rzp-button1" class="pay-btn">Pay Now</button>
+  </div>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+  var options = {
+      "key": "{{ razorpay_key }}",
+      "amount": "{{ amount|floatformat:2|floatformat:'0' }}00",  // in paise
+      "currency": "INR",
+      "name": "Green Nest",
+      "description": "Order #{{ order.id }}",
+      "order_id": "{{ razorpay_order_id }}",
+      "handler": function (response){
+          //  On success: submit to backend
+          var form = document.createElement('form');
+          form.method = "POST";
+          form.action = "{% url 'razorpay_callback' %}";
+
+          var csrfToken = "{{ csrf_token }}";
+          var csrfInput = document.createElement("input");
+          csrfInput.type = "hidden";
+          csrfInput.name = "csrfmiddlewaretoken";
+          csrfInput.value = csrfToken;
+          form.appendChild(csrfInput);
+
+          var fields = {
+              "razorpay_payment_id": response.razorpay_payment_id,
+              "razorpay_order_id": response.razorpay_order_id,
+              "razorpay_signature": response.razorpay_signature,
+          };
+
+          for (var key in fields) {
+              var hidden = document.createElement("input");
+              hidden.type = "hidden";
+              hidden.name = key;
+              hidden.value = fields[key];
+              form.appendChild(hidden);
+          }
+
+          document.body.appendChild(form);
+          form.submit();
+      },
+      "prefill": {
+          "name": "{{ request.user.username }}",
+          "email": "{{ request.user.email }}"
+      },
+      "theme": {
+          "color": "#004F44"
+      },
+      "modal": {
+          "ondismiss": function(){
+              //  If user cancels/dismisses popup → go to failure page
+              window.location.href = "{% url 'order_failure' order.id %}";
+          }
+      }
+  };
+
+  var rzp1 = new Razorpay(options);
+
+  document.getElementById('rzp-button1').onclick = function(e){
+      rzp1.open();
+      e.preventDefault();
+  }
+</script>
 
 {% endblock %}

@@ -1,0 +1,25 @@
+{% extends 'greenest_admin/base.html' %}
+{% load static %}
+{% block content %}
+<div class="container mt-5" style="max-width: 600px;">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h2 class="card-title mb-4 text-danger">Confirm Delete</h2>
+            <p class="lead">
+                Are you sure you want to delete the offer for: <br>
+                <strong>{{ offer.product.name }}</strong>?
+            </p>
+            <form method="post" class="d-flex gap-3">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger flex-grow-1">
+                    Yes, Delete
+                </button>
+                <a href="{% url 'product_offer' %}" class="btn btn-secondary flex-grow-1 text-center">
+                    Cancel
+                </a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

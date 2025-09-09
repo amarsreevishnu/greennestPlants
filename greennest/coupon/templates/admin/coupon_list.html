@@ -3,76 +3,101 @@
 
 {% block admin_products_list %}
 <style>
+  .badgee.pending { color: #0d6efd; }
+  .badgee.processing { color: #6c757d; }
+  .badgee.shipped { color: #0dcaf0; }
+  .badgee.delivered { color: #198754; }
+  .badgee.completed { color: #20c997; }
+  .badgee.cancelled { color: #dc3545; }
+  .badgee.partially_cancelled { color: #fd7e14; }
+  .badgee.partially_returned { color: #bb463fff; }
+  .badgee.return_requested { color: #ffc107; color: #000; }
+  .badgee.returned { color: #6f42c1; }
 
-.badgee.pending { color: #0d6efd; }
-.badgee.processing { color: #6c757d; }
-.badgee.shipped { color: #0dcaf0; }
-.badgee.delivered { color: #198754; }
-.badgee.completed { color: #20c997; }
-.badgee.cancelled { color: #dc3545; }
-.badgee.partially_cancelled { color: #fd7e14; }
-.badgee.partially_returned { color: #bb463fff; }
-.badgee.return_requested { color: #ffc107; color: #000; }
-.badgee.returned { color: #6f42c1; }
+  /* Custom styles to center the table and add spacing */
+  .table-wrapper {
+    margin: 0 auto;
+    padding: 20px;
+    max-width: 1200px; /* Set max width if needed */
+    width: 100%;
+  }
 
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+  }
+
+  th, td {
+    padding: 10px;
+    text-align: left;
+    border: 1px solid #ddd;
+  }
+
+  th {
+    background-color: #f1f1f1;
+  }
+
+  td {
+    background-color: #fff;
+  }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .actions a {
+    color: #0d6efd;
+    text-decoration: none;
+  }
+
+  .actions a:hover {
+    text-decoration: underline;
+  }
 </style>
 
-
 <!-- Main content area -->
-    <div class="col-lg-10 p-0" style="background: #f8f9fa;">
-      <div class="main-content">
-
-        <!-- Top section -->
-        <div class="content-section d-flex justify-content-between align-items-center flex-wrap">
-          <div>
-              <h1>Coupon Management</h1>
-          </div>
-          <div class="d-flex align-items-center mt-2 mt-lg-0 me-5 ">
-                 <a href="{% url 'coupon_create' %}" class="btn btn-success rounded-pill px-3">Create Coupon</a>  
-          </div>
-        </div>
-<div class="content-section">
-  <div class="table-responsive">
-
-  
-
-<table>
-  <tr>
-    <th>Code</th>
-    <th>Discount</th>
-    <th>Valid From</th>
-    <th>Valid To</th>
-    <th>Status</th>
-    <th>Actions</th>
-  </tr>
-  {% for coupon in coupons %}
-  <tr>
-    <td>{{ coupon.code }}</td>
-    <td>{{ coupon.discount }}%</td>
-    <td>{{ coupon.valid_from }}</td>
-    <td>{{ coupon.valid_to }}</td>
-    <td>{% if coupon.active %}✅ Active{% else %}❌ Inactive{% endif %}</td>
-    <td>
-      <a href="{% url 'coupon_update' coupon.id %}">Edit</a> |
-      <a href="{% url 'coupon_delete' coupon.id %}">Delete</a>
-    </td>
-  </tr>
-  {% endfor %}
-</table>
-
-
-
-        </div>   
+<div class="col-lg-10 p-0" style="background: #f8f9fa;">
+  <div class="main-content">
+    <!-- Top section -->
+    <div class="content-section d-flex justify-content-between align-items-center flex-wrap">
+      <div>
+        <h1>Coupon Management</h1>
+      </div>
+      <div class="d-flex align-items-center mt-2 mt-lg-0 me-5 ">
+        <a href="{% url 'coupon_create' %}" class="btn btn-success rounded-pill px-3">Create Coupon</a>  
+      </div>
     </div>
 
+    <div class="content-section">
+      <div class="table-wrapper">
+        <table>
+          <tr>
+            <th>Code</th>
+            <th>Discount</th>
+            <th>Valid From</th>
+            <th>Valid To</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+          {% for coupon in coupons %}
+          <tr>
+            <td>{{ coupon.code }}</td>
+            <td>{{ coupon.discount }}%</td>
+            <td>{{ coupon.valid_from }}</td>
+            <td>{{ coupon.valid_to }}</td>
+            <td>{% if coupon.active %}✅ Active{% else %}❌ Inactive{% endif %}</td>
+            <td class="actions">
+              <a href="{% url 'coupon_update' coupon.id %}">Edit</a> |
+              <a href="{% url 'coupon_delete' coupon.id %}">Delete</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div>   
+    </div>
   </div>
 </div>
 
-{% endblock  %}
-
-
-
-
-
-
-
+{% endblock %}

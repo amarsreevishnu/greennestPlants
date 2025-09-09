@@ -18,8 +18,7 @@ from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 
 from .models import EmailOTP,Profile, Address
-from products.models import Product
-
+from products.models import Product, ProductVariant
 
 User = get_user_model()  # Gets CustomUser model
 
@@ -175,6 +174,8 @@ def user_logout(request):
 @login_required(login_url='user_login')
 def user_home(request):
     products = Product.objects.filter(is_active=True)
+   
+    
     return render(request, 'users/user_home.html', {'user': request.user,'products':products})
 
 def forget_password(request):

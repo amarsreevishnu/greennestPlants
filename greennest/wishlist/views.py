@@ -6,14 +6,14 @@ from django.http import JsonResponse
 
 from .models import WishlistItem
 from products.models import ProductVariant
-
+from offer.utils import get_best_offer
 
 @login_required
 @never_cache
 def wishlist_view(request):
     wishlist_items = WishlistItem.objects.filter(user=request.user)
     count = wishlist_items.count()
-
+    
     context = {
         'wishlist_items': wishlist_items,
         'wishlist_count': count,

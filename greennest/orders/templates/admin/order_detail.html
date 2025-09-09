@@ -62,24 +62,28 @@
               <td>{{ item.variant.stock }}</td>
               <td>
         {% if item.status == "return_requested" %}
-  <form method="post" class="d-flex align-items-center">
-    {% csrf_token %}
-    <input type="hidden" name="item_id" value="{{ item.id }}">
-    <select name="action" class="form-select w-auto me-2">
-      <option value="approve_return">Approve Return</option>
-      <option value="reject_return">Reject Return</option>
-    </select>
-    <button type="submit" class="btn btn-sm btn-primary">Submit</button>
-  </form>
-{% else %}
-  -
-{% endif %}
+        <form method="post" class="d-flex align-items-center">
+          {% csrf_token %}
+          <input type="hidden" name="item_id" value="{{ item.id }}">
+          <select name="action" class="form-select w-auto me-2">
+            <option value="approve_return">Approve Return</option>
+            <option value="reject_return">Reject Return</option>
+          </select>
+          
+          <button type="submit" class="btn btn-sm btn-primary">Submit</button>
+        </form>
+        <tr> <p><strong class="text-danger">Return Reason:</strong> {{ item.return_reason }}</p></tr>
+        <hr>
+      {% else %}
+        -
+      {% endif %}
 
       </td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
+
            <h5 class="text-center mt-5">Update Order Status</h5>
 <hr>
 <form method="post" class="mb-4 d-flex justify-content-around">

@@ -18,7 +18,7 @@ def coupon_create(request):
             return redirect("coupon_list")
     else:
         form = CouponForm()
-    return render(request, "coupons/coupon_form.html", {"form": form})
+    return render(request, "admin/coupon_form.html", {"form": form})
 
 def coupon_update(request, pk):
     coupon = get_object_or_404(Coupon, pk=pk)
@@ -30,7 +30,7 @@ def coupon_update(request, pk):
             return redirect("coupon_list")
     else:
         form = CouponForm(instance=coupon)
-    return render(request, "coupons/coupon_form.html", {"form": form, "coupon": coupon})
+    return render(request, "admin/coupon_form.html", {"form": form, "coupon": coupon})
 
 def coupon_delete(request, pk):
     coupon = get_object_or_404(Coupon, pk=pk)

@@ -8,11 +8,22 @@ from django.contrib import messages
 from django.utils import timezone
 from orders.models import Order, OrderItem
 
+
+from django.db.models import Sum, Count
+from datetime import datetime, timedelta
+import pandas as pd
+from io import BytesIO
+from django.http import HttpResponse
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+
 from django.db.models import Q, Exists, OuterRef
 from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import never_cache
 from orders.models import Order, OrderItem
+from wallet.models import Wallet, WalletTransaction
+
 
 @login_required(login_url='admin_login')
 @never_cache
@@ -93,14 +104,14 @@ def admin_order_detail(request, order_id):
         status = request.POST.get("status")
         item_id = request.POST.get("item_id")
 
-        # Update whole order status (manual)
+        # --- Update whole order status (manual) ---
         if status:
             order.status = status
             order.save(update_fields=['status'])
             messages.success(request, f"Order status updated to {order.get_status_display()}")
             return redirect('admin_order_detail', order_id=order.id)
 
-        # Approve Return (whole order)
+        # --- Approve Return (whole order) ---
         if action == "approve_return" and not item_id:
             order.status = 'returned'
             order.return_approved = True
@@ -108,17 +119,34 @@ def admin_order_detail(request, order_id):
             order.return_approved_at = timezone.now()
             order.save()
 
+            refund_amount = 0
             for item in order_items.filter(status='return_requested'):
                 if item.variant and item.status != 'returned':
                     item.variant.stock += item.quantity
                     item.variant.save()
                 item.status = 'returned'
-                item.return_approved = True
+                item.return_approved = True 
                 item.save()
-            messages.success(request, "Return approved for the whole order.")
+                refund_amount += item.price  
+
+            # --- Credit refund to wallet ---
+            if refund_amount > 0:
+                wallet, created = Wallet.objects.get_or_create(user=order.user)
+                wallet.balance += refund_amount
+                wallet.save()
+                WalletTransaction.objects.create(
+                    wallet=wallet,
+                    amount=refund_amount,
+                    transaction_type="credit",
+                    description=f"Refund for returned Order #{order.id}"
+                )
+                messages.success(request, f"Return approved. ₹{refund_amount} refunded to {order.user.username}'s wallet.")
+            else:
+                messages.success(request, "Return approved for the whole order (no refund).")
+
             return redirect('admin_order_detail', order_id=order.id)
 
-        # Reject Return (whole order)
+        # --- Reject Return (whole order) ---
         if action == "reject_return" and not item_id:
             order.return_requested = False
             order.save(update_fields=['return_requested'])
@@ -128,7 +156,7 @@ def admin_order_detail(request, order_id):
             messages.warning(request, "Whole order return request rejected.")
             return redirect('admin_order_detail', order_id=order.id)
 
-        # Approve Return (single item)
+        # --- Approve Return (single item) ---
         if action == "approve_return" and item_id:
             item = get_object_or_404(OrderItem, id=item_id, order=order)
             if item.variant and item.status == "return_requested":
@@ -137,11 +165,27 @@ def admin_order_detail(request, order_id):
             item.status = "returned"
             item.return_approved = True
             item.save()
+
+            # --- Refund single item ---
+            refund_amount = item.price
+            if refund_amount > 0:
+                wallet, created = Wallet.objects.get_or_create(user=order.user)
+                wallet.balance += refund_amount
+                wallet.save()
+                WalletTransaction.objects.create(
+                    wallet=wallet,
+                    amount=refund_amount,
+                    transaction_type="credit",
+                    description=f"Refund for returned item {item.variant} in Order #{order.id}"
+                )
+                messages.success(request, f"Return approved. ₹{refund_amount} refunded to {order.user.username}'s wallet.")
+            else:
+                messages.success(request, f"Return approved for item {item.variant} (no refund).")
+
             update_order_status(order)  
-            messages.success(request, f"Return approved for item {item.variant}.")
             return redirect('admin_order_detail', order_id=order.id)
 
-        #  Reject Return (single item)
+        # --- Reject Return (single item) ---
         if action == "reject_return" and item_id:
             item = get_object_or_404(OrderItem, id=item_id, order=order)
             item.status = "return_rejected"
@@ -150,7 +194,7 @@ def admin_order_detail(request, order_id):
             messages.warning(request, f"Return request rejected for item {item.variant}.")
             return redirect('admin_order_detail', order_id=order.id)
 
-        # Approve Cancel (whole order)
+        # --- Approve Cancel (whole order) ---
         if action == "approve_cancel":
             order.status = 'cancelled'
             order.cancel_approved = True
@@ -158,6 +202,7 @@ def admin_order_detail(request, order_id):
             order.cancel_approved_at = timezone.now()
             order.save()
 
+            refund_amount = 0
             for item in order_items.exclude(status='cancelled'):
                 if item.variant:
                     item.variant.stock += item.quantity
@@ -165,10 +210,26 @@ def admin_order_detail(request, order_id):
                 item.status = 'cancelled'
                 item.cancel_approved = True
                 item.save()
-            messages.success(request, "Order cancellation approved.")
+                refund_amount += item.price  # ✅ Refund cancelled items
+
+            # --- Credit refund to wallet ---
+            if refund_amount > 0:
+                wallet, created = Wallet.objects.get_or_create(user=order.user)
+                wallet.balance += refund_amount
+                wallet.save()
+                WalletTransaction.objects.create(
+                    wallet=wallet,
+                    amount=refund_amount,
+                    transaction_type="credit",
+                    description=f"Refund for cancelled Order #{order.id}"
+                )
+                messages.success(request, f"Order cancelled. ₹{refund_amount} refunded to {order.user.username}'s wallet.")
+            else:
+                messages.success(request, "Order cancellation approved (no refund).")
+
             return redirect('admin_order_detail', order_id=order.id)
 
-        # Reject Cancel (whole order)
+        # --- Reject Cancel (whole order) ---
         if action == "reject_cancel":
             order.cancel_requested = False
             order.save(update_fields=['cancel_requested'])
@@ -182,3 +243,127 @@ def admin_order_detail(request, order_id):
         'order': order,
         'order_items': order_items,
     })
+
+
+
+
+@login_required(login_url='admin_login')
+@never_cache
+def sales_report(request):
+    # only completed/delivered orders count as sales
+    orders = Order.objects.filter(status__in=["completed", "delivered"])
+
+    # summary numbers
+    total_orders = orders.count()
+    total_revenue = orders.aggregate(Sum("final_amount"))["final_amount__sum"] or 0
+    total_discount = orders.aggregate(Sum("discount"))["discount__sum"] or 0
+    total_tax = orders.aggregate(Sum("tax"))["tax__sum"] or 0
+    total_shipping = orders.aggregate(Sum("shipping_charge"))["shipping_charge__sum"] or 0
+
+    # date filters
+    today = datetime.today().date()
+    last_week = today - timedelta(days=7)
+    last_month = today - timedelta(days=30)
+
+    daily_sales = orders.filter(created_at__date=today).aggregate(Sum("final_amount"))["final_amount__sum"] or 0
+    weekly_sales = orders.filter(created_at__date__gte=last_week).aggregate(Sum("final_amount"))["final_amount__sum"] or 0
+    monthly_sales = orders.filter(created_at__date__gte=last_month).aggregate(Sum("final_amount"))["final_amount__sum"] or 0
+
+    # custom date range filter
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+    filtered_orders = orders
+    if start_date and end_date:
+        filtered_orders = orders.filter(
+            created_at__date__range=[start_date, end_date]
+        )
+
+    context = {
+        "orders": filtered_orders,
+        "total_orders": total_orders,
+        "total_revenue": total_revenue,
+        "total_discount": total_discount,
+        "total_tax": total_tax,
+        "total_shipping": total_shipping,
+        "daily_sales": daily_sales,
+        "weekly_sales": weekly_sales,
+        "monthly_sales": monthly_sales,
+        "start_date": start_date,
+        "end_date": end_date,
+    }
+    return render(request, "admin/sales_report.html", context)
+
+
+
+
+def download_sales_report_pdf(request):
+    orders = Order.objects.filter(status__in=["completed", "delivered"])
+
+    # Create a PDF in memory
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+
+    # Title
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(200, height - 50, "Sales Report")
+   
+
+    # Date
+    p.setFont("Helvetica", 10)
+    p.drawString(50, height - 80, f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+
+    # Summary
+    total_orders = orders.count()
+    total_revenue = orders.aggregate(Sum("final_amount"))["final_amount__sum"] or 0
+    total_discount = orders.aggregate(Sum("discount"))["discount__sum"] or 0
+    total_tax = orders.aggregate(Sum("tax"))["tax__sum"] or 0
+    total_shipping = orders.aggregate(Sum("shipping_charge"))["shipping_charge__sum"] or 0
+
+    y = height - 120
+    summary = [
+        f"Total Orders: {total_orders}",
+        f"Total Revenue: Rs.{total_revenue:.2f}",
+        f"Total Discount: Rs.{total_discount:.2f}",
+        f"Total Tax: Rs.{total_tax:.2f}",
+        f"Total Shipping: Rs.{total_shipping:.2f}",
+    ]
+    p.setFont("Helvetica", 11)
+    for line in summary:
+        p.drawString(50, y, line)
+        y -= 20
+
+    # Table Header
+    y -= 20
+    p.setFont("Helvetica-Bold", 10)
+    p.drawString(50, y, "Order ID")
+    p.drawString(120, y, "User")
+    p.drawString(200, y, "Status")
+    p.drawString(270, y, "Final Amount")
+    p.drawString(370, y, "Date")
+    y -= 15
+    p.line(50, y, 500, y)
+    y -= 15
+
+    # Orders list
+    p.setFont("Helvetica", 9)
+    for order in orders:
+        if y < 80:  # new page if space is low
+            p.showPage()
+            y = height - 50
+            p.setFont("Helvetica", 9)
+
+        p.drawString(50, y, str(order.display_id))
+        p.drawString(120, y, str(order.user.username))
+        p.drawString(200, y, str(order.status))
+        p.drawString(270, y, f"Rs.{order.final_amount:.2f}")
+        p.drawString(370, y, order.created_at.strftime("%Y-%m-%d"))
+        y -= 20
+
+    p.save()
+    buffer.seek(0)
+
+    # Return response
+    response = HttpResponse(buffer, content_type="application/pdf")
+    response["Content-Disposition"] = 'attachment; filename="sales_report.pdf"'
+    return response

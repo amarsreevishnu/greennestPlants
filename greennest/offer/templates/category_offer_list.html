@@ -1,0 +1,88 @@
+{% extends "greenest_admin/base.html" %}
+{% load static %}
+{% block content %}
+
+
+
+
+<div class="col-lg-10 p-0" style="background: #f8f9fa;">
+      <div class="main-content">
+
+        <!-- Top section -->
+        <div class="content-section d-flex justify-content-between align-items-center flex-wrap">
+          <div>
+            <h4 class="fw-bold mb-1">Category Offers</h4>
+            
+          </div>
+          <div class="d-flex align-items-center mt-lg-0 me-5 ">
+            
+            <div class="d-flex align-items-center profile-area">  
+              <a href="{% url 'category_offer_create' %}" class="btn btn-success mb-3">Add New Offer</a>
+          <div>
+           
+          </div>
+            </div>
+          </div>
+        </div>
+
+  <!-- main section --> 
+<div class="content-section">
+  <div class="table-responsive">
+            
+            
+
+
+
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Category</th>
+            <th>Discount (%)</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for offer in offers %}
+        <tr>
+            <td>{{ offer.category.name }}</td>
+            <td>{{ offer.discount_percentage }}%</td>
+            <td>{{ offer.start_date }}</td>
+            <td>{{ offer.end_date }}</td>
+            <td>
+                {% if offer.is_active %}
+                    <span class="badge bg-success">Active</span>
+                {% else %}
+                    <span class="badge bg-danger">Inactive</span>
+                {% endif %}
+            </td>
+            <td>
+                <a href="{% url 'category_offer_edit' offer.id %}" class="btn btn-sm btn-warning">Edit</a>
+                <a href="{% url 'category_offer_delete' offer.id %}" class="btn btn-sm btn-danger">Delete</a>
+                <a href="{% url 'toggle_category_offer' offer.id %}" class="btn btn-sm {% if offer.is_active %}btn-danger{% else %}btn-success{% endif %}">
+                    {% if offer.is_active %}Deactivate{% else %}Activate{% endif %}
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>    
+
+
+
+
+
+
+
+        </div>
+      </div>
+    </div>
+  </main>
+  </div>
+</div>
+
+
+{% endblock %}

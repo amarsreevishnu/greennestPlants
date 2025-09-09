@@ -9,10 +9,12 @@ from django.utils import timezone
 from django.http import HttpResponse, Http404
 from django.db.models import Q, Prefetch
 
-from cart.models import Cart, CartItem
 from .models import Order, OrderItem
+from cart.models import Cart, CartItem
 from users.models import Address
 from wallet.models import Wallet, WalletTransaction
+from coupon.models import Coupon, CouponUsage
+from offer.utils import get_best_offer
 
 
 
@@ -28,10 +30,43 @@ def checkout_address(request):
 
     # Calculate totals
     cart_items = cart.items.all()
-    subtotal = cart.total_price()
-    shipping = 0 if subtotal > 500 else 50
-    total = subtotal + shipping
+    subtotal = 0
+    for item in cart.items.all():
+        product = item.variant.product
+        best_offer = get_best_offer(product)
 
+        product_price = item.variant.price
+        discount_amount = 0
+        if best_offer:
+            discount_amount = (product_price * best_offer.discount_percentage) / 100
+
+        final_price = product_price - discount_amount
+
+        # Attach to item for display (optional)
+        item.offer_applied = best_offer
+        item.discounted_price = final_price
+        item.final_total = final_price * item.quantity
+
+        subtotal += item.final_total
+
+    shipping = 0 if subtotal > 500 else 50
+    discount = 0
+    total = subtotal + shipping - discount
+    applied_coupon = None
+
+    # ✅ Check session for applied coupon
+    coupon_id = request.session.get("applied_coupon_id")
+    if coupon_id:
+        try:
+            applied_coupon = Coupon.objects.get(id=coupon_id, active=True)
+            if applied_coupon.is_valid():
+                discount = applied_coupon.calculate_discount(subtotal)
+            else:
+                request.session.pop("applied_coupon_id", None)
+        except Coupon.DoesNotExist:
+            request.session.pop("applied_coupon_id", None)
+
+    total = subtotal + shipping - discount
     if request.method == "POST":
         action = request.POST.get("action")
         edit_address_id = request.POST.get("edit_address_id")  
@@ -84,10 +119,11 @@ def checkout_address(request):
         "addresses": addresses,
         "subtotal": subtotal,
         "shipping": shipping,
+        "discount": discount,
         "total": total,
+        "applied_coupon": applied_coupon,
     }
     return render(request, "orders/checkout_address.html", context)
-
 
 @login_required
 @never_cache
@@ -104,41 +140,88 @@ def checkout_payment(request):
 
     address = Address.objects.get(id=selected_address_id, user=user)
     cart_items = cart.items.all()
-    subtotal = cart.total_price()
+    
+    subtotal = 0
+    total_discount = 0
+
+    # Calculate subtotal & discounted price for each item
+    item_data = []
+    for item in cart_items:
+        product = item.variant.product
+        best_offer = get_best_offer(product)
+
+        price_per_unit = item.variant.price
+        discount_per_unit = 0
+        if best_offer:
+            discount_per_unit = (price_per_unit * best_offer.discount_percentage) / 100
+
+        final_price_per_unit = price_per_unit - discount_per_unit
+        total_price = final_price_per_unit * item.quantity
+
+        subtotal += price_per_unit * item.quantity
+        total_discount += discount_per_unit * item.quantity
+
+        item_data.append({
+            "variant": item.variant,
+            "quantity": item.quantity,
+            "price_per_unit": final_price_per_unit,
+            "total_price": total_price
+        })
+
     shipping = 0 if subtotal >= 500 else 50
-    total = subtotal + shipping
 
-    if request.method == 'POST':
-        payment_method = request.POST.get('payment_method')
+    # Handle coupon
+    coupon_id = request.session.get("applied_coupon_id")
+    coupon = None
+    coupon_discount = 0
+    if coupon_id:
+        try:
+            coupon = Coupon.objects.get(id=coupon_id, active=True)
+            if coupon.is_valid():
+                coupon_discount = coupon.calculate_discount(subtotal)
+            else:
+                request.session.pop("applied_coupon_id", None)
+                coupon = None
+        except Coupon.DoesNotExist:
+            request.session.pop("applied_coupon_id", None)
 
-        # Create order (not paid yet)
+    total = subtotal + shipping - total_discount - coupon_discount
+
+    if request.method == "POST":
+        payment_method = request.POST.get("payment_method")
+
+        # Create Order
         order = Order.objects.create(
             user=user,
             address=address,
             total_amount=subtotal,
             shipping_charge=shipping,
+            discount=total_discount + coupon_discount,
             final_amount=total,
+            coupon=coupon,
             payment_method=payment_method,
-            status="pending"  # stays pending until payment succeeds
+            status="pending"
         )
 
-        for item in cart_items:
+        # Create OrderItems
+        for data in item_data:
             OrderItem.objects.create(
                 order=order,
-                variant=item.variant,
-                quantity=item.quantity,
-                price=item.variant.price,
-                total_price=item.variant.price * item.quantity
+                variant=data["variant"],
+                quantity=data["quantity"],
+                price=data["price_per_unit"],  # per unit after offer
+                total_price=data["total_price"]
             )
-            # reduce stock (to avoid oversell, restore if payment fails)
-            item.variant.stock -= item.quantity
-            item.variant.save()
 
-        # clear cart
-        cart.items.all().delete()
-        del request.session['selected_address_id']
+            # Reduce stock
+            data["variant"].stock -= data["quantity"]
+            data["variant"].save()
 
-        # Redirect to correct payment flow
+        # Clear cart
+        # cart.items.all().delete()
+        # request.session.pop('selected_address_id', None)
+
+        # Redirect to payment flow
         if payment_method == "cod":
             return redirect("cod_payment", order_id=order.id)
         elif payment_method == "wallet":
@@ -150,20 +233,40 @@ def checkout_payment(request):
             return redirect("checkout_payment")
 
     context = {
-        'cart': cart,
-        'address': address,
-        'subtotal': subtotal,
-        'shipping': shipping,
-        'total': total,
+        "cart": cart,
+        "address": address,
+        "subtotal": subtotal,
+        "shipping": shipping,
+        "discount": total_discount + coupon_discount,
+        "total": total,
+        "applied_coupon": coupon,
     }
-    return render(request, 'orders/checkout_payment.html', context)
+    return render(request, "orders/checkout_payment.html", context)
 
 
 @login_required
 @never_cache
 def order_success(request, order_id):
-    order = Order.objects.get(id=order_id, user=request.user)
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    user = request.user
+    cart = Cart.objects.filter(user=user).first()
+    if order.coupon:
+        usage, created = CouponUsage.objects.get_or_create(
+            user=request.user,
+            coupon=order.coupon,
+            defaults={"used": True, "used_at": timezone.now()}
+        )
+        if not created:  # already exists, update it
+            usage.used = True
+            usage.used_at = timezone.now()
+            usage.save()
+     #  Clear coupon from session after success
+    cart.items.all().delete()
+    request.session.pop('selected_address_id', None)
+    
+    request.session.pop("applied_coupon_id", None)
     return render(request, 'orders/order_success.html', {'order': order})
+
 
 @login_required
 @never_cache
@@ -211,6 +314,16 @@ def order_detail(request, order_id):
     order = get_object_or_404(Order, id=order_id, user=request.user)
     items = OrderItem.objects.filter(order=order)
 
+    # Only items that count towards billing
+    billable_items = items.exclude(status__in=["cancelled", "returned"])
+
+    subtotal = sum(item.total_price for item in billable_items)
+
+    # Example shipping logic (free over 500 or if subtotal is 0)
+    shipping = 0 if subtotal > 500 or subtotal == 0 else 50
+
+    total = subtotal + shipping
+
     for item in items:
         item.can_return = (item.status == "delivered")
         item.return_requested_display = (item.status == "return_requested")
@@ -218,6 +331,9 @@ def order_detail(request, order_id):
     return render(request, "orders/order_detail.html", {
         "order": order,
         "items": items,
+        "subtotal": subtotal,
+        "shipping": shipping,
+        "total": total,
     })
 
 
@@ -443,7 +559,7 @@ def download_invoice(request, order_id):
     c.setFont("Helvetica", 10)
     for item in order.items.all():
         y -= 16
-        c.drawString(50, y, str(getattr(item.variant, 'name', str(item.variant)[:30])))
+        c.drawString(50, y, str(getattr(item.variant, 'name', str(item.variant)[:20])))
         c.drawString(300, y, str(item.quantity))
         c.drawString(350, y, f"{item.price:.2f}")
         c.drawString(450, y, f"{item.total_price:.2f}")

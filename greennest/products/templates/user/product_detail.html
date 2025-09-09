@@ -73,14 +73,18 @@
       </div>
       <div class="mb-2">
         {% if cheapest_variant %}
-        <span id="variant-price" class="price">
-          <strong>₹ {{ cheapest_variant.price }}</strong></span
-        >
-        <span class="offer text-success"> - 40% off</span>
+          {% if best_offer %}
+            <span id="variant-price" class="price">
+              <strong>₹ {{ discounted_price|floatformat:2 }}</strong>
+            </span>
+          
+          {% else %}
+            <span id="variant-price" class="price">
+              <strong>₹ {{ cheapest_variant.price }}</strong>
+            </span>
+          {% endif %}
+        {% endif %}
       </div>
-      {% endif %}
-
-
       <div class="product-details mb-2">
         <ul>
           <li>Light Requirement: {{ product.get_light_requirement_display }}</li>
@@ -110,15 +114,23 @@
           {% for variant in variants %}
           <div>
             <input type="radio"
-                   name="variant_id"
-                   id="variant_{{ variant.id }}"
-                   value="{{ variant.id }}"
-                   data-price="{{ variant.price }}"
-                   data-stock="{{ variant.stock }}"
-                   data-images="{% for img in variant.images.all %}{{ img.image.url }}{% if not forloop.last %},{% endif %}{% endfor %}"
-                   {% if variant.id == cheapest_variant.id %}checked{% endif %} />
+                  name="variant_id"
+                  id="variant_{{ variant.id }}"
+                  value="{{ variant.id }}"
+                  data-price="{{ variant.price }}"
+                  data-discounted-price="{{ variant.discounted_price }}"
+                  data-stock="{{ variant.stock }}"
+                  data-images="{% for img in variant.images.all %}{{ img.image.url }}{% if not forloop.last %},{% endif %}{% endfor %}"
+                  {% if variant.id == cheapest_variant.id %}checked{% endif %} />
             <label for="variant_{{ variant.id }}">
-              {{ variant.variant_type  }} <br>| ₹{{ variant.price }} 
+              {{ variant.variant_type }}  
+              <br>
+              {% if variant.discounted_price < variant.price %}
+                <span class="text-success">₹{{ variant.discounted_price|floatformat:2 }}</span>
+                <span class="text-muted text-decoration-line-through">₹{{ variant.price }}</span>
+              {% else %}
+                ₹{{ variant.price }}
+              {% endif %}
             </label>
           </div>
           {% endfor %}
@@ -240,54 +252,83 @@
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/elevatezoom/3.0.8/jquery.elevatezoom.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 $(document).ready(function () {
     const form = $("#addToCartForm");
 
-    // Update hidden input and form action whenever variant is selected
+    // Handle variant selection change
     $("input[name='variant_id']").on("change", function () {
         const variantId = $(this).val();
-        $("#hidden-variant-id").val(variantId);
-        // Update form action to point to the correct variant
-        form.attr("action", "{% url 'add_to_cart' 0 %}".replace("0", variantId));
-
-        // Update stock max and price dynamically
         const stock = $(this).data("stock");
-        const price = $(this).data("price");
+        const price = parseFloat($(this).data("price"));
+        const discountedPrice = parseFloat($(this).data("discounted-price"));
         const imagesData = $(this).data("images");
         const images = imagesData ? imagesData.split(",") : [];
 
-        $("#variant-stock").text(stock);
-        $("#qty-input").attr("max", stock);
-        $("#variant-price").text("₹" + price);
+        // ✅ Update form hidden input and action
+        $("#hidden-variant-id").val(variantId);
+        form.attr("action", "{% url 'add_to_cart' 0 %}".replace("0", variantId));
 
-        // Enable/disable Add to Cart button based on stock
-        const addBtn = $("#add-to-cart-btn");
-        if (parseInt(stock) > 0) {
-            addBtn.prop("disabled", false).removeClass("btn-secondary").addClass("btn-success").text("ADD TO CART");
+        // ✅ Update Price display
+        if (discountedPrice < price) {
+            const discountPercentage = Math.round(100 - (discountedPrice / price * 100));
+            $("#variant-price").html(`
+                <strong>₹${discountedPrice.toFixed(2)}</strong>
+                <span class="text-muted text-decoration-line-through ms-2">₹${price.toFixed(2)}</span>
+                <span class="offer text-success ms-2">- ${discountPercentage}% off</span>
+            `);
         } else {
-            addBtn.prop("disabled", true).removeClass("btn-success").addClass("btn-secondary").text("Out of Stock");
+            $("#variant-price").html(`<strong>₹${price.toFixed(2)}</strong>`);
         }
 
-        // Update main image and thumbnails
+        // ✅ Update stock and quantity max
+        $("#variant-stock").text(stock);
+        $("#qty-input").attr("max", stock);
+
+        const addBtn = $("#add-to-cart-btn");
+        if (parseInt(stock) > 0) {
+            addBtn.prop("disabled", false)
+                .removeClass("btn-secondary")
+                .addClass("btn-success")
+                .text("ADD TO CART");
+        } else {
+            addBtn.prop("disabled", true)
+                .removeClass("btn-success")
+                .addClass("btn-secondary")
+                .text("Out of Stock");
+        }
+
+        // ✅ Update main image and thumbnails
         if (images.length > 0) {
             $("#mainImage").attr("src", images[0]);
             const thumbsContainer = $("#thumbs-container");
             thumbsContainer.empty();
+
             images.forEach(function(img) {
-                thumbsContainer.append('<img src="' + img + '" class="thumb-image mb-2 shadow-sm" style="width:60px;height:80px;object-fit:cover;cursor:pointer;">');
+                thumbsContainer.append(`
+                    <img src="${img}" class="thumb-image mb-2 shadow-sm" 
+                         style="width:60px;height:80px;object-fit:cover;cursor:pointer;">
+                `);
             });
+
+            // Re-bind click event for new thumbnails
             $(".thumb-image").off("click").on("click", function () {
                 const newImage = $(this).attr("src");
                 $("#mainImage").attr("src", newImage);
             });
         }
+
+        // ✅ Optionally show selected variant type
+        const label = $("label[for='variant_" + variantId + "']").text().trim();
+        $("#selected-variant-type").text(label);
     });
 
-    // Trigger change on page load to initialize form with default variant
+    // ✅ Trigger change on page load to initialize view
     $("input[name='variant_id']:checked").trigger("change");
 });
 </script>
+
 
 
 {% endblock user_products_detials %}

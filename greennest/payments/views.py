@@ -4,10 +4,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.conf import settings
 
+
 from orders.models import Order
 from payments.models import Payment
 from wallet.models import Wallet, WalletTransaction
-
+from cart.models import Cart
 
 client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
@@ -15,7 +16,8 @@ client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_S
 @login_required
 def cod_payment(request, order_id):
     order = get_object_or_404(Order, id=order_id, user=request.user)
-
+    
+    
     payment = Payment.objects.create(
         order=order,
         user=request.user,
@@ -29,6 +31,9 @@ def cod_payment(request, order_id):
     order.payment_method = "Cash on Delivery"
     order.save()
 
+   
+    
+
     messages.success(request, "Order placed successfully with COD ✅")
     return redirect("order_success", order_id=order.id)
 
@@ -36,6 +41,8 @@ def cod_payment(request, order_id):
 # Wallet Payment
 @login_required
 def wallet_payment(request, order_id):
+    user = request.user
+    cart = Cart.objects.filter(user=user).first()
     order = get_object_or_404(Order, id=order_id, user=request.user)
     wallet = getattr(request.user, "wallet", None)
 
@@ -68,6 +75,9 @@ def wallet_payment(request, order_id):
     order.payment_method = "Wallet"
     order.save()
 
+    
+
+
     messages.success(request, "Order placed using Wallet ✅")
     return redirect("order_success", order_id=order.id)
 
@@ -76,7 +86,7 @@ def wallet_payment(request, order_id):
 @login_required
 def razorpay_checkout(request, order_id):
     order = get_object_or_404(Order, id=order_id, user=request.user)
-
+    
     client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
     # Create Razorpay order
@@ -115,23 +125,32 @@ def razorpay_callback(request):
 
         client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
+        payment = Payment.objects.filter(razorpay_order_id=order_id).first()
+
+        if not payment:
+            messages.error(request, "Payment record not found ❌")
+            return redirect("cart_detail")
+
+        order = payment.order  # keep reference here
+
         try:
-            # Verify signature
+            # If any of the required fields are missing, treat as failed
+            if not payment_id or not signature:
+                raise ValueError("Missing payment_id or signature")
+
+            # Verify payment signature (raises exception if invalid)
             client.utility.verify_payment_signature({
                 "razorpay_order_id": order_id,
                 "razorpay_payment_id": payment_id,
                 "razorpay_signature": signature
             })
 
-            # Update Payment
-            payment = Payment.objects.get(razorpay_order_id=order_id)
+            # ✅ Mark success
             payment.status = "success"
             payment.razorpay_payment_id = payment_id
             payment.razorpay_signature = signature
             payment.save()
 
-            # Update Order
-            order = payment.order
             order.status = "processing"
             order.payment_method = "Razorpay"
             order.save()
@@ -139,10 +158,18 @@ def razorpay_callback(request):
             messages.success(request, "Payment successful via Razorpay ✅")
             return redirect("order_success", order_id=order.id)
 
-        except Exception:
-            payment = Payment.objects.filter(razorpay_order_id=order_id).first()
-            if payment:
-                payment.status = "failed"
-                payment.save()
-            messages.error(request, "Payment failed ❌")
-            return redirect("order_failure")
+        except Exception as e:
+            # ❌ Mark failed
+            payment.status = "failed"
+            payment.save()
+
+            order.status = "failed"
+            order.save()
+
+            messages.error(request, f"Payment failed ❌ Reason: {str(e)}")
+            return redirect("order_failure", order_id=order.id)
+
+    # If not POST
+    return redirect("cart_detail")
+
+

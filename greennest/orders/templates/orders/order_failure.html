@@ -1,9 +1,56 @@
-<div class="text-center p-5">
-    <img src="{% static 'images/failure.png' %}" alt="failure" class="w-32 mx-auto mb-4">
-    <h2 class="text-red-600 font-bold text-2xl">Payment Failed ❌</h2>
-    <p>Your payment for order #{{ order.id }} could not be processed.</p>
-    <div class="mt-4 space-x-2">
-        <a href="{% url 'razorpay_checkout' order.id %}" class="btn btn-danger">Retry Payment</a>
-        <a href="{% url 'order_details' order.id %}" class="btn btn-secondary">Go to Order</a>
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<style>
+  .payment-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 80vh;
+    background-color: #f9f9f9;
+  }
+  .payment-card {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: 350px;
+  }
+  .payment-card h2 {
+    margin-bottom: 20px;
+    font-size: 24px;
+  }
+  .amount-label {
+    font-size: 20px;
+    margin-bottom: 20px;
+    color: #333;
+  }
+  </style>
+
+
+<div class="payment-container">
+  <div class="payment-card">
+<div class="text-center mt-5">
+    <img src="{% static 'images/payment_failed.png' %}" alt="Payment Failed" width="80" class="mb-4">
+
+    <h2 class="text-danger">Payment Failed</h2>
+    <p class="lead">Oops! Your payment for Order <strong>#{{ order.display_id }}</strong> could not be processed.</p>
+
+    <div class="mt-4 d-flex justify-content-center gap-3">
+        <!-- Retry Payment -->
+        <a href="{% url 'razorpay_checkout' order.id %}" class="btn btn-primary">
+            Retry Payment
+        </a>
+
+        <!-- Order Details -->
+        <a href="{% url 'cart_detail'  %}" class="btn btn-outline-secondary">
+            View Cart
+        </a>
+        </div>
+    </div>
     </div>
 </div>
+{% endblock %}

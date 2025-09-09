@@ -1,7 +1,10 @@
 from django.db import models
 from django.conf import settings
+
 from products.models import ProductVariant
 from users.models import Address
+from coupon.models import Coupon
+from offer.models import ProductOffer, CategoryOffer
 
 class Order(models.Model):
     STATUS_CHOICES = [
@@ -23,6 +26,7 @@ class Order(models.Model):
     discount = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     shipping_charge = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     final_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    coupon = models.ForeignKey(Coupon, null=True, blank=True, on_delete=models.SET_NULL)
     payment_method = models.CharField(max_length=50, default='Cash on Delivery')
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -48,12 +52,21 @@ class Order(models.Model):
         return f"Order #{self.id} by {self.user.username}"
 
     def recalc_totals(self):
-        # Include only items that are active or delivered
+        """ Recalculate subtotal, apply coupon discount, and update final total """
         items = self.items.filter(status__in=["active", "delivered"])
         subtotal = sum(item.total_price for item in items)
+
         self.total_amount = subtotal
-        self.final_amount = subtotal + self.shipping_charge - self.discount + self.tax
+
+        # If coupon applied, discount comes from coupon, else keep current discount
+        if self.coupon and self.coupon.is_valid():
+            self.discount = self.coupon.calculate_discount(subtotal)
+        else:
+            self.discount = 0
+
+        self.final_amount = max(subtotal + self.shipping_charge + self.tax - self.discount, 0)
         self.save()
+
 
     @property
     def display_id(self):
@@ -88,3 +101,5 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.variant} x {self.quantity}"
+
+    

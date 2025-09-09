@@ -80,7 +80,7 @@
     <!-- Order Summary -->
     <div class="col-lg-5 mb-4">
       <div class="border rounded-3 p-4 bg-white">
-        <h6 class="mb-3">Order Summary</h6>
+        <h6 class="mb-3 text-center">Order Summary</h6>
         <ul class="list-unstyled mb-3">
           <li class="d-flex justify-content-between">
             <span>Item Sub Total</span>
@@ -90,11 +90,34 @@
             <span>Shipping</span>
             <span>{% if shipping > 0 %}₹{{ shipping }}{% else %}Free{% endif %}</span>
           </li>
+          <li class="d-flex justify-content-between">
+              <span>
+                {% if applied_coupon %}
+              <p>Coupon Applied: <strong>{{ applied_coupon.coupon.code }}</strong>
+                  <a href="{% url 'remove_coupon' %}" class="text-danger">Remove</a>
+              </p>
+          {% endif %}
+              </span>
+              <span>₹{{ discount }}</span>
+          </li>
         </ul>
         <div class="d-flex justify-content-between border-top pt-2 mb-3">
           <strong>Total</strong>
           <strong>₹{{ total }}</strong>
         </div>
+        <hr>
+        <div >
+          <form method="POST" action="{% url 'apply_coupon' %}">
+              {% csrf_token %}
+              <input class="input-box rounded " type="text" name="coupon_code" placeholder="Enter coupon code" required>
+              <button type="submit" class="btn btn-success">Apply</button>
+          </form>
+
+          
+
+
+          <hr>
+            </div>
       </div>
     </div>
   </div>

@@ -35,7 +35,7 @@
                         <strong>{{ item.variant.product.name }} - {{ item.variant.variant_type }}</strong>
                     </td>
                     <td>
-                        ₹249
+                        {{item.variant.price }}
                     </td>
                     <td>
                         <a href="{% url 'add_to_cart' item.variant.id %}" class="btn btn-primary btn-sm">Add to Cart</a>

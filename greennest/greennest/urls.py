@@ -45,6 +45,8 @@ urlpatterns = [
     
     path('users/payments/', include('payments.urls')),
 
+    path('greennest_admin/offers/', include('offer.urls')),
+
      # <--- Allauth URLs---->
     path('accounts/', include('allauth.urls')), 
 ]

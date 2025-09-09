@@ -1,0 +1,11 @@
+{% extends "greenest_admin/base.html" %}
+{% block content %}
+<h2>Delete Category Offer</h2>
+<p>Are you sure you want to delete the offer for <strong>{{ offer.category.name }}</strong>?</p>
+
+<form method="POST">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Yes, Delete</button>
+    <a href="{% url 'category_offer_list' %}" class="btn btn-secondary">Cancel</a>
+</form>
+{% endblock %}

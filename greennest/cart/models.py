@@ -9,18 +9,21 @@ class Cart(models.Model):
     def __str__(self):
         return f"Cart of {self.user.username}"
 
+    @property
     def total_price(self):
-        return sum(item.total_price() for item in self.items.all())
+        """Sum of cart item prices (with discounts applied in view)."""
+        return sum(getattr(item, "final_total", item.total_price) for item in self.items.all())
     
     @property
     def shipping_charge(self):
         """Shipping: Free if subtotal > 500, else ₹50"""
-        return 0 if self.total_price() > 500 else 50
+        return 0 if self.total_price > 500 else 50
     
     @property
     def grand_total(self):
         """Subtotal + shipping"""
-        return self.total_price() + self.shipping_charge
+        return self.total_price + self.shipping_charge
+
 
 class CartItem(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items")
@@ -33,5 +36,7 @@ class CartItem(models.Model):
     def __str__(self):
         return f"{self.variant} x {self.quantity}"
 
+    @property
     def total_price(self):
+        """Default price without discount"""
         return self.variant.price * self.quantity

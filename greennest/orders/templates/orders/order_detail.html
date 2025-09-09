@@ -115,25 +115,24 @@
         <div class="card-header bg-white text-center">
           <strong>Order Summary</strong>
         </div>
-        <div class="card-body">
-          <div class="d-flex justify-content-between">
-            <span>Subtotal</span>
-            <span>₹{{ order.final_amount }}</span>
-          </div>
-          <div class="d-flex justify-content-between">
-            <span>Discount</span>
-            <span>₹0.00</span>
-          </div>
-          <div class="d-flex justify-content-between">
-            <span>Shipping</span>
-            <span>Free</span>
-          </div>
-          <hr>
-          <div class="d-flex justify-content-between fw-bold">
-            <span>Total</span>
-            <span>₹{{ order.final_amount }}</span>
-          </div>
-        </div>
+      <div class="d-flex justify-content-between">
+  <span>Subtotal</span>
+  <span>₹{{ subtotal }}</span>
+</div>
+<div class="d-flex justify-content-between">
+  <span>Shipping</span>
+  {% if shipping == 0 %}
+    <span>Free</span>
+  {% else %}
+    <span>₹{{ shipping }}</span>
+  {% endif %}
+</div>
+<hr>
+<div class="d-flex justify-content-between fw-bold">
+  <span>Total</span>
+  <span>₹{{ total }}</span>
+</div>
+        
       </div>
       
 

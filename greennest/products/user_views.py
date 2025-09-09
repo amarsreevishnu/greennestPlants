@@ -1,15 +1,18 @@
 from django.shortcuts import redirect, render
 from django.urls import reverse  
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.cache import never_cache
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.db.models import Min, Max
 from django.db.models import Min, Max, Prefetch
-from django.views.decorators.cache import never_cache
+from django.utils import timezone
 
 from cart.models import Cart
 from .models import Product, ProductVariant, Category
+from offer.models import ProductOffer, CategoryOffer
+from offer.utils import get_best_offer
 
 
 
@@ -129,8 +132,26 @@ def user_product_detail(request, pk):
 
     # Fetch variants ordered by price ascending
     variants = product.variants.order_by('price').prefetch_related('images')
-    
     cheapest_variant = variants.first()
+
+      # ✅ Get best offer
+    best_offer = get_best_offer(product)
+
+    # ✅ Annotate each variant with discounted price
+    for variant in variants:
+        if best_offer:
+            discount = (variant.price * best_offer.discount_percentage) / 100
+            variant.discounted_price = variant.price - discount
+        else:
+            variant.discounted_price = variant.price
+
+    # ✅ Cheapest variant discounted price
+    discounted_price = None
+    if cheapest_variant and best_offer:
+        discount = (cheapest_variant.price * best_offer.discount_percentage) / 100
+        discounted_price = cheapest_variant.price - discount
+
+
 
     main_image = None
     additional_images = []
@@ -156,6 +177,8 @@ def user_product_detail(request, pk):
     
     cart, created = Cart.objects.get_or_create(user=request.user)
 
+    
+
     context = {
         "product": product,
         "variants": variants,
@@ -165,5 +188,7 @@ def user_product_detail(request, pk):
         "similar_products": similar_products,
         "stock_status": stock_status, 
         'cart': cart,
+        "best_offer": best_offer,                 
+        "discounted_price": discounted_price,     
     }
     return render(request, "user/product_detail.html", context)

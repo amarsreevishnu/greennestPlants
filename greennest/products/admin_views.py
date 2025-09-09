@@ -249,7 +249,7 @@ def manage_categories(request, pk=None):
         else:
             # Editing existing category
             if category_to_edit:  
-                if Category.objects.filter(name=category_name).exclude(pk=category_to_edit.pk).exists():
+                if Category.objects.filter(name__icontains=category_name).exclude(pk=category_to_edit.pk).exists():
                     messages.error(request, "Category already exists!")
                 else:
                     category_to_edit.name = category_name
@@ -257,7 +257,7 @@ def manage_categories(request, pk=None):
                     messages.success(request, "Category updated successfully!")
                     return redirect("manage_categories")
             else:  # Adding new category
-                if Category.objects.filter(name=category_name).exists():
+                if Category.objects.filter(name__icontains=category_name).exists():
                     messages.error(request, "Category already exists!")
                 else:
                     

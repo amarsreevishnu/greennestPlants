@@ -2,7 +2,6 @@
 {% load static %}
 {% block cart %}
 
-<!-- Cart Section -->
 <div class="container my-5">
   <h3 class="mb-4">My Cart</h3>
   <div class="row">
@@ -18,9 +17,9 @@
           </tr>
         </thead>
         <tbody>
-          {% for item in cart.items.all %}
+          {% for item in cart_items %}
           <tr class="{% if item.variant.stock == 0 %}text-muted{% endif %}">
-            <!-- Product with Image -->
+            <!-- Product -->
             <td class="text-start">
               <div class="d-flex align-items-center">
                 {% with first_image=item.variant.images.all|slice:":1"|first %}
@@ -31,7 +30,7 @@
                   {% endif %}
                 {% endwith %}
                 <div>
-                  <p class="mb-1 fw-bold">{{ item.variant.product.name }}-({{ item.variant.variant_type }})</p>
+                  <p class="mb-1 fw-bold">{{ item.variant.product.name }} - ({{ item.variant.variant_type }})</p>
                   {% if item.variant.stock > 0 %}
                     <small class="text-success">In Stock</small>
                   {% else %}
@@ -44,7 +43,14 @@
             </td>
 
             <!-- Price -->
-            <td class="align-middle">₹{{ item.variant.price }}</td>
+            <td class="align-middle">
+              {% if item.offer_applied %}
+                <span class="text-danger">₹{{ item.discounted_price }}</span><br>
+                <small class="text-muted"><del>₹{{ item.variant.price }}</del></small>
+              {% else %}
+                ₹{{ item.variant.price }}
+              {% endif %}
+            </td>
 
             <!-- Quantity -->
             <td class="align-middle">
@@ -53,10 +59,10 @@
                   <a href="{% url 'update_cart_quantity' item.id 'decrement' %}" class="btn btn-outline-secondary btn-sm">-</a>
                   <span>{{ item.quantity }}</span>
                   {% if item.quantity < item.variant.stock and item.quantity < 5 %}
-                  <a href="{% url 'update_cart_quantity' item.id 'increment' %}" class="btn btn-outline-secondary btn-sm">+</a>
-                {% else %}
-                <span title="Max quantity reached">+</span>
-                {% endif %}
+                    <a href="{% url 'update_cart_quantity' item.id 'increment' %}" class="btn btn-outline-secondary btn-sm">+</a>
+                  {% else %}
+                    <span title="Max quantity reached">+</span>
+                  {% endif %}
                 {% else %}
                   Out of stock
                 {% endif %}
@@ -64,7 +70,14 @@
             </td>
 
             <!-- Total -->
-            <td class="align-middle">₹{{ item.total_price }}</td>
+            <td class="align-middle">
+              {% if item.offer_applied %}
+                <span class="text-danger">₹{{ item.final_total }}</span><br>
+                <small class="text-muted"><del>₹{{ item.total_price }}</del></small>
+              {% else %}
+                ₹{{ item.total_price }}
+              {% endif %}
+            </td>
           </tr>
           {% empty %}
           <tr>
@@ -76,25 +89,40 @@
     </div>
 
     <!-- Order Summary -->
-    <div class="col-lg-4">
-      <div class="order-summary border p-3 rounded bg-white">
-        <h5 class="mb-3">Order Summary</h5>
-        <p class="d-flex justify-content-between">
-          <span>Item Sub Total</span> <span>₹{{ cart.total_price }}</span>
-        </p>
-        <p class="d-flex justify-content-between">
-        <span>Shipping</span>
-         <span>{% if cart.shipping_charge > 0 %}₹{{ cart.shipping_charge }}{% else %}Free{% endif %}</span>
-        </p>
-        <hr>
-        <p class="d-flex justify-content-between fw-bold">
-          <span>Total</span> <span>₹{{ cart.grand_total }}</span>
-        </p>
-        <a href="{% url 'checkout_address' %}" class="btn btn-success w-100">
-            CHECKOUT
-        </a>
-      </div>
-    </div>
+<div class="col-lg-4">
+  <div class="order-summary border p-3 rounded bg-white">
+    <h5 class="mb-3">Order Summary</h5>
+
+    <p class="d-flex justify-content-between">
+      <span>Item Sub Total</span>
+      <span>₹{{ subtotal }}</span>
+    </p>
+
+    {% if total_discount > 0 %}
+    <p class="d-flex justify-content-between text-success">
+      <span>You Saved</span>
+      <span>- ₹{{ total_discount }}</span>
+    </p>
+    {% endif %}
+
+    <p class="d-flex justify-content-between">
+      <span>Shipping</span>
+      <span>{% if cart.shipping_charge > 0 %}₹{{ cart.shipping_charge }}{% else %}Free{% endif %}</span>
+    </p>
+
+    <hr>
+
+    <p class="d-flex justify-content-between fw-bold">
+      <span>Total</span>
+      <span>₹{{ grand_total }}</span>
+    </p>
+
+    <a href="{% url 'checkout_address' %}" class="btn btn-success w-100">
+      CHECKOUT
+    </a>
+  </div>
+</div>
+
   </div>
 </div>
 
