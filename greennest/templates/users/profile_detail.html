@@ -5,7 +5,12 @@
 <!-- Breadcrumb -->
 <div class="container py-3">
   <div class="row">
+    
+    
+
         {% include "users/user_profile_sidebar.html" %}
+
+
     </div>
     
     <!-- Profile Details -->
@@ -37,9 +42,7 @@
 
             
       <div class="profile- py-4">
-        {% if default_address %}
-        <h5>Addres {{default_type}} (Defalut)</h5>
-
+        <h5>Addres (Defalut)</h5>
         <div class="profile-row d-flex justify-content-between">
           <span class="label">Full Name</span>
           <span class="value">{{ default_address.full_name }}</span>
@@ -50,13 +53,9 @@
         </div>
         <div class="profile-row d-flex justify-content-between">
           <span class="label">Address</span>
-          <span class="value">{{ default_address.line1 }},  {{ default_address.line2}}, {{ default_address.city}}</span>
+          <span class="value">Bay Area, San Francisco, CA</span>
         </div>
-        <div class="profile-row d-flex justify-content-between">
-          <span class="label"></span>
-          <span class="value">{{ default_address.state }},  {{ default_address.postal_code}}, {{ default_address.country}}</span>
-        </div>  
-        {% endif %}      
+        
       </div>
     </div>
         
