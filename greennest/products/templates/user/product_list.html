@@ -137,56 +137,56 @@
       <!-- Products Listing --> 
         
 <div class="row g-4" id="product-container">
-  {% for product in products %}
-    <div class="col-md-4 col-sm-6">
-      <div class="card product-card position-relative shadow-sm h-100">
-        
+          {% for product in products %}
+            <div class="col-md-4 col-sm-6">
+              <div class="card product-card position-relative shadow-sm h-100">
 
-        {% with variant=product.variants.all|first %}
-          {% if variant %}
-          <a href="{% url 'toggle_wishlist' variant.id %}">
-        {% if variant.id in wishlist_variant_ids %}
-            <i class="fa fa-heart wishlist-icon text-warning"></i> <!-- Already in wishlist -->
-        {% else %}
-            <i class="fa fa-heart wishlist-icon"></i> <!-- Not in wishlist -->
-        {% endif %}
-    </a>
-          
-            {% with main_img=variant.images.all|first %}
-              {% if main_img %}
-                <img src="{{ main_img.image.url }}" class="card-img-top" alt="{{ product.name }}">
-              {% else %}
-                <img src="/static/images/no-image.png" class="card-img-top" alt="{{ product.name }}">
-              {% endif %}
-            {% endwith %}
-          {% else %}
-            <img src="/static/images/no-image.png" class="card-img-top" alt="{{ product.name }}">
-          {% endif %}
-        {% endwith %}
+                {% with variant=product.available_variants.0 %}
+                  {% if variant %}
+                    <!-- Wishlist icon -->
+                    <a href="{% url 'toggle_wishlist' variant.id %}">
+                      <i class="fa fa-heart wishlist-icon {% if variant.id in wishlist_variant_ids %}text-warning{% endif %}"></i>
+                    </a>
 
-        <div class="card-body text-center">
-          <h6 class="card-title">{{ product.name }}</h6>
-          <p class="text-muted mb-2">
-            {% if product.min_price and product.max_price %}
-              
-                ₹ {{ product.min_price|floatformat:0 }} 
-              
-            {% else %}
-              Price not available
-            {% endif %}
-          </p>
-          <div>
-            <a href="{% url 'user_product_detail' product.id %}" class="btn btn-success btn-sm w-100">View</a>
-            
-          </div>
+                    <!-- Product image -->
+                    {% with main_img=variant.images.all|first %}
+                      {% if main_img %}
+                        <img src="{{ main_img.image.url }}" class="card-img-top" alt="{{ product.name }}">
+                      {% else %}
+                        <img src="/static/images/no-image.png" class="card-img-top" alt="{{ product.name }}">
+                      {% endif %}
+                    {% endwith %}
+
+                    <!-- Product info -->
+                    <div class="card-body text-center d-flex flex-column">
+                      <h6 class="card-title">{{ product.name }}</h6>
+                      <p class="text-muted mb-2">
+                        {% if variant.discounted_price and variant.discounted_price < variant.price %}
+                          <span class="text-danger fw-bold">₹ {{ variant.discounted_price|floatformat:0 }}</span>
+                          <del class="text-muted">₹ {{ variant.price|floatformat:0 }}</del>
+                        {% else %}
+                          <span>₹ {{ variant.price|floatformat:0 }}</span>
+                        {% endif %}
+                      </p>
+                      <div class="mt-auto">
+                        <a href="{% url 'user_product_detail' product.id %}" class="btn btn-success btn-sm w-100">View</a>
+                      </div>
+                    </div>
+                  {% else %}
+                    <img src="/static/images/no-image.png" class="card-img-top" alt="{{ product.name }}">
+                    <div class="card-body text-center">
+                      <h6 class="card-title">{{ product.name }}</h6>
+                      <p>Price not available</p>
+                    </div>
+                  {% endif %}
+                {% endwith %}
+              </div>
+            </div>
+          {% empty %}
+            <p class="text-center">No products available at the moment.</p>
+          {% endfor %}
         </div>
 
-      </div>
-    </div>
-  {% empty %}
-    <p class="text-center">No products available at the moment.</p>
-  {% endfor %}
-</div>
 
 
         <div class="text-center mt-4">

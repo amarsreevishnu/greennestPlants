@@ -13,6 +13,12 @@ def coupon_create(request):
     if request.method == "POST":
         form = CouponForm(request.POST)
         if form.is_valid():
+            code = form.cleaned_data.get("code").strip()
+            # Check if similar coupon exists
+            if Coupon.objects.filter(code__icontains=code).exists():
+                messages.error(request, f"A coupon with similar code '{code}' already exists.")
+                return render(request, "admin/coupon_form.html", {"form": form})
+            
             form.save()
             messages.success(request, "Coupon created successfully.")
             return redirect("coupon_list")
@@ -25,6 +31,12 @@ def coupon_update(request, pk):
     if request.method == "POST":
         form = CouponForm(request.POST, instance=coupon)
         if form.is_valid():
+            code = form.cleaned_data.get("code").strip()
+            # Check for similar coupons excluding current one
+            if Coupon.objects.filter(code__icontains=code).exclude(pk=coupon.pk).exists():
+                messages.error(request, f"A coupon with similar code '{code}' already exists.")
+                return render(request, "admin/coupon_form.html", {"form": form, "coupon": coupon})
+            
             form.save()
             messages.success(request, "Coupon updated successfully.")
             return redirect("coupon_list")

@@ -253,6 +253,7 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/elevatezoom/3.0.8/jquery.elevatezoom.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/elevatezoom/3.0.8/jquery.elevatezoom.min.js"></script>
 <script>
 $(document).ready(function () {
     const form = $("#addToCartForm");
@@ -327,6 +328,63 @@ $(document).ready(function () {
     // ✅ Trigger change on page load to initialize view
     $("input[name='variant_id']:checked").trigger("change");
 });
+
+
+
+
+function initZoom() {
+    // Remove any previous zoom instance
+    $('#mainImage').removeData('elevateZoom');
+    $('.zoomContainer').remove();
+
+    // Initialize elevateZoom
+    $('#mainImage').elevateZoom({
+        zoomType: "inner",
+        lensShape: "square",
+        lensSize: 150,
+        scrollZoom: false,
+        easing: true,
+        zoomWindowFadeIn: 500,
+        zoomWindowFadeOut: 500
+    });
+}
+
+$(document).ready(function () {
+    initZoom(); // Initialize on page load
+
+    // Handle variant selection change
+    $("input[name='variant_id']").on("change", function () {
+        const imagesData = $(this).data("images");
+        const images = imagesData ? imagesData.split(",") : [];
+
+        // Update main image and thumbnails
+        if (images.length > 0) {
+            $("#mainImage").attr("src", images[0]);
+
+            const thumbsContainer = $("#thumbs-container");
+            thumbsContainer.empty();
+            images.forEach(function(img) {
+                thumbsContainer.append(`
+                    <img src="${img}" class="thumb-image mb-2 shadow-sm" 
+                         style="width:60px;height:80px;object-fit:cover;cursor:pointer;">
+                `);
+            });
+
+            // Re-bind click event for thumbnails
+            $(".thumb-image").off("click").on("click", function () {
+                const newImage = $(this).attr("src");
+                $("#mainImage").attr("src", newImage);
+                initZoom(); // Re-initialize zoom on main image
+            });
+
+            initZoom(); // Re-initialize zoom after variant change
+        }
+    });
+
+    // Trigger change on page load
+    $("input[name='variant_id']:checked").trigger("change");
+});
+
 </script>
 
 

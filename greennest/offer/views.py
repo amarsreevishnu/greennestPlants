@@ -21,11 +21,18 @@ def product_offer_create(request):
     if request.method == 'POST':
         form = ProductOfferForm(request.POST)
         if form.is_valid():
-            form.save()
-            return redirect('product_offer')
+            product = form.cleaned_data['product']  
+            
+            if ProductOffer.objects.filter(product=product).exists():
+                messages.error(request, "Offer for this product already exists.")
+            else:
+                form.save()
+                messages.success(request, "Product offer created successfully.")
+                return redirect('product_offer')
     else:
         form = ProductOfferForm()
     return render(request, 'add_product_offer.html', {'form': form, 'title': 'Add Product Offer'})
+
 
 @login_required
 @user_passes_test(is_admin)
@@ -61,18 +68,28 @@ def category_offer_list(request):
     offers = CategoryOffer.objects.all().order_by("-start_date")
     return render(request, 'category_offer_list.html', {'offers': offers})
 
+from django.contrib import messages
+from .models import CategoryOffer  
+
 @login_required
 @user_passes_test(is_admin)
 def category_offer_create(request):
     if request.method == 'POST':
         form = CategoryOfferForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, "Category offer created successfully.")
-            return redirect('category_offer_list')
+            category = form.cleaned_data['category']  
+            
+            if CategoryOffer.objects.filter(category=category).exists():
+                messages.error(request, "Offer for this category already exists.")
+            else:
+                form.save()
+                messages.success(request, "Category offer created successfully.")
+                return redirect('category_offer_list')
     else:
         form = CategoryOfferForm()
+    
     return render(request, 'add_category_offer.html', {'form': form})
+
 
 @login_required
 @user_passes_test(is_admin)

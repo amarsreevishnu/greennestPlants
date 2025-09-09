@@ -28,25 +28,29 @@ def user_product_list(request):
     max_price = request.GET.get("max_price")
     sort_option = request.GET.get("sort", "")
     
+    # Variant queryset to prefetch
     variant_qs = ProductVariant.objects.filter(
         is_active=True,
         stock__gt=0  # Only variants with stock
     ).order_by("price")
 
+    # Product queryset
     products = Product.objects.filter(
         is_active=True,
-        variants__stock__gt=0  # Ensure product has at least one variant in stock
+        variants__stock__gt=0
     ).prefetch_related(
         Prefetch("variants", queryset=variant_qs, to_attr="available_variants")
     ).annotate(
-        min_price=Min("variants__price"),  # Min price among all variants
+        min_price=Min("variants__price"),
         max_price=Max("variants__price"),
     ).distinct()
 
+    # Wishlist variant ids for the current user
     wishlist_variant_ids = []
     if request.user.is_authenticated:
         wishlist_variant_ids = request.user.wishlist_items.all().values_list('variant_id', flat=True)
 
+    # Filters
     if search_query:
         products = products.filter(name__icontains=search_query)
     if categories:
@@ -60,7 +64,7 @@ def user_product_list(request):
     if max_price:
         products = products.filter(variants__price__lte=max_price).distinct()
 
-    
+    # Sorting
     if sort_option == "name_asc":
         products = products.order_by("name")
     elif sort_option == "name_desc":
@@ -83,7 +87,15 @@ def user_product_list(request):
         for product in page_obj:
             variant = product.available_variants[0] if hasattr(product, "available_variants") and product.available_variants else None
             if variant:
-                price_display = f"₹ {variant.price:.0f}"
+                # Get best offer
+                best_offer = get_best_offer(product)
+                if best_offer:
+                    discount = (variant.price * best_offer.discount_percentage) / 100
+                    offer_price = variant.price - discount
+                    price_display = f"₹ {offer_price:.0f}"
+                else:
+                    price_display = f"₹ {variant.price:.0f}"
+
                 stock = variant.stock
                 image_obj = variant.images.first()
                 image_url = image_obj.image.url if image_obj else "/static/images/no-image.png"
@@ -104,6 +116,17 @@ def user_product_list(request):
                 "wishlist_url": reverse("toggle_wishlist", args=[variant.id]) if variant else "#"
             })
         return JsonResponse({"products": data, "has_next": page_obj.has_next()})
+
+    # Annotate discounted price for normal page render
+    for product in page_obj:
+        variant = product.available_variants[0] if hasattr(product, "available_variants") and product.available_variants else None
+        if variant:
+            best_offer = get_best_offer(product)
+            if best_offer:
+                discount = (variant.price * best_offer.discount_percentage) / 100
+                variant.discounted_price = variant.price - discount
+            else:
+                variant.discounted_price = variant.price
 
     all_categories = Category.objects.filter(is_active=True)
     context = {
