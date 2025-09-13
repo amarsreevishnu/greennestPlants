@@ -44,7 +44,7 @@
 
             <!-- Price -->
             <td class="align-middle">
-              {% if item.offer_applied %}
+              {% if item.offer_applied and item.discounted_price < item.variant.price %}
                 <span class="text-danger">₹{{ item.discounted_price }}</span><br>
                 <small class="text-muted"><del>₹{{ item.variant.price }}</del></small>
               {% else %}
@@ -53,29 +53,34 @@
             </td>
 
             <!-- Quantity -->
-            <td class="align-middle">
-              <div class="d-flex justify-content-center align-items-center gap-2">
-                {% if item.variant.stock > 0 %}
-                  <a href="{% url 'update_cart_quantity' item.id 'decrement' %}" class="btn btn-outline-secondary btn-sm">-</a>
-                  <span>{{ item.quantity }}</span>
-                  {% if item.quantity < item.variant.stock and item.quantity < 5 %}
-                    <a href="{% url 'update_cart_quantity' item.id 'increment' %}" class="btn btn-outline-secondary btn-sm">+</a>
-                  {% else %}
-                    <span title="Max quantity reached">+</span>
-                  {% endif %}
-                {% else %}
-                  Out of stock
-                {% endif %}
-              </div>
-            </td>
+           <td class="align-middle">
+            <div class="d-flex justify-content-center align-items-center gap-2">
+              {% if item.variant.stock > 0 %}
+                <button class="btn btn-outline-secondary btn-sm cart-qty-btn"
+                        data-item-id="{{ item.id }}" data-action="decrement">-</button>
+
+                <span id="qty-{{ item.id }}">{{ item.quantity }}</span>
+
+                <button class="btn btn-outline-secondary btn-sm cart-qty-btn"
+                        id="btn-plus-{{ item.id }}"
+                        data-item-id="{{ item.id }}" data-action="increment"
+                        {% if item.quantity >= item.variant.stock or item.quantity >= 5 %}disabled{% endif %}>
+                  +
+                </button>
+              {% else %}
+                Out of stock
+              {% endif %}
+            </div>
+          </td>
+
 
             <!-- Total -->
-            <td class="align-middle">
-              {% if item.offer_applied %}
+            <td id="item-total-{{ item.id }}" class="align-middle">
+              {% if item.offer_applied and item.discounted_price != item.variant.price %}
                 <span class="text-danger">₹{{ item.final_total }}</span><br>
-                <small class="text-muted"><del>₹{{ item.total_price }}</del></small>
+                <small class="text-muted"><del>₹{{ item.variant.price|floatformat:2 }}</del></small>
               {% else %}
-                ₹{{ item.total_price }}
+                ₹{{ item.final_total }}
               {% endif %}
             </td>
           </tr>
@@ -89,41 +94,76 @@
     </div>
 
     <!-- Order Summary -->
-<div class="col-lg-4">
-  <div class="order-summary border p-3 rounded bg-white">
-    <h5 class="mb-3">Order Summary</h5>
+    <div class="col-lg-4">
+      <div class="order-summary border p-3 rounded bg-white">
+        <h5 class="mb-3">Order Summary</h5>
 
-    <p class="d-flex justify-content-between">
-      <span>Item Sub Total</span>
-      <span>₹{{ subtotal }}</span>
-    </p>
+        <p class="d-flex justify-content-between">
+          <span>Item Sub Total</span>
+          <span id="cart-subtotal">₹{{ subtotal }}</span>
+        </p>
 
-    {% if total_discount > 0 %}
-    <p class="d-flex justify-content-between text-success">
-      <span>You Saved</span>
-      <span>- ₹{{ total_discount }}</span>
-    </p>
-    {% endif %}
+        {% if total_discount > 0 %}
+        <p class="d-flex justify-content-between text-success">
+          <span>You Saved</span>
+           <span id="cart-discount">- ₹{{ total_discount }}</span>
+        </p>
+        {% endif %}
 
-    <p class="d-flex justify-content-between">
-      <span>Shipping</span>
-      <span>{% if cart.shipping_charge > 0 %}₹{{ cart.shipping_charge }}{% else %}Free{% endif %}</span>
-    </p>
+        <p class="d-flex justify-content-between">
+          <span>Shipping</span>
+          <span>{% if cart.shipping_charge > 0 %}₹{{ cart.shipping_charge }}{% else %}Free{% endif %}</span>
+        </p>
 
-    <hr>
+        <hr>
 
-    <p class="d-flex justify-content-between fw-bold">
-      <span>Total</span>
-      <span>₹{{ grand_total }}</span>
-    </p>
+        <p class="d-flex justify-content-between fw-bold">
+          <span>Total</span>
+          <span id="cart-total">₹{{ grand_total }}</span>
+        </p>
 
-    <a href="{% url 'checkout_address' %}" class="btn btn-success w-100">
-      CHECKOUT
-    </a>
+        <a href="{% url 'checkout_address' %}" class="btn btn-success w-100">
+          CHECKOUT
+        </a>
+      </div>
+    </div>
   </div>
 </div>
 
-  </div>
-</div>
+<script>
+document.querySelectorAll('.cart-qty-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const itemId = btn.dataset.itemId;
+        const action = btn.dataset.action;
+
+        fetch("{% url 'update_cart_quantity' 0 'increment' %}".replace("0/increment", `${itemId}/${action}`), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById(`qty-${itemId}`).innerText = data.quantity;
+                document.getElementById(`item-total-${itemId}`).innerText = `₹${data.item_total}`;
+                document.getElementById('cart-subtotal').innerText = `₹${data.subtotal}`;
+                document.getElementById('cart-total').innerText = `₹${data.grand_total}`;
+
+                if (document.getElementById('cart-discount')) {
+                    document.getElementById('cart-discount').innerText = `- ₹${data.total_discount}`;
+                }
+
+                const plusBtn = document.getElementById(`btn-plus-${itemId}`);
+                if (plusBtn) {
+                    plusBtn.disabled = !data.can_increment;
+                }
+            }
+        });
+    });
+});
+</script>
+
 
 {% endblock cart %}

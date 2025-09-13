@@ -25,7 +25,10 @@
               <div class="col-md-6 mb-3">
                 <div class="border rounded-2">
                   <div class="form-check">
-                    <input type="radio" name="address" value="{{ addr.id }}" id="address{{ addr.id }}" {% if addr.is_default or forloop.first %}checked{% endif %}>
+                   <input type="radio" name="address" value="{{ addr.id }}"
+                      {% if addr.id|stringformat:"s" == selected_address_id|stringformat:"s" %}checked{% endif %}
+                      onchange="saveAddress('{{ addr.id }}')">
+                      
                     <label class="form-check-label" for="address{{ addr.id }}">
                       {{ addr.full_name }}<br>
                       {{ addr.line1 }}, {{ addr.line2 }}, {{ addr.city }}<br>
@@ -92,10 +95,12 @@
           </li>
           <li class="d-flex justify-content-between">
               <span>
+                <p>Coupon Applied:
+</p>
                 {% if applied_coupon %}
-              <p>Coupon Applied: <strong>{{ applied_coupon.coupon.code }}</strong>
-                  <a href="{% url 'remove_coupon' %}" class="text-danger">Remove</a>
-              </p>
+               Coupon code: <strong>{{ applied_coupon.code }}</strong>
+                  <a href="{% url 'remove_coupon' %}" class="text-danger ">Remove</a>
+              
           {% endif %}
               </span>
               <span>₹{{ discount }}</span>
@@ -145,6 +150,21 @@ document.querySelectorAll(".add-edit-btn").forEach(btn => {
         document.getElementById("address" + this.dataset.id).checked = true;
     });
 });
+
+
+// address (radio button ) prvent reload to default
+
+function saveAddress(addressId) {
+    fetch("{% url 'save_selected_address' %}", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: "address_id=" + addressId
+    });
+}
+
 </script>
 
 {% endblock Checkout %}

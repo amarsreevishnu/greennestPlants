@@ -144,9 +144,12 @@
                 {% with variant=product.available_variants.0 %}
                   {% if variant %}
                     <!-- Wishlist icon -->
-                    <a href="{% url 'toggle_wishlist' variant.id %}">
+                    <a href="{% url 'toggle_wishlist' variant.id %}" 
+                      class="wishlist-toggle" 
+                      data-variant="{{ variant.id }}">
                       <i class="fa fa-heart wishlist-icon {% if variant.id in wishlist_variant_ids %}text-warning{% endif %}"></i>
                     </a>
+
 
                     <!-- Product image -->
                     {% with main_img=variant.images.all|first %}
@@ -164,6 +167,11 @@
                         {% if variant.discounted_price and variant.discounted_price < variant.price %}
                           <span class="text-danger fw-bold">₹ {{ variant.discounted_price|floatformat:0 }}</span>
                           <del class="text-muted">₹ {{ variant.price|floatformat:0 }}</del>
+                            <span class="badge bg-warning">
+                                {% if variant.discount_percent %}
+                                  ({{ variant.discount_percent }}% OFF)
+                                {% endif %}
+                            </span>
                         {% else %}
                           <span>₹ {{ variant.price|floatformat:0 }}</span>
                         {% endif %}
@@ -219,21 +227,22 @@ document.addEventListener("DOMContentLoaded", function () {
           let col = document.createElement("div");
           col.classList.add("col-md-4", "col-sm-6");
           col.innerHTML = `
-            <div class="card product-card position-relative shadow-sm h-100">
-              <a href="${p.wishlist_url}">
-                <i class="fa fa-heart wishlist-icon ${p.in_wishlist ? 'text-warning' : ''}"></i>
-              </a>
-              <img src="${p.variant_image || '/static/images/no-image.png'}" class="card-img-top" alt="${p.name}">
-              <div class="card-body text-center d-flex flex-column">
-                <h6 class="card-title">${p.name}</h6>
-                <p class="text-muted mb-2">${p.price}</p>
-                <div class="mt-auto">
-                  <a href="${p.detail_url}" class="btn btn-success btn-sm w-100">View</a>
-                  
+              <div class="card product-card position-relative shadow-sm h-100">
+                <a href="${p.wishlist_url}" 
+                  class="wishlist-toggle" 
+                  data-variant="${p.variant_id}">
+                  <i class="fa fa-heart wishlist-icon ${p.in_wishlist ? 'text-warning' : ''}"></i>
+                </a>
+                <img src="${p.variant_image || '/static/images/no-image.png'}" class="card-img-top" alt="${p.name}">
+                <div class="card-body text-center d-flex flex-column">
+                  <h6 class="card-title">${p.name}</h6>
+                  <p class="text-muted mb-2">${p.price}</p>
+                  <div class="mt-auto">
+                    <a href="${p.detail_url}" class="btn btn-success btn-sm w-100">View</a>
+                  </div>
                 </div>
               </div>
-            </div>
-          `;
+            `;
           container.appendChild(col);
         });
 
@@ -248,6 +257,58 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 
+
+//  Wishlist Toggle with AJAX---------------------------------------------
+document.addEventListener("DOMContentLoaded", function () {
+
+  // 🔹 Event delegation for all current + future .wishlist-toggle
+  document.addEventListener("click", function (e) {
+    const target = e.target.closest(".wishlist-toggle");
+    if (!target) return; // not a wishlist icon
+
+    e.preventDefault(); // stop link navigation
+
+    const url = target.getAttribute("href");
+    const icon = target.querySelector("i");
+
+    fetch(url, {
+      method: "POST",
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+        "X-CSRFToken": getCookie("csrftoken"),
+      },
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === "added") {
+        icon.classList.add("text-warning");
+      } else if (data.status === "removed") {
+        icon.classList.remove("text-warning");
+      }
+
+      // Optional: update wishlist counter
+      const wishlistCounter = document.getElementById("wishlist-count");
+      if (wishlistCounter) wishlistCounter.textContent = data.count;
+    })
+    .catch(err => console.error("Wishlist toggle failed:", err));
+  });
+
+  // 🔹 CSRF helper
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+      const cookies = document.cookie.split(";");
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + "=")) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+});
 
 </script>
 

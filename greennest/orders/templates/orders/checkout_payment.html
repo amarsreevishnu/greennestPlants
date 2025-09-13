@@ -73,10 +73,13 @@
       <div class="address-card d-flex justify-content-between align-items-start">
         <div>
           <strong>Shipping Address</strong><br>
-          {{ address.full_name }}<br>
-          {{ address.line1 }},{{ address.line2 }}<br>
-          {{ address.city }}, {{ address.state }}, {{ address.postal_code }}<br>
-          917957654309
+           {% if selected_address %}
+          {{ selected_address.full_name }}<br>
+          {{ selected_address.line1 }},{{ selected_address.line2 }}<br>
+          {{ selected_address.city }}, {{ selected_address.state }}, {{ selected_address.postal_code }}<br>
+          {% else %}
+            <p>No address selected. <a href="{% url 'checkout_address' %}">Choose Address</a></p>
+          {% endif %}
         </div>
       </div>
       <hr>
@@ -116,13 +119,10 @@
           <span>&#8377; {{ subtotal }} </span>
         </div>
         <div class="d-flex justify-content-between">
-           {% if applied_coupon %}
-              <p>Coupon Applied: <strong>{{ applied_coupon.coupon.code }}</strong>
-              </p>
-          {% endif %}
+          <p>Coupon Applied:</p>
+           
               </span>
-              <span>Discount</span>
-              <span>₹{{ discount }}</span>
+              <span class="text-success">- ₹ {% if discount %} {{ discount }} {% else %} 0.00 {% endif %}</span>
         </div>
         <div class="d-flex justify-content-between">
           <span>Shipping</span>

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% block wishlist %}
-   
+
 <!-- Wishlist Section -->
 <div class="container my-5">
     <h4 class="mb-3 text-center">My Wishlist</h4>
@@ -16,30 +16,33 @@
                 </tr>
             </thead>
             <tbody>
-                {% for item in user.wishlist_items.all %}
+                {% for entry in wishlist_items %}
                 <tr>
                     <td>
-                          {% with first_image=item.variant.images.all|slice:":1"|first %}
-                  {% if first_image %}
-                    <img src="{{ first_image.image.url }}" alt="{{ item.variant.name }}" width="80" class="me-3 rounded">
-                  {% else %}
-                    
-                  
-                        <img src="https://img.icons8.com/color/96/000000/plant-under-sun.png"
-                            class="img-fluid" style="width:60px;">
-                            {% endif %}
-                {% endwith %}
-                        <div class="text-muted small"><a href="{% url 'remove_from_wishlist' item.variant.id %}"  class="text-danger text-decoration-none ">Remove</a></div>
+                        {% with first_image=entry.variant.images.all|slice:":1"|first %}
+                        {% if first_image %}
+                            <img src="{{ first_image.image.url }}" alt="{{ entry.variant.name }}" width="80" class="me-3 rounded">
+                        {% else %}
+                            <img src="https://img.icons8.com/color/96/000000/plant-under-sun.png" class="img-fluid" style="width:60px;">
+                        {% endif %}
+                        {% endwith %}
+                        <div class="text-muted small">
+                            <a href="{% url 'remove_from_wishlist' entry.variant.id %}" class="text-danger text-decoration-none">Remove</a>
+                        </div>
                     </td>
                     <td>
-                        <strong>{{ item.variant.product.name }} - {{ item.variant.variant_type }}</strong>
+                        <strong>{{ entry.variant.product.name }} - {{ entry.variant.variant_type }}</strong>
                     </td>
                     <td>
-                        {{item.variant.price }}
+                        {% if entry.final_price < entry.original_price %}
+                            <span class="text-decoration-line-through text-muted">₹{{ entry.original_price }}</span>
+                            <span class="text-danger fw-bold">₹{{ entry.final_price }}</span>
+                        {% else %}
+                            <span class="fw-bold">₹{{ entry.original_price }}</span>
+                        {% endif %}
                     </td>
                     <td>
-                        <a href="{% url 'add_to_cart' item.variant.id %}" class="btn btn-primary btn-sm">Add to Cart</a>
-                        
+                        <a href="{% url 'add_to_cart' entry.variant.id %}" class="btn btn-success btn-sm">Add to Cart</a>
                     </td>
                 </tr>
                 {% empty %}
@@ -49,8 +52,5 @@
         </table>
     </div>
 </div>
-
-
-
 
 {% endblock wishlist %}

@@ -43,6 +43,7 @@
             
       <div class="profile- py-4">
         <h5>Addres (Defalut)</h5>
+        {% if default_address %}
         <div class="profile-row d-flex justify-content-between">
           <span class="label">Full Name</span>
           <span class="value">{{ default_address.full_name }}</span>
@@ -53,7 +54,18 @@
         </div>
         <div class="profile-row d-flex justify-content-between">
           <span class="label">Address</span>
-          <span class="value">Bay Area, San Francisco, CA</span>
+          <span class="value " >
+            {{ default_address.line1 }},
+            {{ default_address.line2}},
+            {{ default_address.city }},
+            {{ default_address.state }},
+            {{ default_address.country }}.
+            {{ default_address.postal_code }}
+
+          </span>
+          {% else %}
+          <p>No default address set.</p>
+          {% endif %}
         </div>
         
       </div>

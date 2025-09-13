@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<!-- Breadcrumb -->
+<div class="container py-3">
+  <div class="row">
+    
+    
+
+        {% include "users/user_profile_sidebar.html" %}
+
+
+    </div>
+    
+    <!-- Profile Details -->
+    <div class="col-md-9 py-2">
+        
+<div class="container my-5">
+    <div class="row">
+    <h2 class="mb-4">My Coupons</h2>
+
+
+    {% if coupon_list %}
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Discount</th>
+                    <th>Valid Till</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in coupon_list %}
+                    <tr>
+                        <td>{{ entry.coupon.code }}</td>
+                        <td>{{ entry.coupon.discount }}%</td>
+                        <td>{{ entry.coupon.valid_to|date:"d M Y H:i" }}</td>
+                        <td>
+                            {% if entry.used %}
+                                <span class="badge bg-danger">Used</span>
+                            {% else %}
+                                <span class="badge bg-success">Available</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No coupons available.</p>
+    {% endif %}
+</div>
+</div>
+    </div>
+        
+      
+    </div>
+  </div>
+</div>
+
+
+{% endblock %}

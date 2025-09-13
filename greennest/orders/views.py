@@ -14,8 +14,10 @@ from cart.models import Cart, CartItem
 from users.models import Address
 from wallet.models import Wallet, WalletTransaction
 from coupon.models import Coupon, CouponUsage
-from offer.utils import get_best_offer
 
+from offer.utils import get_best_offer
+from django.db import transaction
+from django.db.models import F
 
 
 @login_required
@@ -32,23 +34,21 @@ def checkout_address(request):
     cart_items = cart.items.all()
     subtotal = 0
     for item in cart.items.all():
-        product = item.variant.product
-        best_offer = get_best_offer(product)
+        variant = item.variant
+        best_offer = get_best_offer(variant)   # ✅ pass variant
 
-        product_price = item.variant.price
+        product_price = variant.price
         discount_amount = 0
         if best_offer:
-            discount_amount = (product_price * best_offer.discount_percentage) / 100
+            discount_amount = (product_price * best_offer["discount"]) / 100  # use dict return
 
-        final_price = product_price - discount_amount
+        final_price = best_offer["final_price"] if best_offer else product_price
 
-        # Attach to item for display (optional)
-        item.offer_applied = best_offer
+        item.offer_applied = best_offer["offer_type"] if best_offer else None
         item.discounted_price = final_price
         item.final_total = final_price * item.quantity
 
         subtotal += item.final_total
-
     shipping = 0 if subtotal > 500 else 50
     discount = 0
     total = subtotal + shipping - discount
@@ -113,6 +113,8 @@ def checkout_address(request):
                 return redirect("checkout_address")
             request.session["selected_address_id"] = selected_address_id
             return redirect("checkout_payment")
+    
+    selected_address_id = request.session.get("selected_address_id")
 
     context = {
         "cart": cart,
@@ -122,104 +124,131 @@ def checkout_address(request):
         "discount": discount,
         "total": total,
         "applied_coupon": applied_coupon,
+        "selected_address_id": selected_address_id,
     }
     return render(request, "orders/checkout_address.html", context)
+
+# used for auto slect addres(ajax)
+@login_required
+@never_cache
+def save_selected_address(request):
+    if request.method == "POST":
+        address_id = request.POST.get("address_id")
+        if Address.objects.filter(id=address_id, user=request.user).exists():
+            request.session["selected_address_id"] = address_id
+    return HttpResponse(status=200)
+
 
 @login_required
 @never_cache
 def checkout_payment(request):
     user = request.user
     cart = Cart.objects.filter(user=user).first()
-    
+
     if not cart or not cart.items.exists():
-        return redirect('cart_detail')
+        messages.error(request, "Your cart is empty.")
+        return redirect("cart_detail")
 
-    selected_address_id = request.session.get('selected_address_id')
-    if not selected_address_id:
-        return redirect('checkout_address')
-
-    address = Address.objects.get(id=selected_address_id, user=user)
-    cart_items = cart.items.all()
-    
+    # --- Calculate totals ---
     subtotal = 0
-    total_discount = 0
-
-    # Calculate subtotal & discounted price for each item
-    item_data = []
-    for item in cart_items:
-        product = item.variant.product
-        best_offer = get_best_offer(product)
-
-        price_per_unit = item.variant.price
-        discount_per_unit = 0
+    for item in cart.items.all():
+        variant = item.variant
+        best_offer = get_best_offer(variant)
+        product_price = variant.price
+        discount_amount = 0
         if best_offer:
-            discount_per_unit = (price_per_unit * best_offer.discount_percentage) / 100
+            discount_amount = (product_price * best_offer["discount"]) / 100
+        final_price = best_offer["final_price"] if best_offer else product_price
+        subtotal += final_price * item.quantity
 
-        final_price_per_unit = price_per_unit - discount_per_unit
-        total_price = final_price_per_unit * item.quantity
-
-        subtotal += price_per_unit * item.quantity
-        total_discount += discount_per_unit * item.quantity
-
-        item_data.append({
-            "variant": item.variant,
-            "quantity": item.quantity,
-            "price_per_unit": final_price_per_unit,
-            "total_price": total_price
-        })
-
-    shipping = 0 if subtotal >= 500 else 50
-
-    # Handle coupon
+    shipping = 0 if subtotal > 500 else 50
+    discount = 0
+    applied_coupon = None
     coupon_id = request.session.get("applied_coupon_id")
-    coupon = None
-    coupon_discount = 0
     if coupon_id:
-        try:
-            coupon = Coupon.objects.get(id=coupon_id, active=True)
-            if coupon.is_valid():
-                coupon_discount = coupon.calculate_discount(subtotal)
-            else:
-                request.session.pop("applied_coupon_id", None)
-                coupon = None
-        except Coupon.DoesNotExist:
-            request.session.pop("applied_coupon_id", None)
-
-    total = subtotal + shipping - total_discount - coupon_discount
+        applied_coupon = Coupon.objects.filter(id=coupon_id, active=True).first()
+        if applied_coupon and applied_coupon.is_valid():
+            discount = applied_coupon.calculate_discount(subtotal)
+    
+    total = subtotal + shipping - discount
 
     if request.method == "POST":
+        address_id = request.POST.get("address_id") or request.session.get("selected_address_id")
         payment_method = request.POST.get("payment_method")
 
-        # Create Order
-        order = Order.objects.create(
-            user=user,
-            address=address,
-            total_amount=subtotal,
-            shipping_charge=shipping,
-            discount=total_discount + coupon_discount,
-            final_amount=total,
-            coupon=coupon,
-            payment_method=payment_method,
-            status="pending"
-        )
+        if not address_id:
+            messages.error(request, "Please select an address.")
+            return redirect("checkout_payment")
 
-        # Create OrderItems
-        for data in item_data:
-            OrderItem.objects.create(
-                order=order,
-                variant=data["variant"],
-                quantity=data["quantity"],
-                price=data["price_per_unit"],  # per unit after offer
-                total_price=data["total_price"]
-            )
+        address = get_object_or_404(Address, id=address_id, user=user)
+        coupon = Coupon.objects.filter(id=coupon_id).first() if coupon_id else None
 
-            # Reduce stock
-            data["variant"].stock -= data["quantity"]
-            data["variant"].save()
+        if payment_method == "wallet":
+            wallet, _ = Wallet.objects.get_or_create(user=user)
+            if wallet.balance < total:  # total already includes discount + shipping
+                messages.error(request, "Insufficient wallet balance to complete this order.")
+                return redirect("checkout_payment")
+        
+        try:
+            with transaction.atomic():
+                # For prepaid payments, status is pending; for COD/Wallet, it's processing
+                order_status = "processing" if payment_method in ["cod", "wallet"] else "pending"
 
-        # Clear cart
-        # cart.items.all().delete()
-        # request.session.pop('selected_address_id', None)
+                order = Order.objects.create(
+                    user=user,
+                    address=address,
+                    total_amount=subtotal,
+                    shipping_charge=shipping,
+                    discount=discount,
+                    final_amount=total,
+                    coupon=coupon,
+                    status=order_status,
+                    payment_method=payment_method,
+                )
+
+                # Deduct stock + create items
+                for item in cart.items.select_related("variant").select_for_update():
+                    variant = item.variant
+                    variant.refresh_from_db()
+                    if variant.stock is not None and variant.stock >= item.quantity:
+                        variant.stock -= item.quantity
+                        variant.save()
+                    else:
+                        messages.error(request, f"Insufficient stock for {variant.name}")
+                        raise ValueError("Stock error")
+
+                    best_offer = get_best_offer(variant)
+                    product_price = variant.price
+                    final_price = best_offer["final_price"] if best_offer else product_price
+
+                    OrderItem.objects.create(
+                        order=order,
+                        variant=variant,
+                        quantity=item.quantity,
+                        price=final_price,
+                        total_price=final_price * item.quantity,
+                    )
+
+                # Mark coupon usage for COD/Wallet immediately; for prepaid, wait until success
+                if payment_method in ["cod", "wallet"] and coupon:
+                    CouponUsage.objects.update_or_create(
+                        user=user,
+                        coupon=coupon,
+                        defaults={"used": True, "used_at": timezone.now()},
+                    )
+
+                # Only clear cart for COD/Wallet
+                if payment_method in ["cod", "wallet"]:
+                    cart.delete()
+                    request.session.pop("applied_coupon_id", None)
+                    request.session.pop("selected_address_id", None)
+
+                # Save order ID in session for Razorpay
+                request.session["current_order_id"] = order.id
+
+        except Exception as e:
+            messages.error(request, f"Could not place order: {str(e)}")
+            return redirect("checkout_payment")
 
         # Redirect to payment flow
         if payment_method == "cod":
@@ -229,43 +258,43 @@ def checkout_payment(request):
         elif payment_method == "razorpay":
             return redirect("razorpay_checkout", order_id=order.id)
         else:
-            messages.error(request, "Invalid payment method selected")
+            messages.error(request, "Invalid payment method.")
             return redirect("checkout_payment")
 
-    context = {
+
+    selected_address_id = request.session.get("selected_address_id")
+    selected_address = None
+    if selected_address_id:
+        selected_address = Address.objects.filter(id=selected_address_id, user=user).first()
+    else:
+        # No address selected in session → pick user's default address
+        selected_address = Address.objects.filter(user=user, default=True).first()
+        if selected_address:
+            # Save it in session so it persists if user reloads page
+            request.session["selected_address_id"] = selected_address.id
+
+    return render(request, "orders/checkout_payment.html", {
         "cart": cart,
-        "address": address,
         "subtotal": subtotal,
         "shipping": shipping,
-        "discount": total_discount + coupon_discount,
+        "discount": discount,
         "total": total,
-        "applied_coupon": coupon,
-    }
-    return render(request, "orders/checkout_payment.html", context)
+        "applied_coupon": applied_coupon,
+        "selected_address": selected_address,
+    })
+
+
 
 
 @login_required
 @never_cache
 def order_success(request, order_id):
     order = get_object_or_404(Order, id=order_id, user=request.user)
-    user = request.user
-    cart = Cart.objects.filter(user=user).first()
-    if order.coupon:
-        usage, created = CouponUsage.objects.get_or_create(
-            user=request.user,
-            coupon=order.coupon,
-            defaults={"used": True, "used_at": timezone.now()}
-        )
-        if not created:  # already exists, update it
-            usage.used = True
-            usage.used_at = timezone.now()
-            usage.save()
-     #  Clear coupon from session after success
-    cart.items.all().delete()
-    request.session.pop('selected_address_id', None)
-    
-    request.session.pop("applied_coupon_id", None)
-    return render(request, 'orders/order_success.html', {'order': order})
+    if order.status not in ["processing", "confirmed"]:
+        return redirect("order_failure", order_id=order.id)
+
+    return render(request, "orders/order_success.html", {"order": order})
+
 
 
 @login_required
@@ -338,10 +367,10 @@ def order_detail(request, order_id):
 
 
 #Cancel the entire order
+# Cancel the entire order
 @login_required
 @never_cache
 def cancel_order(request, order_id):
-   
     order = get_object_or_404(
         Order.objects.prefetch_related("items"),
         id=order_id,
@@ -355,6 +384,7 @@ def cancel_order(request, order_id):
     if request.method == "POST":
         reason = request.POST.get("reason", "")
 
+        # Mark order as cancelled
         order.status = "cancelled"
         order.cancel_reason = reason
         order.cancel_requested = False
@@ -362,6 +392,7 @@ def cancel_order(request, order_id):
         order.cancel_approved_at = timezone.now()
         order.save()
 
+        # Cancel all items + restore stock
         for item in order.items.all():
             item.status = "cancelled"
             item.cancel_reason = reason
@@ -372,10 +403,26 @@ def cancel_order(request, order_id):
                 item.variant.stock += item.quantity
                 item.variant.save()
 
+        # ✅ Refund if prepaid (exclude COD)
+        if order.payment_method.lower() not in ["cod", "cash on delivery"]:
+            refund_amount = order.final_amount
+
+            wallet, _ = Wallet.objects.get_or_create(user=order.user)
+            wallet.balance += refund_amount
+            wallet.save()
+
+            WalletTransaction.objects.create(
+                wallet=wallet,
+                transaction_type="credit",
+                amount=refund_amount,
+                description=f"Refund for cancelled Order #{order.display_id}"
+            )
+
         messages.success(request, "Order cancelled successfully ✅")
         return redirect("order_list")
 
     return render(request, "orders/confirm_cancel_order.html", {"order": order})
+
 
 
 @login_required
@@ -393,22 +440,31 @@ def cancel_order_item(request, item_id):
         item.save()
 
         # Increment stock
-        item.variant.stock += item.quantity
-        item.variant.save()
+        if item.variant:
+            item.variant.stock += item.quantity
+            item.variant.save()
 
         # Check if any active items remain
         active_items_exist = order.items.filter(status="active").exists()
 
-        # Determine refund amount
+        # --- Refund Calculation ---
         if not active_items_exist:
-            # All items cancelled → refund full order including shipping, tax, discount
+            # All items cancelled → refund full order (including shipping - discount)
             refund_amount = order.final_amount
         else:
-            # Partial cancellation → refund only cancelled item
-            refund_amount = item.quantity * item.price
+            # Partial cancellation → refund proportional to item total
+            item_total = item.quantity * item.price
 
-        # Refund only if prepaid
-        if order.payment_method in ["Wallet", "Razorpay", "Paypal"]:
+            if order.discount > 0 and order.subtotal > 0:
+                # Apply proportional share of discount
+                discount_share = (item_total / order.subtotal) * order.discount
+            else:
+                discount_share = 0
+
+            refund_amount = item_total - discount_share
+
+        # --- Refund to wallet if prepaid ---
+        if order.payment_method.lower() not in ["cod", "cash on delivery"]:
             wallet, _ = Wallet.objects.get_or_create(user=order.user)
             wallet.balance += refund_amount
             wallet.save()
@@ -417,23 +473,25 @@ def cancel_order_item(request, item_id):
                 wallet=wallet,
                 transaction_type="credit",
                 amount=refund_amount,
-                description=f"Refund for {'full order' if not active_items_exist else 'cancelled item'} in Order #{order.display_id}"
+                description=(
+                    f"Refund for full Order #{order.display_id}"
+                    if not active_items_exist
+                    else f"Refund for cancelled item in Order #{order.display_id}"
+                )
             )
 
-        # Recalculate order totals
+        # Recalculate totals
         order.recalc_totals()
 
         # Update order status
-        if not active_items_exist:
-            order.status = "cancelled"
-        else:
-            order.status = "partially_cancelled"
+        order.status = "cancelled" if not active_items_exist else "partially_cancelled"
         order.save()
 
         messages.success(request, "The item has been cancelled successfully.")
         return redirect("order_detail", order_id=order.id)
 
     return render(request, "orders/confirm_cancel_item.html", {"item": item})
+
 
 
 #User requests return for the whole order (all delivered items)

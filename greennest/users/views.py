@@ -269,7 +269,9 @@ def reset_password(request):
 def profile_detail(request):
     
     profile = request.user.profile
-    return render(request, "users/profile_detail.html",{"profile": profile})
+    addresses = request.user.addresses.all()
+    default_address = request.user.addresses.filter(is_default=True).first()
+    return render(request, "users/profile_detail.html",{"profile": profile, "addresses":addresses ,"default_address": default_address,})
 
 @login_required(login_url='user_login')
 @never_cache

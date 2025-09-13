@@ -38,36 +38,20 @@
                     <li class="nav-item"><a class="nav-link" href="{% url 'user_product_list' %}">Products</a></li>
                     <li class="nav-item"><a class="nav-link" href="#">Contact Us</a></li>
                     <li class="nav-item"> <p class="nav-link username-text"> Welcome, {{ request.user.first_name }} </p></li>
-
-                    
-
-                   
-                    
-                
                  </ul>
-            </div>
+            
             <ul class="navbar-nav mx-auto ">
-                    
-                {% comment %} <!-- User Icon -->
-                </li>
-                <li class="nav-item ">
-                    <a class="nav-link position-relative" href="#">
-                        <i class="bi bi-person-circle fs-5"></i>
-                    </a>
-                </li> {% endcomment %}
                 <!-- Wishlist Icon -->
                 <li class="nav-item">
-            <a class="nav-link position-relative" href="{% url "wishlist_view" %}">
-              <i class="bi bi-heart fs-5"></i>
-              <span> <small >{{ wishlist_count }} </small></span>
-            </a>
-          </li>
-
+                    <a class="nav-link position-relative" href="{% url "wishlist_view" %}">
+                        <i class="bi bi-heart fs-5"></i>
+                    <span> <small >{{ wishlist_count }} </small></span>
+                     </a>
+                </li>
                 <!-- Cart Icon -->
                 <li class="nav-item ">
                     <a class="nav-link position-relative" href="{% url 'cart_detail' %}">
                         <i class="bi bi-cart fs-5"></i>
-
                     </a>
                 </li>
                 <li class="nav-item ">
@@ -81,6 +65,7 @@
                     <span style="color: red; font-weight:bold;" ><i class="fa fa-sign-out-alt "></i>&nbsp;</span>Logout </a></li>
                     {% endif %}
             </ul>
+            </div> 
             </div>
         </div>
     </nav>

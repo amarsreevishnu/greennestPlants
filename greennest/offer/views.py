@@ -77,18 +77,22 @@ def category_offer_create(request):
     if request.method == 'POST':
         form = CategoryOfferForm(request.POST)
         if form.is_valid():
-            category = form.cleaned_data['category']  
-            
-            if CategoryOffer.objects.filter(category=category).exists():
+            category = form.cleaned_data['category']
+            discount = form.cleaned_data['discount_percentage']  
+
+            if discount < 1 or discount > 90:
+                messages.error(request, "Offer must be between 1% and 90%.")
+            elif CategoryOffer.objects.filter(category=category).exists():
                 messages.error(request, "Offer for this category already exists.")
             else:
                 form.save()
                 messages.success(request, "Category offer created successfully.")
-                return redirect('category_offer_list')
+                return redirect('category_offer')
     else:
         form = CategoryOfferForm()
-    
+
     return render(request, 'add_category_offer.html', {'form': form})
+
 
 
 @login_required
@@ -100,7 +104,7 @@ def category_offer_edit(request, pk):
         if form.is_valid():
             form.save()
             messages.success(request, "Category offer updated successfully.")
-            return redirect('category_offer_list')
+            return redirect('category_offer')
     else:
         form = CategoryOfferForm(instance=offer)
     return render(request, 'add_category_offer.html', {'form': form})
@@ -112,7 +116,7 @@ def category_offer_delete(request, pk):
     if request.method == 'POST':
         offer.delete()
         messages.success(request, "Category offer deleted.")
-        return redirect('category_offer_list')
+        return redirect('category_offer')
     return render(request, 'category_offer_confirm_delete.html', {'offer': offer})
 
 @login_required

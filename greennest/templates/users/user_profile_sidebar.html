@@ -29,7 +29,7 @@
             </a>
             </li>
             <li>
-            <a class="nav-link{% if request.path == '/users/orders/' %} active{% endif %}"   href="">
+            <a class="nav-link{% if request.path == '/users/orders/' %} active{% endif %}"   href="{% url "order_list"%}">
                 My Orders <i class="bi bi-arrow-right"></i>
             </a>
             </li>
@@ -39,12 +39,12 @@
             </a>
             </li>
             <li>
-            <a class="nav-link {% if request.path == '/users/coupon/' %} active{% endif %}" href="#">
+            <a class="nav-link {% if request.path == '/users/coupon/user_coupons/' %} active{% endif %}" href="{% url "user_coupons" %}">
                 Coupon <i class="bi bi-arrow-right"></i>
             </a>
             </li>
             <li>
-            <a class="nav-link {% if request.path == '/users/address/' %} active{% endif %}" href="#">
+            <a class="nav-link {% if request.path == '/users/addresses/' %} active{% endif %}" href="{% url "address_list" %}">
                 My Address <i class="bi bi-arrow-right"></i>
             </a>
             </li>

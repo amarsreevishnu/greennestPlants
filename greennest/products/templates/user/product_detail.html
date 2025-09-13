@@ -121,6 +121,7 @@
                   data-discounted-price="{{ variant.discounted_price }}"
                   data-stock="{{ variant.stock }}"
                   data-images="{% for img in variant.images.all %}{{ img.image.url }}{% if not forloop.last %},{% endif %}{% endfor %}"
+                  data-in-wishlist="{% if variant.id in wishlist_variant_ids %}true{% else %}false{% endif %}"
                   {% if variant.id == cheapest_variant.id %}checked{% endif %} />
             <label for="variant_{{ variant.id }}">
               {{ variant.variant_type }}  
@@ -151,7 +152,7 @@
             name="quantity"
             value="1"
             min="1"
-            max="{{ cheapest_variant.stock }}"
+            max="{% if cheapest_variant.stock > 5 %}5{% else %}{{ cheapest_variant.stock }}{% endif %}"
             id="qty-input"
             class="form-control text-center"
             style="width: 70px; height: 30px"
@@ -159,17 +160,14 @@
         <button type="submit" id="add-to-cart-btn" class="btn btn-success px-4">
             ADD TO CART
         </button>
-            {% with variant=product.available_variants.0 %}
-                {% if variant %}
-                    <a href="{% url 'toggle_wishlist' variant.id %}">
-                        {% if variant.id in wishlist_variant_ids %}
-                            <i class="fa fa-heart wishlist-icon text-warning"></i> <!-- Already in wishlist -->
-                        {% else %}
-                            <i class="fa fa-heart wishlist-icon"></i> <!-- Not in wishlist -->
-                        {% endif %}
-                    </a>
-                {% endif %}
-        {% endwith %}
+       <button type="button" 
+        class="wishlist-btn" 
+        data-variant="{{ cheapest_variant.id }}" 
+        style="background:none; border:none; cursor:pointer;">
+  <i id="wishlist-icon-{{ cheapest_variant.id }}" 
+     class="fa fa-heart wishlist-icon {% if cheapest_variant.id in wishlist_variant_ids %}text-warning{% endif %}">
+  </i>
+</button>
     </div>
 </form>
 
@@ -250,8 +248,8 @@
 </div>
 
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/elevatezoom/3.0.8/jquery.elevatezoom.min.js"></script>
+
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/elevatezoom/3.0.8/jquery.elevatezoom.min.js"></script>
 <script>
@@ -285,7 +283,7 @@ $(document).ready(function () {
 
         // ✅ Update stock and quantity max
         $("#variant-stock").text(stock);
-        $("#qty-input").attr("max", stock);
+        $("#qty-input").attr("max", Math.min(stock, 5));
 
         const addBtn = $("#add-to-cart-btn");
         if (parseInt(stock) > 0) {
@@ -341,6 +339,7 @@ function initZoom() {
     $('#mainImage').elevateZoom({
         zoomType: "inner",
         lensShape: "square",
+        cursor: "crosshair", 
         lensSize: 150,
         scrollZoom: false,
         easing: true,
@@ -384,6 +383,71 @@ $(document).ready(function () {
     // Trigger change on page load
     $("input[name='variant_id']:checked").trigger("change");
 });
+
+//  Wishlist AJAX Handling------------------------------------------
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+        const cookies = document.cookie.split(";");
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+            if (cookie.substring(0, name.length + 1) === (name + "=")) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+const csrftoken = getCookie("csrftoken");
+
+$(document).on("click", ".wishlist-btn", function(e) {
+    e.preventDefault();
+    let btn = $(this);
+    let variantId = btn.data("variant");
+
+    let toggleUrl = "{% url 'toggle_wishlist' 0 %}".replace("0", variantId);
+
+    $.ajax({
+        url: toggleUrl,
+        method: "POST",
+        headers: { "X-CSRFToken": csrftoken },
+        success: function(response) {
+            if (response.status === "added") {
+                $("#wishlist-icon-" + variantId).addClass("text-warning");
+            } else {
+                $("#wishlist-icon-" + variantId).removeClass("text-warning");
+            }
+            $("#wishlist-count").text(response.count);
+        },
+        error: function(xhr) {
+            console.error("Wishlist error:", xhr.responseText);
+            alert("Error updating wishlist. Please try again.");
+        }
+    });
+});
+
+
+// 🔹 Update hidden input + wishlist button when variant changes
+$("input[name='variant_id']").on("change", function() {
+    let variantId = $(this).val();
+    $("#hidden-variant-id").val(variantId);
+
+    // update wishlist button data + icon id
+    $(".wishlist-btn").data("variant", variantId);
+    $(".wishlist-btn i").attr("id", "wishlist-icon-" + variantId);
+
+    // ✅ Check if this variant is already in wishlist
+    let inWishlist = $(this).data("in-wishlist") === true || $(this).data("in-wishlist") === "true";
+    if (inWishlist) {
+        $("#wishlist-icon-" + variantId).addClass("text-warning");
+    } else {
+        $("#wishlist-icon-" + variantId).removeClass("text-warning");
+    }
+});
+
+
 
 </script>
 

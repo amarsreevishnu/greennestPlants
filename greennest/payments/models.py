@@ -4,7 +4,7 @@ from orders.models import Order
 
 class Payment(models.Model):
     METHOD_CHOICES = [
-        ("cod", "Cash on Delivery"),
+        ("cod", "Cash on Delivery"),  
         ("wallet", "Wallet"),
         ("razorpay", "Razorpay"),
     ]

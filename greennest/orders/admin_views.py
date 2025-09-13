@@ -138,9 +138,9 @@ def admin_order_detail(request, order_id):
                     wallet=wallet,
                     amount=refund_amount,
                     transaction_type="credit",
-                    description=f"Refund for returned Order #{order.id}"
+                    description=f"Refund for returned Order #{order.display_id  }"
                 )
-                messages.success(request, f"Return approved. ₹{refund_amount} refunded to {order.user.username}'s wallet.")
+                messages.success(request, f"Return approved. ₹{refund_amount} refunded to {order.user.full_name}'s wallet.")
             else:
                 messages.success(request, "Return approved for the whole order (no refund).")
 
@@ -176,7 +176,7 @@ def admin_order_detail(request, order_id):
                     wallet=wallet,
                     amount=refund_amount,
                     transaction_type="credit",
-                    description=f"Refund for returned item {item.variant} in Order #{order.id}"
+                    description=f"Refund for returned item {item.variant} in Order #{order.display_id}"
                 )
                 messages.success(request, f"Return approved. ₹{refund_amount} refunded to {order.user.username}'s wallet.")
             else:
@@ -221,9 +221,9 @@ def admin_order_detail(request, order_id):
                     wallet=wallet,
                     amount=refund_amount,
                     transaction_type="credit",
-                    description=f"Refund for cancelled Order #{order.id}"
+                    description=f"Refund for cancelled Order #{order.display_id}"
                 )
-                messages.success(request, f"Order cancelled. ₹{refund_amount} refunded to {order.user.username}'s wallet.")
+                messages.success(request, f"Order cancelled. ₹{refund_amount} refunded to {order.user.first_name}'s wallet.")
             else:
                 messages.success(request, "Order cancellation approved (no refund).")
 

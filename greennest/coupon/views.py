@@ -1,6 +1,41 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
 from django.contrib import messages
 from .models import Coupon, CouponUsage
+
+
+@login_required(login_url="user_login")
+def user_coupons(request):
+    now = timezone.now()
+    # Get valid coupons
+    coupons = Coupon.objects.filter(
+        active=True,
+        valid_from__lte=now,
+        valid_to__gte=now,
+    )
+
+    # Get usage info for this user
+    user_usages = {
+        usage.coupon_id: usage.used
+        for usage in CouponUsage.objects.filter(user=request.user)
+    }
+
+    # Attach status (used/available) to each coupon
+    coupon_list = []
+    for coupon in coupons:
+        coupon_list.append({
+            "coupon": coupon,
+            "used": user_usages.get(coupon.id, False),
+        })
+
+    return render(request, "user_coupons.html", {"coupon_list": coupon_list})
+
+
+
+
+
+
 
 def apply_coupon(request):
     if request.method == "POST":

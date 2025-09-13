@@ -17,8 +17,8 @@ class CouponForm(forms.ModelForm):
 
     def clean_discount(self):
         discount = self.cleaned_data.get("discount")
-        if discount <= 0 or discount > 100:
-            raise forms.ValidationError("Discount must be between 1% and 100%.")
+        if discount <= 0 or discount > 90:
+            raise forms.ValidationError("Discount must be between 1% and 90%.")
         return discount
 
     def clean(self):
