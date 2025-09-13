@@ -1,0 +1,33 @@
+# Django Gitignore
+# VS Code
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pkl
+*.egg
+*.egg-info/
+*.log
+
+# Virtual environments
+.env
+.venv/
+env/
+venv/
+
+# Django
+*.sqlite3
+db.sqlite3
+media/
+staticfiles/
+
+# Cache
+.pytest_cache/
+__pycache__/
+
+# OS files
+.DS_Store
+Thumbs.db
