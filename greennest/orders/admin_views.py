@@ -354,7 +354,7 @@ def download_sales_report_pdf(request):
             p.setFont("Helvetica", 9)
 
         p.drawString(50, y, str(order.display_id))
-        p.drawString(120, y, str(order.user.username))
+        p.drawString(120, y, str(order.user.first_name))
         p.drawString(200, y, str(order.status))
         p.drawString(270, y, f"Rs.{order.final_amount:.2f}")
         p.drawString(370, y, order.created_at.strftime("%Y-%m-%d"))

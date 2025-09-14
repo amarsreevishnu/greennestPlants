@@ -3,6 +3,9 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.contrib import messages
 from .models import Coupon, CouponUsage
+from offer.utils import get_best_offer
+from decimal import Decimal
+from cart.models import Cart 
 
 
 @login_required(login_url="user_login")
@@ -32,11 +35,7 @@ def user_coupons(request):
     return render(request, "user_coupons.html", {"coupon_list": coupon_list})
 
 
-
-
-
-
-
+@login_required
 def apply_coupon(request):
     if request.method == "POST":
         code = request.POST.get("coupon_code", "").strip()
@@ -47,19 +46,45 @@ def apply_coupon(request):
             messages.error(request, "Invalid coupon code.")
             return redirect("checkout_address")
 
+        # Check coupon validity
         if not coupon.is_valid():
             messages.error(request, "Coupon is expired or inactive.")
             return redirect("checkout_address")
 
-        # Check if already used
+        # Check if user has already used it
         if CouponUsage.objects.filter(user=request.user, coupon=coupon, used=True).exists():
             messages.warning(request, "You have already used this coupon.")
             return redirect("checkout_address")
 
-        # Save coupon to session 
+        #  Check cart subtotal against coupon min_order_value
+        cart = Cart.objects.filter(user=request.user).first()
+        if not cart or not cart.items.exists():
+            messages.error(request, "Your cart is empty.")
+            return redirect("checkout_address")
+
+        subtotal = 0
+        for item in cart.items.all():
+            variant = item.variant
+            best_offer = get_best_offer(variant)
+            final_price = best_offer["final_price"] if best_offer else variant.price
+            subtotal += final_price * item.quantity
+
+        if subtotal < coupon.min_order_value:
+            messages.warning(
+                request,
+                f"⚠️ Minimum order of ₹{coupon.min_order_value} required to use this coupon."
+            )
+            # ❌ Do NOT save coupon in session
+            return redirect("checkout_address")
+
+        # ✅ Save only if all checks passed
         request.session["applied_coupon_id"] = coupon.id
-        messages.success(request, f"Coupon '{coupon.code}' applied successfully ✅")
+        request.session.modified = True  
+
+        messages.success(request, f"Coupon '{coupon.code}' applied ")
         return redirect("checkout_address")
+
+    return redirect("checkout_address")
 
 
 def remove_coupon(request):

@@ -30,10 +30,56 @@
 
 <form method="POST">
   {% csrf_token %}
-  {{ form.as_p }}
+  
+  {% if form.errors %}
+    <div class="alert alert-danger">
+      <ul>
+        {% for field in form %}
+          {% for error in field.errors %}
+            <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+          {% endfor %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+  
+  <div class="mb-3">
+    {{ form.code.label_tag }} {{ form.code }}
+    <div class="text-danger">{{ form.code.errors }}</div>
+  </div>
+  <div class="mb-3">
+    {{ form.discount.label_tag }} {{ form.discount }}
+    <div class="text-danger">{{ form.discount.errors }}</div>
+  </div>
+  <div class="mb-3">
+    {{ form.max_discount_amount.label_tag }} {{ form.max_discount_amount }}
+    <div class="text-danger">{{ form.max_discount_amount.errors }}</div>
+  </div>
+  <div class="mb-3">
+    {{ form.min_order_value.label_tag }} {{ form.min_order_value }}
+    <div class="text-danger">{{ form.min_order_value.errors }}</div>
+  </div>
+  <div class="mb-3">
+    {{ form.valid_from.label_tag }} {{ form.valid_from }}
+    <div class="text-danger">{{ form.valid_from.errors }}</div>
+  </div>
+  <div class="mb-3">
+    {{ form.valid_to.label_tag }} {{ form.valid_to }}
+    <div class="text-danger">{{ form.valid_to.errors }}</div>
+  </div>
+  <div class="form-check mb-3">
+    {{ form.active }} {{ form.active.label_tag }}
+    <div class="text-danger">{{ form.active.errors }}</div>
+  </div>
+
   <button class="btn btn-success" type="submit">{% if coupon %}Update{% else %}Save{% endif %}</button>
   <a href="{% url 'coupon_list' %}" class="btn btn-secondary">Cancel</a>
 </form>
+
+
 
 
 

@@ -65,7 +65,7 @@
     {% for order in orders %}
     <tr>
       <td>{{ order.display_id }}</td>
-      <td>{{ order.user.username }}</td>
+      <td>{{ order.user.first_name }}</td>
       <td>{{ order.status }}</td>
       <td>₹{{ order.total_amount }}</td>
       <td>₹{{ order.discount }}</td>

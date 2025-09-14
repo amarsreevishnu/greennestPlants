@@ -1,15 +1,24 @@
-# coupons/forms.py
 from django import forms
 from .models import Coupon
 
 class CouponForm(forms.ModelForm):
     class Meta:
         model = Coupon
-        fields = ["code", "discount", "valid_from", "valid_to", "active"]
+        fields = [
+            "code",
+            "discount",
+            "max_discount_amount",   # ✅ added
+            "min_order_value",       # ✅ added
+            "valid_from",
+            "valid_to",
+            "active",
+        ]
 
         widgets = {
             "code": forms.TextInput(attrs={"class": "form-control", "placeholder": "Enter Coupon Code"}),
             "discount": forms.NumberInput(attrs={"class": "form-control", "placeholder": "Discount %"}),
+            "max_discount_amount": forms.NumberInput(attrs={"class": "form-control", "placeholder": "Max Discount (₹)"}),  # ✅ added
+            "min_order_value": forms.NumberInput(attrs={"class": "form-control", "placeholder": "Minimum Order Value (₹)"}),  # ✅ added
             "valid_from": forms.DateTimeInput(attrs={"type": "datetime-local", "class": "form-control"}),
             "valid_to": forms.DateTimeInput(attrs={"type": "datetime-local", "class": "form-control"}),
             "active": forms.CheckboxInput(attrs={"class": "form-check-input"}),

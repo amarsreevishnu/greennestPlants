@@ -1,12 +1,34 @@
 # coupons/views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.utils import timezone
+import datetime as _dt
 
 from .models import Coupon
 from .forms import CouponForm
 
 def coupon_list(request):
-    coupons = Coupon.objects.all()
+    coupons = list(Coupon.objects.all())  
+    now = timezone.now()
+
+    for c in coupons:
+        c.is_expired = False
+        if not c.valid_to:
+            continue
+        # If valid_to is a plain date (DateField), compare to now.date()
+        if isinstance(c.valid_to, _dt.date) and not isinstance(c.valid_to, _dt.datetime):
+            c.is_expired = (c.valid_to < now.date())
+            continue
+
+        valid_dt = c.valid_to
+       
+        if timezone.is_naive(valid_dt):
+            try:
+                valid_dt = timezone.make_aware(valid_dt)
+            except Exception:
+                pass
+
+        c.is_expired = (valid_dt <= now)
     return render(request, "admin/coupon_list.html", {"coupons": coupons})
 
 def coupon_create(request):

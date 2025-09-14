@@ -21,6 +21,7 @@ class CategoryOfferForm(forms.ModelForm):
         model = CategoryOffer
         fields = ['category', 'discount_percentage', 'start_date', 'end_date', 'is_active']
         widgets = {
+            
             'start_date': forms.DateInput(attrs={'type': 'date'}),
             'end_date': forms.DateInput(attrs={'type': 'date'}),
         }

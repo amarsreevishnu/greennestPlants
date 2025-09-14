@@ -7,4 +7,42 @@
     <input type="number" name="amount" step="0.01" min="1" required>
     <button type="submit">Add Money</button>
 </form>
+
+
+
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+    var options = {
+        "key": "{{ razorpay_key_id }}",
+        "amount": "{{ amount|floatformat:2 }}00", 
+        "currency": "INR",
+        "name": "YourSite Wallet",
+        "description": "Add money to wallet",
+        "order_id": "{{ razorpay_order_id }}",
+        "handler": function (response){
+            // send to Django backend for verification
+            fetch("{% url 'wallet_verify_payment' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify(response)
+            }).then(res => res.json())
+              .then(data => {
+                alert(data.message);
+                window.location.href = "{% url 'wallet_dashboard' %}";
+            })
+        },
+        "prefill": {
+            "name": "{{ user_name }}",
+            "email": "{{ user_email }}"
+        },
+        "theme": { "color": "#3399cc" }
+    };
+    var rzp1 = new Razorpay(options);
+    rzp1.open();
+</script>
+
 {% endblock %}

@@ -26,7 +26,9 @@ def checkout_address(request):
     user = request.user
     cart = Cart.objects.filter(user=user).first()
     addresses = Address.objects.filter(user=user)
-
+    now = timezone.now()
+    coupons =( Coupon.objects.filter(active=True, valid_to__gte=now).exclude(id__in=CouponUsage.objects.filter(user=request.user).values_list("coupon_id", flat=True)))
+    
     if not cart or not cart.items.exists():
         return redirect('cart_detail')
 
@@ -35,12 +37,11 @@ def checkout_address(request):
     subtotal = 0
     for item in cart.items.all():
         variant = item.variant
-        best_offer = get_best_offer(variant)   # ✅ pass variant
-
+        best_offer = get_best_offer(variant)   
         product_price = variant.price
         discount_amount = 0
         if best_offer:
-            discount_amount = (product_price * best_offer["discount"]) / 100  # use dict return
+            discount_amount = (product_price * best_offer["discount"]) / 100  
 
         final_price = best_offer["final_price"] if best_offer else product_price
 
@@ -54,17 +55,27 @@ def checkout_address(request):
     total = subtotal + shipping - discount
     applied_coupon = None
 
-    # ✅ Check session for applied coupon
+    # Check session for applied coupon
+    
     coupon_id = request.session.get("applied_coupon_id")
     if coupon_id:
         try:
             applied_coupon = Coupon.objects.get(id=coupon_id, active=True)
             if applied_coupon.is_valid():
-                discount = applied_coupon.calculate_discount(subtotal)
+                if subtotal >= applied_coupon.min_order_value:
+                    discount = applied_coupon.calculate_discount(subtotal)
+                else:
+                    messages.warning(
+                        request, 
+                        f"⚠️ Minimum order of ₹{applied_coupon.min_order_value} required to use this coupon."
+                    )
+                    request.session.pop("applied_coupon_id", None)  # remove invalid coupon
+                    applied_coupon = None
             else:
                 request.session.pop("applied_coupon_id", None)
         except Coupon.DoesNotExist:
             request.session.pop("applied_coupon_id", None)
+
 
     total = subtotal + shipping - discount
     if request.method == "POST":
@@ -115,6 +126,11 @@ def checkout_address(request):
             return redirect("checkout_payment")
     
     selected_address_id = request.session.get("selected_address_id")
+    if not selected_address_id and addresses.exists():
+        default_address = addresses.filter(is_default=True).first()  
+        if default_address:
+            selected_address_id = default_address.id
+            request.session["selected_address_id"] = selected_address_id
 
     context = {
         "cart": cart,
@@ -125,6 +141,7 @@ def checkout_address(request):
         "total": total,
         "applied_coupon": applied_coupon,
         "selected_address_id": selected_address_id,
+        "coupons": coupons,
     }
     return render(request, "orders/checkout_address.html", context)
 
@@ -185,13 +202,12 @@ def checkout_payment(request):
 
         if payment_method == "wallet":
             wallet, _ = Wallet.objects.get_or_create(user=user)
-            if wallet.balance < total:  # total already includes discount + shipping
+            if wallet.balance < total:
                 messages.error(request, "Insufficient wallet balance to complete this order.")
                 return redirect("checkout_payment")
         
         try:
             with transaction.atomic():
-                # For prepaid payments, status is pending; for COD/Wallet, it's processing
                 order_status = "processing" if payment_method in ["cod", "wallet"] else "pending"
 
                 order = Order.objects.create(
@@ -229,7 +245,7 @@ def checkout_payment(request):
                         total_price=final_price * item.quantity,
                     )
 
-                # Mark coupon usage for COD/Wallet immediately; for prepaid, wait until success
+                # Mark coupon usage for COD/Wallet immediately
                 if payment_method in ["cod", "wallet"] and coupon:
                     CouponUsage.objects.update_or_create(
                         user=user,
@@ -237,7 +253,7 @@ def checkout_payment(request):
                         defaults={"used": True, "used_at": timezone.now()},
                     )
 
-                # Only clear cart for COD/Wallet
+                # Clear cart for COD/Wallet
                 if payment_method in ["cod", "wallet"]:
                     cart.delete()
                     request.session.pop("applied_coupon_id", None)
@@ -250,7 +266,6 @@ def checkout_payment(request):
             messages.error(request, f"Could not place order: {str(e)}")
             return redirect("checkout_payment")
 
-        # Redirect to payment flow
         if payment_method == "cod":
             return redirect("cod_payment", order_id=order.id)
         elif payment_method == "wallet":
@@ -261,16 +276,13 @@ def checkout_payment(request):
             messages.error(request, "Invalid payment method.")
             return redirect("checkout_payment")
 
-
     selected_address_id = request.session.get("selected_address_id")
     selected_address = None
     if selected_address_id:
         selected_address = Address.objects.filter(id=selected_address_id, user=user).first()
     else:
-        # No address selected in session → pick user's default address
         selected_address = Address.objects.filter(user=user, default=True).first()
         if selected_address:
-            # Save it in session so it persists if user reloads page
             request.session["selected_address_id"] = selected_address.id
 
     return render(request, "orders/checkout_payment.html", {
@@ -282,6 +294,7 @@ def checkout_payment(request):
         "applied_coupon": applied_coupon,
         "selected_address": selected_address,
     })
+
 
 
 
@@ -341,18 +354,26 @@ def order_list(request):
 @never_cache
 def order_detail(request, order_id):
     order = get_object_or_404(Order, id=order_id, user=request.user)
-    items = OrderItem.objects.filter(order=order)
+    items = order.items.all()
 
-    # Only items that count towards billing
+    # Billable items only
     billable_items = items.exclude(status__in=["cancelled", "returned"])
-
     subtotal = sum(item.total_price for item in billable_items)
 
-    # Example shipping logic (free over 500 or if subtotal is 0)
-    shipping = 0 if subtotal > 500 or subtotal == 0 else 50
+    # Pull directly from order
+    shipping = order.shipping_charge or 0
+    coupon_discount = Decimal("0.00")
+    other_discount = Decimal("0.00")
 
-    total = subtotal + shipping
+    # Separate discounts if needed
+    if order.coupon:
+        coupon_discount = min(order.discount, subtotal)  # avoid > subtotal
+    if hasattr(order, "other_discount") and order.other_discount:
+        other_discount = order.other_discount
 
+    total = order.final_amount  # ✅ stored final amount is most reliable
+
+    # Flags for UI actions
     for item in items:
         item.can_return = (item.status == "delivered")
         item.return_requested_display = (item.status == "return_requested")
@@ -362,8 +383,12 @@ def order_detail(request, order_id):
         "items": items,
         "subtotal": subtotal,
         "shipping": shipping,
+        "coupon_discount": coupon_discount,
+        "other_discount": other_discount,
         "total": total,
     })
+
+
 
 
 #Cancel the entire order
@@ -561,95 +586,173 @@ def request_return_item(request, order_id, item_id):
     return render(request, "orders/request_return_item.html", {"order": order, "item": item})
 
 
-#Generate a simple PDF invoice for the order.
+
+# invoice download (PDF)-----------------------------------------------
+from decimal import Decimal, ROUND_HALF_UP
+from django.utils.text import slugify
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+from decimal import Decimal, ROUND_HALF_UP
+from io import BytesIO
+
+
 @login_required
-@never_cache
 def download_invoice(request, order_id):
-
-    order = Order.objects.filter(id=order_id, user=request.user).first()
-    if not order:
-        raise Http404("Order not found")
-
-    # create a PDF using ReportLab
-    from reportlab.lib.pagesizes import A4
-    from reportlab.pdfgen import canvas
-    from io import BytesIO
+    
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    items = order.items.all()
 
     buffer = BytesIO()
-    c = canvas.Canvas(buffer, pagesize=A4)
+    p = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
 
-    # header
-    c.setFont("Helvetica-Bold", 16)
-    c.drawString(50, height - 50, f"Invoice — Order #{order.display_id}")
-    c.setFont("Helvetica", 10)
-    c.drawString(50, height - 70, f"Date: {order.created_at.strftime('%Y-%m-%d %H:%M')}")
-    c.drawString(50, height - 85, f"Customer: {order.user.get_full_name() or order.user.username}")
+    # Register font
+    font_name_to_use = "Arial"
+    pdfmetrics.registerFont(TTFont("Arial", "arial.ttf"))
+    p.setFont(font_name_to_use, 12)
 
-    # address
-    y = height - 110
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(50, y, "Shipping Address:")
-    c.setFont("Helvetica", 10)
-    if order.address:
-        addr_lines = [
-            getattr(order.address, 'full_name', ''),
-            getattr(order.address, 'phone', ''),
-            getattr(order.address, 'line1', ''),
-            getattr(order.address, 'line2', ''),
-            f"{getattr(order.address, 'city', '')}, {getattr(order.address, 'state', '')} {getattr(order.address, 'postal_code', '')}",
-            getattr(order.address, 'country', '')
-        ]
-        for ln in addr_lines:
-            if ln:
-                y -= 12
-                c.drawString(60, y, ln)
+    def q2(val):
+        return Decimal(val).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
-    # items table header
-    y -= 25
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(50, y, "Item")
-    c.drawString(300, y, "Qty")
-    c.drawString(350, y, "Unit Price")
-    c.drawString(450, y, "Total")
+    # --- Totals ---
+    original_subtotal = sum(item.price * item.quantity for item in items)
+    subtotal = sum(item.total_price for item in items.exclude(status__in=["cancelled", "returned"]))
+    shipping = order.shipping_charge or Decimal("0.00")
 
-    # items
-    c.setFont("Helvetica", 10)
-    for item in order.items.all():
-        y -= 16
-        c.drawString(50, y, str(getattr(item.variant, 'name', str(item.variant)[:20])))
-        c.drawString(300, y, str(item.quantity))
-        c.drawString(350, y, f"{item.price:.2f}")
-        c.drawString(450, y, f"{item.total_price:.2f}")
-        
+    # --- Discounts ---
+    coupon_discount = Decimal("0.00")
+    other_discount = Decimal("0.00")
 
-    # totals
+    if order.coupon:
+        coupon_discount = (subtotal / original_subtotal * order.discount) if original_subtotal > 0 else order.discount
+
+    if getattr(order, "other_discount", None):
+        other_discount = order.other_discount
+
+    # --- Tax ---
+    tax = Decimal("0.00")
+    for item in items:
+        if hasattr(item.variant.product, "tax_rate"):
+            tax += q2(item.total_price * item.variant.product.tax_rate / 100)
+
+    # --- Final ---
+    final_amount = q2(subtotal + shipping - coupon_discount - other_discount + tax)
+
+    # ------------------ HEADER ------------------
+    # Company Info (always show)
+    company_name = "GreenNest Pvt Ltd"
+    company_address = "123, MG Road, TVPM, Kerala, 682001"
+    company_phone = "+91-9876543210"
+    company_email = "greennest.ecom@gmail.com"
+
+    p.setFont(font_name_to_use, 14)
+    p.drawCentredString(width / 2, height - 50, company_name)
+
+    p.setFont(font_name_to_use, 10)
+    p.drawCentredString(width / 2, height - 65, company_address)
+    p.drawCentredString(width / 2, height - 80, f"Phone: {company_phone} | Email: {company_email}")
+
+    # --- Draw line under header ---
+    p.setLineWidth(1)
+    p.line(40, height - 90, width - 40, height - 90)
+
+    # Invoice vs Order Summary title
+    p.setFont(font_name_to_use, 14)
+    if order.status.lower() == "delivered":
+        title_text = f"Invoice No: {order.display_id}"
+    else:
+        # For pending/shipped/processing
+        title_text = f"Order Summary ({order.status.capitalize()})"
+    p.drawCentredString(width / 2, height - 110, title_text)
+
+    # Order Info
+    p.setFont(font_name_to_use, 10)
+    p.drawString(50, height - 100, f"Order ID: {order.display_id}")
+    p.drawString(50, height - 115, f"Date: {order.created_at.strftime('%d %b %Y')}")
+    p.drawString(50, height - 130, f"Status: {order.status}")
+
+    # ------------------ CUSTOMER ADDRESS ------------------
+    y = height - 160
+    p.setFont(font_name_to_use, 12)
+    p.drawString(50, y, "Shipping Address:")
+    y -= 15
+    p.setFont(font_name_to_use, 10)
+    p.drawString(50, y, order.address.full_name)
+    y -= 15
+    p.drawString(50, y, f"{order.address.line1}, {order.address.line2}")
+    y -= 15
+    p.drawString(50, y, f"{order.address.city}, {order.address.state}")
+    y -= 15
+    p.drawString(50, y, f"Phone: {order.address.phone}")
+
+    # ------------------ ITEMS TABLE ------------------
     y -= 30
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(350, y, "Subtotal:")
-    c.drawString(450, y, f"{order.total_amount:.2f}")
-    y -= 16
-    c.drawString(350, y, "Shipping:")
-    c.drawString(450, y, f"{order.shipping_charge:.2f}")
-    y -= 16
-    c.drawString(350, y, "Discount:")
-    c.drawString(450, y, f"{order.discount:.2f}")
-    y -= 16
-    c.drawString(350, y, "Tax:")
-    c.drawString(450, y, f"{order.tax:.2f}")
+    p.setFont(font_name_to_use, 12)
+    p.drawString(50, y, "Product")
+    p.drawString(250, y, "Price")
+    p.drawString(350, y, "Qty")
+    p.drawString(400, y, "Total")
     y -= 20
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(350, y, "Final Amount:")
-    c.drawString(450, y, f"{order.final_amount:.2f}")
-    y -= 25
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(350, y, "Status:")
-    c.drawString(450, y, str(order.status).capitalize())
 
+    p.setFont(font_name_to_use, 10)
+    for item in items:
+        p.drawString(50, y, f"{item.variant.product.name} ({item.variant.variant_type})")
+        p.drawRightString(320, y, f"{item.price:.2f}")
+        p.drawRightString(370, y, str(item.quantity))
+        p.drawRightString(470, y, f"{item.total_price:.2f}")
+        y -= 15
+        if y < 100:  # next page
+            p.showPage()
+            y = height - 50
+            p.setFont(font_name_to_use, 10)
 
-    c.showPage()
-    c.save()
+    # ------------------ TOTALS ------------------
+    y -= 20
+    line_height = 15
+    p.setFont(font_name_to_use, 10)
+
+    p.drawString(350, y, "Subtotal:")
+    p.drawRightString(width - 50, y, f"{subtotal:.2f}")
+    y -= line_height
+
+    p.drawString(350, y, "Shipping:")
+    p.drawRightString(width - 50, y, f"{shipping:.2f}")
+    y -= line_height
+
+    if coupon_discount > 0:
+        p.drawString(350, y, "Coupon Discount:")
+        p.drawRightString(width - 50, y, f"-{coupon_discount:.2f}")
+        y -= line_height
+
+    if other_discount > 0:
+        p.drawString(350, y, "Other Discount:")
+        p.drawRightString(width - 50, y, f"-{other_discount:.2f}")
+        y -= line_height
+
+    p.drawString(350, y, "Tax:")
+    p.drawRightString(width - 50, y, f"{tax:.2f}")
+    y -= line_height + 5
+
+    p.setFont(font_name_to_use, 12)
+    if order.status == "Delivered":
+        p.drawString(350, y, "Final Amount:")
+        p.drawRightString(width - 50, y, f"{final_amount:.2f}")
+    else:
+        p.drawString(350, y, "Payable Amount:")
+        p.drawRightString(width - 50, y, f"{final_amount:.2f}")
+
+    # ------------------ FOOTER ------------------
+    p.setFont(font_name_to_use, 8)
+    p.drawString(50, 50, "Thank you for shopping with us!")
+
+    p.showPage()
+    p.save()
+
     buffer.seek(0)
-    response = HttpResponse(buffer, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="invoice_order_{order.id}.pdf"'
+    response = HttpResponse(buffer, content_type="application/pdf")
+    filename = "invoice" if order.status == "Delivered" else "order_summary"
+    response["Content-Disposition"] = f'attachment; filename="{filename}_{order.display_id}.pdf"'
     return response

@@ -6,11 +6,8 @@
 <!-- Breadcrumb -->
 <div class="container py-3">
   <div class="row">
-    
-    
 
         {% include "users/user_profile_sidebar.html" %}
-
 
     </div>
     
@@ -21,13 +18,14 @@
     <div class="row">
     <h2 class="mb-4">My Coupons</h2>
 
-
     {% if coupon_list %}
         <table class="table table-bordered">
             <thead>
                 <tr>
                     <th>Code</th>
                     <th>Discount</th>
+                    <th>Max Discount (₹)</th>
+                    <th>Min Order (₹)</th>
                     <th>Valid Till</th>
                     <th>Status</th>
                 </tr>
@@ -37,6 +35,20 @@
                     <tr>
                         <td>{{ entry.coupon.code }}</td>
                         <td>{{ entry.coupon.discount }}%</td>
+                        <td>
+                            {% if entry.coupon.max_discount_amount %}
+                                ₹{{ entry.coupon.max_discount_amount }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if entry.coupon.min_order_value %}
+                                ₹{{ entry.coupon.min_order_value }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
                         <td>{{ entry.coupon.valid_to|date:"d M Y H:i" }}</td>
                         <td>
                             {% if entry.used %}
@@ -60,6 +72,5 @@
     </div>
   </div>
 </div>
-
 
 {% endblock %}

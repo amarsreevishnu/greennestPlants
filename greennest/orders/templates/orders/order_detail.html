@@ -67,32 +67,37 @@
       <td>{{ item.quantity }}</td>
       <td>₹{{ item.total_price }}</td>
       <td>
-        {% with item.status|lower as status %}
+  {% with item.status|lower as status %}
+    {% if status == "active" %}
+        {% if order.status == "pending" or order.status == "processing" %}
+            <a href="{% url 'cancel_order_item' item.id %}" class="btn btn-sm btn-outline-danger">
+              Cancel
+            </a>
+        {% elif order.status == "delivered" %}
+            <a href="{% url 'request_return_item' order.id item.id %}" class="btn btn-sm btn-outline-warning">
+              Return
+            </a>
+        {% endif %}
 
-          {% if order.status in "pending,processing" and item.status == "active" %}
-            <a href="{% url 'cancel_order_item' item.id %}" class="btn btn-sm btn-outline-danger">Cancel</a>
+    {% elif status == "cancelled" %}
+        <span class="badge bg-danger status-badge">Cancelled</span>
 
-          {% elif order.status == "delivered" and item.status == "active" %}
-            <a href="{% url 'request_return_item' order.id item.id %}" class="btn btn-sm btn-outline-warning">Return</a>
+    {% elif status == "return_requested" %}
+        <span class="badge bg-info text-dark status-badge">Return Requested</span>
 
-          {% elif item.status == "cancelled" %}
-            <span class="badge bg-danger status-badge">Cancelled</span>
+    {% elif status == "returned" %}
+        <span class="badge bg-secondary status-badge">Returned</span>
 
-          {% elif item.status == "return_requested" %}
-            <span class="badge bg-info text-dark status-badge">Return Requested</span>
+    {% elif status == "return_rejected" %}
+        <span class="badge bg-dark text-white status-badge">Return Rejected</span>
 
-          {% elif item.status == "returned" %}
-            <span class="badge bg-secondary status-badge">Returned</span>
+    {% else %}
+        <span class="badge bg-primary status-badge">{{ order.get_status_display|capfirst }}</span>
+    {% endif %}
+  {% endwith %}
+</td>
 
-          {% elif item.status == "return_rejected" %}
-            <span class="badge bg-dark text-white status-badge">Return Rejected</span>
 
-          {% else %}
-            <span class="badge bg-primary status-badge">{{ item.status|capfirst }} </span>
-          {% endif %}
-
-        {% endwith %}
-      </td>
     </tr>
     
   {% empty %}
@@ -112,39 +117,61 @@
     <!-- Right Column - Order Summary -->
     <div class="col-lg-4">
       <div class="cardd">
-        <div class="card-header bg-white text-center">
-          <strong>Order Summary</strong>
-        </div>
-      <div class="d-flex justify-content-between">
-  <span>Subtotal</span>
-  <span>₹{{ subtotal }}</span>
-</div>
-<div class="d-flex justify-content-between">
-  <span>Shipping</span>
-  {% if shipping == 0 %}
-    <span>Free</span>
-  {% else %}
-    <span>₹{{ shipping }}</span>
+  <div class="card-header bg-white text-center">
+    <strong>Order Summary</strong>
+  </div>
+
+  <div class="d-flex justify-content-between">
+    <span>Subtotal</span>
+    <span>₹{{ subtotal }}</span>
+  </div>
+
+  {% if coupon_discount and coupon_discount > 0 %}
+  <div class="d-flex justify-content-between text-success">
+    <span>Coupon Discount</span>
+    <span>- ₹{{ coupon_discount }}</span>
+  </div>
   {% endif %}
-</div>
-<hr>
-<div class="d-flex justify-content-between fw-bold">
-  <span>Total</span>
-  <span>₹{{ total }}</span>
+
+  {% if other_discount and other_discount > 0 %}
+  <div class="d-flex justify-content-between text-success">
+    <span>Other Discount</span>
+    <span>- ₹{{ other_discount }}</span>
+  </div>
+  {% endif %}
+
+  <div class="d-flex justify-content-between">
+    <span>Shipping</span>
+    {% if shipping == 0 %}
+      <span>Free</span>
+    {% else %}
+      <span>₹{{ shipping }}</span>
+    {% endif %}
+  </div>
+
+  <hr>
+  <div class="d-flex justify-content-between fw-bold">
+    <span>Total</span>
+    <span>₹{{ total }}</span>
+  </div>
 </div>
         
-      </div>
+      
       
 
       {% if order.status == "delivered" or order.status == "completed" %}
         <a href="{% url 'download_invoice' order.id %}" class="btn btn-success w-100 mt-2">
           <i class="bi bi-file-earmark-pdf"></i> Download Invoice
         </a>
+      {% else  %}
+      <a href="{% url 'download_invoice' order.id %}" class="btn btn-success w-100 mt-2">
+          <i class="bi bi-file-earmark-pdf"></i> Download Order Summary
+        </a>
       {% endif %}
       <a href="{% url 'order_list' %}" class="btn btn-outline-secondary w-100 mt-2">Go Back</a>
     </div>
   </div>
 </div>
-
+</div>
 
 {% endblock order_details %}
