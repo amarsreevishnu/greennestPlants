@@ -19,6 +19,7 @@ from django.core.exceptions import ValidationError
 
 from .models import EmailOTP,Profile, Address
 from products.models import Product, ProductVariant
+from offer.models import ProductOffer, CategoryOffer
 
 User = get_user_model()  # Gets CustomUser model
 
@@ -173,10 +174,40 @@ def user_logout(request):
 @never_cache
 @login_required(login_url='user_login')
 def user_home(request):
-    products = Product.objects.filter(is_active=True)
-   
-    
-    return render(request, 'users/user_home.html', {'user': request.user,'products':products})
+    products = Product.objects.all()
+
+    product_list = []
+    for product in products:
+        variant = product.variants.first()  # pick first variant (you can adjust logic)
+        if not variant:
+            continue
+
+        # original price
+        price = variant.price
+
+        # check product offer
+        product_offer = ProductOffer.objects.filter(product=product, is_active=True).first()
+        category_offer = CategoryOffer.objects.filter(category=product.category, is_active=True).first()
+
+        discount = 0
+        if product_offer:
+            discount = product_offer.discount_percentage
+        elif category_offer:
+            discount = category_offer.discount_percentage
+
+        final_price = price
+        if discount > 0:
+            final_price = price - (price * discount / 100)
+
+        product_list.append({
+            "product": product,
+            "variant": variant,
+            "original_price": price,
+            "final_price": round(final_price, 2),
+            "discount": discount,
+        })
+
+    return render(request, "users/user_home.html", {"product_list": product_list})
 
 def forget_password(request):
     if request.method == "POST":

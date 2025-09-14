@@ -57,15 +57,29 @@
             <td>{{ offer.start_date }}</td>
             <td>{{ offer.end_date }}</td>
             <td>
-                {% if offer.is_active %}
-                    <span class="badge bg-success">Active</span>
-                {% else %}
-                    <span class="badge bg-danger">Expired</span>
-                {% endif %}
-            </td>
+    {% if offer.end_date < now %}
+        <span class="badge bg-danger">Expired</span>
+    {% elif offer.is_active %}
+        <span class="badge bg-success">Active</span>
+    {% else %}
+        <span class="badge bg-secondary">Inactive</span>
+    {% endif %}
+</td>
+
             <td>
                 <a href="{% url 'product_offer_edit' offer.pk %}" class="btn btn-primary btn-sm">Edit</a>
                 <a href="{% url 'product_offer_delete' offer.pk %}" class="btn btn-danger btn-sm">Delete</a>
+                 {% if offer.is_active %}
+        <a href="{% url 'product_offer_toggle' offer.pk %}" 
+           class="btn btn-warning btn-sm">
+           Deactivate
+        </a>
+    {% else %}
+        <a href="{% url 'product_offer_toggle' offer.pk %}" 
+           class="btn btn-success btn-sm">
+           Activate
+        </a>
+    {% endif %}
             </td>
         </tr>
         {% empty %}

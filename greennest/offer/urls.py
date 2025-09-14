@@ -7,6 +7,8 @@ urlpatterns = [
     path('product-offers/add/', views.product_offer_create, name='product_offer_create'),
     path('product-offers/edit/<int:pk>/', views.product_offer_edit, name='product_offer_edit'),
     path('product-offers/delete/<int:pk>/', views.product_offer_delete, name='product_offer_delete'),
+    path('offers/<int:pk>/toggle/', views.product_offer_toggle, name='product_offer_toggle'),
+
     
 
     # Category Offers

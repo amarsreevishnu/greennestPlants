@@ -78,19 +78,37 @@ def user_product_list(request):
             variant = product.available_variants[0] if getattr(product, "available_variants", None) else None
             if variant:
                 offer_info = variant.best_offer_info
-                price_display = f"₹ {offer_info['final_price']:.0f}" if offer_info else f"₹ {variant.price:.0f}"
                 stock = variant.stock
                 image_obj = variant.images.first()
                 image_url = image_obj.image.url if image_obj else "/static/images/no-image.png"
+
+                # Build HTML for price/offer, same as in template
+                if offer_info and offer_info["final_price"] < variant.price:
+                    discount_percent = offer_info.get("discount_percent", None)
+                    price_html = f"""
+                    <span class="text-danger fw-bold">₹ {offer_info['final_price']:.0f}</span>
+                    <del class="text-muted">₹ {variant.price:.0f}</del>
+                    
+                    """
+                    if discount_percent:
+                        price_html += f"""
+                        <span class="badge bg-warning">
+                            ({discount_percent}% OFF)
+                        </span>
+                        """
+                else:
+                    price_html = f"<span>₹ {variant.price:.0f}</span>"
+
+
             else:
-                price_display = "Price not available"
                 stock = 0
                 image_url = "/static/images/no-image.png"
+                price_html = "<span>Price not available</span>"
 
             data.append({
                 "id": product.id,
                 "name": product.name,
-                "price": price_display,
+                "price_html": price_html,   
                 "variant_stock": stock,
                 "variant_image": image_url,
                 "detail_url": reverse("user_product_detail", args=[product.id]),
@@ -99,6 +117,7 @@ def user_product_list(request):
                 "wishlist_url": reverse("toggle_wishlist", args=[variant.id]) if variant else "#"
             })
         return JsonResponse({"products": data, "has_next": page_obj.has_next()})
+
 
     # Pass context for normal render
     all_categories = Category.objects.filter(is_active=True)

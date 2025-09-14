@@ -3,6 +3,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
+
 from .models import ProductOffer, CategoryOffer
 
 
@@ -22,8 +23,8 @@ class CategoryOfferForm(forms.ModelForm):
         fields = ['category', 'discount_percentage', 'start_date', 'end_date', 'is_active']
         widgets = {
             
-            'start_date': forms.DateInput(attrs={'type': 'date'}),
-            'end_date': forms.DateInput(attrs={'type': 'date'}),
+            'start_date': forms.DateInput(attrs={'type': 'datetime-local'}),
+            'end_date': forms.DateInput(attrs={'type': 'datetime-local'}),
         }
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
