@@ -27,14 +27,29 @@ def admin_required(view_func):
 
 # Product List
 
+from django.db.models import Q
+
 @login_required(login_url='admin_login')
 @never_cache
 def admin_product_list(request):
-    products = Product.objects.prefetch_related("variants__images").order_by("-id")
+    search_query = request.GET.get('search', '')  # get search term
+
+    # Filter products by name if search query exists
+    if search_query:
+        products = Product.objects.filter(name__icontains=search_query).prefetch_related("variants__images").order_by("-id")
+    else:
+        products = Product.objects.prefetch_related("variants__images").order_by("-id")
+    
     paginator = Paginator(products, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    return render(request, 'admin/list_product.html', {'products': page_obj})
+    
+    context = {
+        'products': page_obj,
+        'search_query': search_query,  # pass the search term back to template
+    }
+    return render(request, 'admin/list_product.html', context)
+
 
 
 # Add Product (with variants + images)

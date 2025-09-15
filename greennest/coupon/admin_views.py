@@ -8,7 +8,7 @@ from .models import Coupon
 from .forms import CouponForm
 
 def coupon_list(request):
-    coupons = list(Coupon.objects.all())  
+    coupons = list(Coupon.objects.filter(is_referral=False))  
     now = timezone.now()
 
     for c in coupons:

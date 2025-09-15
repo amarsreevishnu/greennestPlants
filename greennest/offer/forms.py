@@ -23,16 +23,22 @@ class CategoryOfferForm(forms.ModelForm):
         fields = ['category', 'discount_percentage', 'start_date', 'end_date', 'is_active']
         widgets = {
             
-            'start_date': forms.DateInput(attrs={'type': 'datetime-local'}),
-            'end_date': forms.DateInput(attrs={'type': 'datetime-local'}),
+            'start_date': forms.DateInput(attrs={'type': 'datetime-local','class': 'form-control'}, format='%Y-%m-%dT%H:%M'),
+            'end_date': forms.DateInput(attrs={'type': 'datetime-local', 'class': 'form-control'}, format='%Y-%m-%dT%H:%M'),
         }
+
+        
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['category'].widget.attrs.update({'class': 'form-select'})
         self.fields['discount_percentage'].widget.attrs.update({'class': 'form-control'})
-        self.fields['start_date'].widget.attrs.update({'class': 'form-control'})
-        self.fields['end_date'].widget.attrs.update({'class': 'form-control'})
         self.fields['is_active'].widget.attrs.update({'class': 'form-check-input'})
+
+        # Format initial values for datetime-local
+        for field in ['start_date', 'end_date']:
+            if self.instance and getattr(self.instance, field):
+                self.fields[field].initial = getattr(self.instance, field).strftime('%Y-%m-%dT%H:%M')
+
 
     def clean(self):
         cleaned = super().clean() 

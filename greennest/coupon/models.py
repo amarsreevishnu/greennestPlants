@@ -24,6 +24,8 @@ class Coupon(models.Model):
         help_text="Minimum order subtotal required to apply coupon"
     )
 
+    is_referral = models.BooleanField(default=False, help_text="Mark True if this is a referral-only coupon")
+    
     def is_valid(self):
         now = timezone.now()
         return self.active and self.valid_from <= now <= self.valid_to

@@ -16,9 +16,16 @@
             <div class="text-muted small">Admin &gt; Products</div>
           </div>
           <div class="d-flex align-items-center mt-2 mt-lg-0 me-5 ">
-            <form class="d-none d-md-block me-5">
-              {% comment %} <input class="form-control rounded-pill px-3" placeholder="Search product" type="search" style="min-width:200px;"> {% endcomment %}
-            </form>
+            <form method="GET" class="d-none d-md-block me-5">
+    <input 
+        name="search"
+        class="form-control rounded-pill px-3"
+        placeholder="Search product" 
+        type="search"
+        value="{{ search_query }}"
+        style="min-width:200px;"
+    >
+</form>
             <div class="d-flex align-items-center">
 
                <a href="{% url "admin_add_product"%}"><button class="btn btn-green px-4 rounded-pill fw-bold" type="button">Add new Product</button></a>
@@ -48,69 +55,52 @@
           </thead>
           <tbody>
             {% for product in products %}
-            <tr>
-              <td>{{ forloop.counter0|add:products.start_index }}</td>
-              <td>
-                
-              </td>
-              <td>{{ product.name }}</td>
-              <td>{{ product.category }}</td>
-              <td></td>
-              <td>
-                {% if product.is_active %}
-                  <span class="text-success">Active</span>
-                {% else %}
-                  <span class="text-danger">Blocked</span>
-                {% endif %}
-              </td>
-              <td>
-                
-                <a href="{% url 'admin_edit_product' product.id %}" class=" text-info btn-sm me-1" ><i class="bi bi-pencil-square"></i></a>
-                <a href="{% url 'admin_delete_product' product.id %}" class=" text-danger btn-sm"><i class="bi bi-trash"></i></a>
-                
-              </td>
-              </td>
-            </tr>
-            <!-- List Variants for this Product -->
-           {% for variant in product.variants.all %}
-<tr class="variant-row">
+<tr>
+  <td>{{ forloop.counter0|add:products.start_index }}</td>
   <td>
     {% if product.main_image %}
       <img src="{{ product.main_image.url }}" class="product-img" style="width: 40px; height: 40px; object-fit: cover;">
-    
     {% endif %}
   </td>
-
+  <td>{{ product.name }}</td>
+  <td>{{ product.category }}</td>
+  <td>{{ product.variants.count }}</td>
   <td>
-    <div class="d-flex align-items-center">
+    {% if product.is_active %}
+      <span class="text-success">Active</span>
+    {% else %}
+      <span class="text-danger">Blocked</span>
+    {% endif %}
+  </td>
+  <td>
+    <a href="{% url 'admin_edit_product' product.id %}" class="text-info btn-sm me-1"><i class="bi bi-pencil-square"></i></a>
+    <a href="{% url 'admin_delete_product' product.id %}" class="text-danger btn-sm"><i class="bi bi-trash"></i></a>
+  </td>
+</tr>
+
+<!-- Variants -->
+{% for variant in product.variants.all %}
+<tr class="variant-row">
+  <td></td>
+  <td>
     {% for img in variant.images.all %}
-      <img src="{{ img.image.url }}" alt="Variant" class="img-fluid"
-           style="width: 35px; height: 35px; object-fit: cover; margin-right: 5px;">
+      <img src="{{ img.image.url }}" alt="Variant" class="img-fluid" style="width: 35px; height: 35px; object-fit: cover; margin-right: 5px;">
     {% empty %}
       <span class="text-muted small">No images</span>
     {% endfor %}
-    </div>
   </td>
-
-  <td colspan="1" class="ps-5">
-    <b>Variant:</b> {{ variant.variant_type }}
-  </td>
-  <td>
-    <b>Price:</b> ₹{{ variant.price }}
-  </td>
-  <td>
-    <b>Stock:</b> {{ variant.stock }}
-  </td>
-  <td></td>
+  <td colspan="1" class="ps-5"><b>Variant:</b> {{ variant.variant_type }}</td>
+  <td><b>Price:</b> ₹{{ variant.price }}</td>
+  <td><b>Stock:</b> {{ variant.stock }}</td>
+  <td colspan="2"></td>
+</tr>
+{% empty %}
+<tr class="variant-row">
+  <td colspan="7" class="text-muted ps-5">No variants for this product.</td>
 </tr>
 {% endfor %}
+{% endfor %}
 
-            {% empty %}
-            <tr class="variant-row">
-              <td colspan="6" class="text-muted ps-5">No variants for this product.</td>
-            </tr>
-            
-            {% endfor %}
             
           </tbody>
         </table>

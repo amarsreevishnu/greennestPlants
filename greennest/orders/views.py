@@ -1,13 +1,14 @@
 
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
-from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.cache import never_cache
 from django.utils.dateparse import parse_date
+from offer.utils import get_best_offer
 from django.utils import timezone
 from django.http import HttpResponse, Http404
 from django.db.models import Q, Prefetch
+from django.contrib import messages
 
 from .models import Order, OrderItem
 from cart.models import Cart, CartItem
@@ -15,10 +16,15 @@ from users.models import Address
 from wallet.models import Wallet, WalletTransaction
 from coupon.models import Coupon, CouponUsage
 
-from offer.utils import get_best_offer
 from django.db import transaction
 from django.db.models import F
-
+from decimal import Decimal, ROUND_HALF_UP
+from django.utils.text import slugify
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from io import BytesIO
 
 @login_required
 @never_cache
@@ -27,13 +33,18 @@ def checkout_address(request):
     cart = Cart.objects.filter(user=user).first()
     addresses = Address.objects.filter(user=user)
     now = timezone.now()
-    global_coupons =( Coupon.objects.filter(active=True, valid_to__gte=now).exclude(id__in=CouponUsage.objects.filter(user=request.user).values_list("coupon_id", flat=True)))
-    user_coupons = Coupon.objects.filter(couponusage__user=request.user,couponusage__used=False,active=True,valid_to__gte=now)
+    global_coupons =( Coupon.objects.filter(active=True, valid_to__gte=now, is_referral=False).exclude(id__in=CouponUsage.objects.filter(user=request.user).values_list("coupon_id", flat=True)))
+    user_coupons = Coupon.objects.filter(couponusage__user=request.user,couponusage__used=False,active=True,valid_to__gte=now, is_referral=True)
     coupons = (user_coupons | global_coupons).distinct()
     
     if not cart or not cart.items.exists():
         return redirect('cart_detail')
 
+    for item in cart.items.all():
+        if item.variant.stock < item.quantity:
+            messages.error(request, f"{item.variant.product.name} is out of stock.")
+            return redirect("cart_detail")
+        
     # Calculate totals
     cart_items = cart.items.all()
     subtotal = 0
@@ -366,18 +377,22 @@ def order_detail(request, order_id):
     billable_items = items.exclude(status__in=["cancelled", "returned"])
     subtotal = sum(item.total_price for item in billable_items)
 
-    # Pull directly from order
-    shipping = order.shipping_charge or 0
+    # Handle shipping charge
+    if not billable_items.exists():
+        shipping = Decimal("0.00")   
+    else:
+        shipping = order.shipping_charge or Decimal("0.00")
+
     coupon_discount = Decimal("0.00")
     other_discount = Decimal("0.00")
 
     # Separate discounts if needed
     if order.coupon:
-        coupon_discount = min(order.discount, subtotal)  # avoid > subtotal
+        coupon_discount = min(order.discount, subtotal)  
     if hasattr(order, "other_discount") and order.other_discount:
         other_discount = order.other_discount
 
-    total = order.final_amount  # ✅ stored final amount is most reliable
+    total = subtotal - coupon_discount - other_discount + shipping
 
     # Flags for UI actions
     for item in items:
@@ -592,18 +607,7 @@ def request_return_item(request, order_id, item_id):
     return render(request, "orders/request_return_item.html", {"order": order, "item": item})
 
 
-
 # invoice download (PDF)-----------------------------------------------
-from decimal import Decimal, ROUND_HALF_UP
-from django.utils.text import slugify
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.cidfonts import UnicodeCIDFont
-from decimal import Decimal, ROUND_HALF_UP
-from io import BytesIO
-
 
 @login_required
 def download_invoice(request, order_id):
@@ -623,32 +627,32 @@ def download_invoice(request, order_id):
     def q2(val):
         return Decimal(val).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
+    # Only include items that are not cancelled or returned
+    items_to_show = items.exclude(status__in=["cancelled", "returned"])
+
     # --- Totals ---
-    original_subtotal = sum(item.price * item.quantity for item in items)
-    subtotal = sum(item.total_price for item in items.exclude(status__in=["cancelled", "returned"]))
-    shipping = order.shipping_charge or Decimal("0.00")
+    if items_to_show.exists():
+        subtotal = sum(item.total_price for item in items_to_show)
+        tax = sum(q2(item.total_price * getattr(item.variant.product, "tax_rate", 0) / 100)
+                  for item in items_to_show)
+        shipping = order.shipping_charge or Decimal("0.00")
+    else:
+        subtotal = Decimal("0.00")
+        tax = Decimal("0.00")
+        shipping = Decimal("0.00")
 
     # --- Discounts ---
     coupon_discount = Decimal("0.00")
-    other_discount = Decimal("0.00")
+    other_discount = getattr(order, "other_discount", Decimal("0.00"))
 
-    if order.coupon:
+    if order.coupon and subtotal > 0:
+        original_subtotal = sum(item.price * item.quantity for item in items)
         coupon_discount = (subtotal / original_subtotal * order.discount) if original_subtotal > 0 else order.discount
 
-    if getattr(order, "other_discount", None):
-        other_discount = order.other_discount
-
-    # --- Tax ---
-    tax = Decimal("0.00")
-    for item in items:
-        if hasattr(item.variant.product, "tax_rate"):
-            tax += q2(item.total_price * item.variant.product.tax_rate / 100)
-
-    # --- Final ---
+    # --- Final Amount ---
     final_amount = q2(subtotal + shipping - coupon_discount - other_discount + tax)
 
     # ------------------ HEADER ------------------
-    # Company Info (always show)
     company_name = "GreenNest Pvt Ltd"
     company_address = "123, MG Road, TVPM, Kerala, 682001"
     company_phone = "+91-9876543210"
@@ -661,22 +665,17 @@ def download_invoice(request, order_id):
     p.drawCentredString(width / 2, height - 65, company_address)
     p.drawCentredString(width / 2, height - 80, f"Phone: {company_phone} | Email: {company_email}")
 
-    # --- Draw line under header ---
     p.setLineWidth(1)
     p.line(40, height - 90, width - 40, height - 90)
 
-    # Invoice vs Order Summary title
     p.setFont(font_name_to_use, 14)
     if order.status.lower() == "delivered":
         title_text = f"Invoice No: {order.display_id}"
     else:
-        # For pending/shipped/processing
         title_text = f"Order Summary ({order.status.capitalize()})"
     p.drawCentredString(width / 2, height - 110, title_text)
 
-    # Order Info
     p.setFont(font_name_to_use, 10)
-    p.drawString(50, height - 100, f"Order ID: {order.display_id}")
     p.drawString(50, height - 115, f"Date: {order.created_at.strftime('%d %b %Y')}")
     p.drawString(50, height - 130, f"Status: {order.status}")
 
@@ -704,13 +703,14 @@ def download_invoice(request, order_id):
     y -= 20
 
     p.setFont(font_name_to_use, 10)
-    for item in items:
+
+    for item in items_to_show:
         p.drawString(50, y, f"{item.variant.product.name} ({item.variant.variant_type})")
         p.drawRightString(320, y, f"{item.price:.2f}")
         p.drawRightString(370, y, str(item.quantity))
         p.drawRightString(470, y, f"{item.total_price:.2f}")
         y -= 15
-        if y < 100:  # next page
+        if y < 100:
             p.showPage()
             y = height - 50
             p.setFont(font_name_to_use, 10)
@@ -743,7 +743,7 @@ def download_invoice(request, order_id):
     y -= line_height + 5
 
     p.setFont(font_name_to_use, 12)
-    if order.status == "Delivered":
+    if order.status.lower() == "delivered":
         p.drawString(350, y, "Final Amount:")
         p.drawRightString(width - 50, y, f"{final_amount:.2f}")
     else:
@@ -759,6 +759,7 @@ def download_invoice(request, order_id):
 
     buffer.seek(0)
     response = HttpResponse(buffer, content_type="application/pdf")
-    filename = "invoice" if order.status == "Delivered" else "order_summary"
+    filename = "invoice" if order.status.lower() == "delivered" else "order_summary"
     response["Content-Disposition"] = f'attachment; filename="{filename}_{order.display_id}.pdf"'
     return response
+

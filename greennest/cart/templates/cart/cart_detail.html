@@ -94,37 +94,53 @@
     </div>
 
     <!-- Order Summary -->
-    <div class="col-lg-4">
-      <div class="order-summary border p-3 rounded bg-white">
-        <h5 class="mb-3">Order Summary</h5>
+{% if cart_items %}
+<div class="col-lg-4">
+  <div class="order-summary border p-3 rounded bg-white">
+    <h5 class="mb-3">Order Summary</h5>
 
-        <p class="d-flex justify-content-between">
-          <span>Item Sub Total</span>
-          <span id="cart-subtotal">₹{{ subtotal }}</span>
-        </p>
+    <p class="d-flex justify-content-between">
+      <span>Item Sub Total</span>
+      <span id="cart-subtotal">₹{{ subtotal }}</span>
+    </p>
 
-        {% if total_discount > 0 %}
-        <p class="d-flex justify-content-between text-success">
-          <span>You Saved</span>
-           <span id="cart-discount">- ₹{{ total_discount }}</span>
-        </p>
+    {% if total_discount > 0 %}
+    <p class="d-flex justify-content-between text-success">
+      <span>You Saved</span>
+      <span id="cart-discount">- ₹{{ total_discount }}</span>
+    </p>
+    {% endif %}
+
+    <p class="d-flex justify-content-between">
+      <span>Shipping</span>
+      <span>
+        {% if subtotal > 0 and cart.shipping_charge > 0 %}
+          ₹{{ cart.shipping_charge }}
+        {% else %}
+          Free
         {% endif %}
+      </span>
+    </p>
 
-        <p class="d-flex justify-content-between">
-          <span>Shipping</span>
-          <span>{% if cart.shipping_charge > 0 %}₹{{ cart.shipping_charge }}{% else %}Free{% endif %}</span>
-        </p>
+    <hr>
 
-        <hr>
+    <p class="d-flex justify-content-between fw-bold">
+      <span>Total</span>
+      <span id="cart-total">₹{{ grand_total }}</span>
+    </p>
 
-        <p class="d-flex justify-content-between fw-bold">
-          <span>Total</span>
-          <span id="cart-total">₹{{ grand_total }}</span>
-        </p>
-
-        <a href="{% url 'checkout_address' %}" class="btn btn-success w-100">
-          CHECKOUT
-        </a>
+    {% if out_of_stock_items %}
+      <button class="btn btn-secondary w-100" disabled>
+        Cannot Checkout (Out of Stock Items)
+      </button>
+    {% else %}
+      <a href="{% url 'checkout_address' %}" class="btn btn-success w-100">
+        CHECKOUT
+      </a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
       </div>
     </div>
   </div>

@@ -296,8 +296,19 @@ def sales_report(request):
 
 
 
+from django.utils.dateparse import parse_date
+
 def download_sales_report_pdf(request):
     orders = Order.objects.filter(status__in=["completed", "delivered"])
+
+    # Apply custom date range filter (same as sales_report)
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
+
+    if start_date and end_date:
+        orders = orders.filter(
+            created_at__date__range=[parse_date(start_date), parse_date(end_date)]
+        )
 
     # Create a PDF in memory
     buffer = BytesIO()
@@ -307,7 +318,6 @@ def download_sales_report_pdf(request):
     # Title
     p.setFont("Helvetica-Bold", 16)
     p.drawString(200, height - 50, "Sales Report")
-   
 
     # Date
     p.setFont("Helvetica", 10)
@@ -337,14 +347,18 @@ def download_sales_report_pdf(request):
     y -= 20
     p.setFont("Helvetica-Bold", 10)
     p.drawString(50, y, "Order ID")
-    p.drawString(120, y, "User")
-    p.drawString(200, y, "Status")
-    p.drawString(270, y, "Final Amount")
-    p.drawString(370, y, "Date")
+    p.drawString(150, y, "User")
+    p.drawString(230, y, "Status")
+    p.drawString(330, y, "Final Amount")
+    p.drawString(400, y, "Date")
     y -= 15
     p.line(50, y, 500, y)
     y -= 15
 
+    p.setFont("Helvetica", 10)
+    if start_date and end_date:
+        p.drawString(50, height - 95, f"Date Range: {start_date} to {end_date}")
+        
     # Orders list
     p.setFont("Helvetica", 9)
     for order in orders:
@@ -354,10 +368,10 @@ def download_sales_report_pdf(request):
             p.setFont("Helvetica", 9)
 
         p.drawString(50, y, str(order.display_id))
-        p.drawString(120, y, str(order.user.first_name))
-        p.drawString(200, y, str(order.status))
-        p.drawString(270, y, f"Rs.{order.final_amount:.2f}")
-        p.drawString(370, y, order.created_at.strftime("%Y-%m-%d"))
+        p.drawString(150, y, str(order.user.first_name))
+        p.drawString(230, y, str(order.status))
+        p.drawString(330, y, f"Rs.{order.final_amount:.2f}")
+        p.drawString(400, y, order.created_at.strftime("%Y-%m-%d"))
         y -= 20
 
     p.save()

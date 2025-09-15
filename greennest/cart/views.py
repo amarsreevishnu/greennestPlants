@@ -57,6 +57,8 @@ def cart_detail(request):
     subtotal = 0
     total_discount = 0
     grand_total = 0
+    out_of_stock_items = False  
+
 
     for item in cart_items:
         variant = item.variant
@@ -67,6 +69,14 @@ def cart_detail(request):
         item.offer_applied = offer_info
         item.discounted_price = final_price
         item.final_total = final_price * item.quantity  
+       
+        # --- STOCK CHECK ---
+        if variant.stock == 0 or item.quantity > variant.stock:
+            item.is_available = False
+            out_of_stock_items = True
+        else:
+            item.is_available = True
+
 
         subtotal += variant.price * item.quantity
         total_discount += (variant.price - final_price) * item.quantity
@@ -78,6 +88,7 @@ def cart_detail(request):
         "subtotal": subtotal,
         "total_discount": total_discount,
         "grand_total": grand_total + getattr(cart, "shipping_charge", 0),
+        "out_of_stock_items": out_of_stock_items,
     }
 
     return render(request, "cart/cart_detail.html", context)

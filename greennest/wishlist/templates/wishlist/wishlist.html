@@ -42,7 +42,11 @@
                         {% endif %}
                     </td>
                     <td>
-                        <a href="{% url 'add_to_cart' entry.variant.id %}" class="btn btn-success btn-sm">Add to Cart</a>
+                         {% if entry.variant.stock > 0 %}
+        <a href="{% url 'add_to_cart' entry.variant.id %}" class="btn btn-success btn-sm">Add to Cart</a>
+    {% else %}
+        <span class="badge bg-danger">Out of Stock</span>
+    {% endif %}
                     </td>
                 </tr>
                 {% empty %}

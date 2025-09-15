@@ -9,31 +9,49 @@ from cart.models import Cart
 
 
 @login_required(login_url="user_login")
+
 def user_coupons(request):
     now = timezone.now()
-    # Get valid coupons
-    coupons = Coupon.objects.filter(
+
+    # Global coupons (valid for everyone)
+    global_coupons = Coupon.objects.filter(
         active=True,
         valid_from__lte=now,
         valid_to__gte=now,
+        is_referral=False
     )
 
-    # Get usage info for this user
+    # Referral coupons (ONLY those assigned to this user)
+    referral_usages = CouponUsage.objects.filter(
+        user=request.user,
+        coupon__active=True,
+        coupon__valid_from__lte=now,
+        coupon__valid_to__gte=now,
+        coupon__is_referral=True
+    ).select_related("coupon")
+
+    # Build combined list with usage status
+    coupon_list = []
+
+    # Add global coupons (mark used if present in CouponUsage)
     user_usages = {
         usage.coupon_id: usage.used
         for usage in CouponUsage.objects.filter(user=request.user)
     }
-
-    # Attach status (used/available) to each coupon
-    coupon_list = []
-    for coupon in coupons:
+    for coupon in global_coupons:
         coupon_list.append({
             "coupon": coupon,
             "used": user_usages.get(coupon.id, False),
         })
 
-    return render(request, "user_coupons.html", {"coupon_list": coupon_list})
+    # Add referral coupons (from this user's usages only)
+    for usage in referral_usages:
+        coupon_list.append({
+            "coupon": usage.coupon,
+            "used": usage.used,
+        })
 
+    return render(request, "user_coupons.html", {"coupon_list": coupon_list})
 
 @login_required
 def apply_coupon(request):

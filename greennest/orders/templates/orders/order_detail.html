@@ -69,7 +69,7 @@
       <td>
   {% with item.status|lower as status %}
     {% if status == "active" %}
-        {% if order.status == "pending" or order.status == "processing" %}
+        {% if order.status == "pending" or order.status == "processing" or order.status == "partially_cancelled" %}
             <a href="{% url 'cancel_order_item' item.id %}" class="btn btn-sm btn-outline-danger">
               Cancel
             </a>

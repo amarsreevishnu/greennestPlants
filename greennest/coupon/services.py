@@ -15,6 +15,7 @@ def create_referral_coupon(inviter):
         valid_to=timezone.now() + timezone.timedelta(days=30),
         max_discount_amount=Decimal("500.00"),  # optional cap
         min_order_value=Decimal("100.00"),        # 500 minimum order
+        is_referral=True,
     )
 
     CouponUsage.objects.create(
