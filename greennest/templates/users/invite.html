@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+
+
+
+<!-- Breadcrumb -->
+<div class="container py-3">
+    <div class="row">
+        
+        {% include "users/user_profile_sidebar.html" with current_page="Update Email" %}
+    
+
+
+    </div>
+    
+    <!-- Profile change password -->
+    <div class="col-md-9 py-2">
+        <div class="profile-card">
+
+<!-- Bootstrap Alert placeholder -->
+  <div id="copyAlert" class="alert alert-success mt-3 d-none" role="alert">
+    Invite link copied to clipboard!
+  </div>
+
+<div class="container py-5 text-center">
+  <h2 class="mb-3">Invite a Friend</h2>
+  <p>Share this link with your friends. When they sign up, <strong>you’ll get a 10% off coupon!</strong></p>
+
+  <div class="card p-3 shadow-sm">
+    <input type="text" class="form-control" value="{{ invite_url }}" readonly id="inviteLink">
+    <button class="btn btn-success mt-3" onclick="copyInvite()">Copy Link</button>
+  </div>
+</div>
+
+
+
+ </div>
+    </div>
+</div>
+</div>
+
+
+<script>
+function copyInvite() {
+  let link = document.getElementById("inviteLink");
+  link.select();
+  link.setSelectionRange(0, 99999);
+  document.execCommand("copy");
+
+  // Show Bootstrap alert
+  let alertBox = document.getElementById("copyAlert");
+  alertBox.classList.remove("d-none"); // make visible
+
+  // Hide after 3 seconds
+  setTimeout(function() {
+    alertBox.classList.add("d-none");
+  }, 3000);
+}
+</script>
+
+
+{% endblock %}

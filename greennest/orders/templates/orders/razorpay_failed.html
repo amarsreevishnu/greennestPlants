@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<style>
+  .payment-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 80vh;
+    background-color: #f9f9f9;
+  }
+  .payment-card {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: 350px;
+  }
+  .payment-card h2 {
+    margin-bottom: 20px;
+    font-size: 24px;
+  }
+</style>
+
+<div class="payment-container">
+  <div class="payment-card text-center">
+    <img src="{% static 'images/payment_failed.png' %}" alt="Payment Failed" width="80" class="mb-4">
+
+    <h2 class="text-danger">Payment Failed</h2>
+    <p class="lead">Oops! Your payment could not be processed.</p>
+
+    <div class="mt-4 d-flex justify-content-center gap-3">
+        <!-- Retry Payment -->
+        <a href="{% url 'checkout_payment' %}" class="btn btn-primary">
+            Retry Payment
+        </a>
+
+        <!-- View Cart -->
+        <a href="{% url 'cart_detail'  %}" class="btn btn-outline-secondary">
+            View Cart
+        </a>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

@@ -27,7 +27,9 @@ def checkout_address(request):
     cart = Cart.objects.filter(user=user).first()
     addresses = Address.objects.filter(user=user)
     now = timezone.now()
-    coupons =( Coupon.objects.filter(active=True, valid_to__gte=now).exclude(id__in=CouponUsage.objects.filter(user=request.user).values_list("coupon_id", flat=True)))
+    global_coupons =( Coupon.objects.filter(active=True, valid_to__gte=now).exclude(id__in=CouponUsage.objects.filter(user=request.user).values_list("coupon_id", flat=True)))
+    user_coupons = Coupon.objects.filter(couponusage__user=request.user,couponusage__used=False,active=True,valid_to__gte=now)
+    coupons = (user_coupons | global_coupons).distinct()
     
     if not cart or not cart.items.exists():
         return redirect('cart_detail')
@@ -69,7 +71,7 @@ def checkout_address(request):
                         request, 
                         f"⚠️ Minimum order of ₹{applied_coupon.min_order_value} required to use this coupon."
                     )
-                    request.session.pop("applied_coupon_id", None)  # remove invalid coupon
+                    request.session.pop("applied_coupon_id", None)  # removing invalid coupon
                     applied_coupon = None
             else:
                 request.session.pop("applied_coupon_id", None)
@@ -156,8 +158,8 @@ def save_selected_address(request):
     return HttpResponse(status=200)
 
 
+
 @login_required
-@never_cache
 def checkout_payment(request):
     user = request.user
     cart = Cart.objects.filter(user=user).first()
@@ -172,9 +174,6 @@ def checkout_payment(request):
         variant = item.variant
         best_offer = get_best_offer(variant)
         product_price = variant.price
-        discount_amount = 0
-        if best_offer:
-            discount_amount = (product_price * best_offer["discount"]) / 100
         final_price = best_offer["final_price"] if best_offer else product_price
         subtotal += final_price * item.quantity
 
@@ -186,7 +185,7 @@ def checkout_payment(request):
         applied_coupon = Coupon.objects.filter(id=coupon_id, active=True).first()
         if applied_coupon and applied_coupon.is_valid():
             discount = applied_coupon.calculate_discount(subtotal)
-    
+
     total = subtotal + shipping - discount
 
     if request.method == "POST":
@@ -197,85 +196,94 @@ def checkout_payment(request):
             messages.error(request, "Please select an address.")
             return redirect("checkout_payment")
 
-        address = get_object_or_404(Address, id=address_id, user=user)
-        coupon = Coupon.objects.filter(id=coupon_id).first() if coupon_id else None
+        selected_address = get_object_or_404(Address, id=address_id, user=user)
 
         if payment_method == "wallet":
             wallet, _ = Wallet.objects.get_or_create(user=user)
             if wallet.balance < total:
                 messages.error(request, "Insufficient wallet balance to complete this order.")
                 return redirect("checkout_payment")
-        
-        try:
-            with transaction.atomic():
-                order_status = "processing" if payment_method in ["cod", "wallet"] else "pending"
 
-                order = Order.objects.create(
-                    user=user,
-                    address=address,
-                    total_amount=subtotal,
-                    shipping_charge=shipping,
-                    discount=discount,
-                    final_amount=total,
-                    coupon=coupon,
-                    status=order_status,
-                    payment_method=payment_method,
-                )
-
-                # Deduct stock + create items
-                for item in cart.items.select_related("variant").select_for_update():
-                    variant = item.variant
-                    variant.refresh_from_db()
-                    if variant.stock is not None and variant.stock >= item.quantity:
-                        variant.stock -= item.quantity
-                        variant.save()
-                    else:
-                        messages.error(request, f"Insufficient stock for {variant.name}")
-                        raise ValueError("Stock error")
-
-                    best_offer = get_best_offer(variant)
-                    product_price = variant.price
-                    final_price = best_offer["final_price"] if best_offer else product_price
-
-                    OrderItem.objects.create(
-                        order=order,
-                        variant=variant,
-                        quantity=item.quantity,
-                        price=final_price,
-                        total_price=final_price * item.quantity,
-                    )
-
-                # Mark coupon usage for COD/Wallet immediately
-                if payment_method in ["cod", "wallet"] and coupon:
-                    CouponUsage.objects.update_or_create(
+        # For COD and Wallet → create order immediately
+        if payment_method in ["cod", "wallet"]:
+            try:
+                with transaction.atomic():
+                    order_status = "processing"
+                    order = Order.objects.create(
                         user=user,
-                        coupon=coupon,
-                        defaults={"used": True, "used_at": timezone.now()},
+                        address=selected_address,
+                        total_amount=subtotal,
+                        shipping_charge=shipping,
+                        discount=discount,
+                        final_amount=total,
+                        coupon=applied_coupon,
+                        status=order_status,
+                        payment_method=payment_method,
                     )
 
-                # Clear cart for COD/Wallet
-                if payment_method in ["cod", "wallet"]:
+                    # Deduct stock + create order items
+                    for item in cart.items.select_related("variant").select_for_update():
+                        variant = item.variant
+                        variant.refresh_from_db()
+                        if variant.stock is not None and variant.stock >= item.quantity:
+                            variant.stock -= item.quantity
+                            variant.save()
+                        else:
+                            messages.error(request, f"Insufficient stock for {variant.name}")
+                            raise ValueError("Stock error")
+
+                        best_offer = get_best_offer(variant)
+                        product_price = variant.price
+                        final_price = best_offer["final_price"] if best_offer else product_price
+
+                        OrderItem.objects.create(
+                            order=order,
+                            variant=variant,
+                            quantity=item.quantity,
+                            price=final_price,
+                            total_price=final_price * item.quantity,
+                        )
+
+                    # Mark coupon usage
+                    if applied_coupon:
+                        CouponUsage.objects.update_or_create(
+                            user=user,
+                            coupon=applied_coupon,
+                            defaults={"used": True, "used_at": timezone.now()},
+                        )
+
+                    # Clear cart
                     cart.delete()
                     request.session.pop("applied_coupon_id", None)
                     request.session.pop("selected_address_id", None)
 
-                # Save order ID in session for Razorpay
-                request.session["current_order_id"] = order.id
+                if payment_method == "cod":
+                    return redirect("cod_payment", order_id=order.id)
+                else:
+                    return redirect("wallet_payment", order_id=order.id)
 
-        except Exception as e:
-            messages.error(request, f"Could not place order: {str(e)}")
-            return redirect("checkout_payment")
+            except Exception as e:
+                messages.error(request, f"Could not place order: {str(e)}")
+                return redirect("checkout_payment")
 
-        if payment_method == "cod":
-            return redirect("cod_payment", order_id=order.id)
-        elif payment_method == "wallet":
-            return redirect("wallet_payment", order_id=order.id)
+        # For Razorpay → defer order creation
         elif payment_method == "razorpay":
-            return redirect("razorpay_checkout", order_id=order.id)
+            # Save cart and checkout info in session
+            request.session['razorpay_cart_data'] = {
+                "subtotal": str(subtotal),  # convert to str for JSON serializable
+                "shipping": str(shipping),
+                "discount": str(discount),
+                "total": str(total),
+                "address_id": selected_address.id,
+                "coupon_id": applied_coupon.id if applied_coupon else None,
+            }
+            return redirect("razorpay_checkout")
+
         else:
             messages.error(request, "Invalid payment method.")
             return redirect("checkout_payment")
 
+    # Handle selected address
     selected_address_id = request.session.get("selected_address_id")
     selected_address = None
     if selected_address_id:
@@ -298,7 +306,6 @@ def checkout_payment(request):
 
 
 
-
 @login_required
 @never_cache
 def order_success(request, order_id):
@@ -312,10 +319,9 @@ def order_success(request, order_id):
 
 @login_required
 @never_cache
-def order_failure(request, order_id):
-    order = get_object_or_404(Order, id=order_id, user=request.user)
-    return render(request, "orders/order_failure.html", {"order": order})
-
+def razorpay_failed_payment(request):
+    # No order yet, so just show generic failure
+    return render(request, "orders/razorpay_failed.html")
 
 
 @login_required

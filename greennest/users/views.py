@@ -1,7 +1,7 @@
 import random
 import re
 
-from django.contrib import messages
+from django.urls import reverse
 from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import never_cache
@@ -16,13 +16,15 @@ from datetime import datetime
 from django.contrib.auth import update_session_auth_hash
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
+from django.core.signing import Signer, BadSignature
+from coupon.services import create_referral_coupon
 
 from .models import EmailOTP,Profile, Address
 from products.models import Product, ProductVariant
 from offer.models import ProductOffer, CategoryOffer
 
-User = get_user_model()  # Gets CustomUser model
-
+User = get_user_model()  
+signer = Signer()
 
 def user_signup(request):
     if request.user.is_authenticated:
@@ -32,6 +34,7 @@ def user_signup(request):
         email = request.POST.get('email')
         password = request.POST.get('password')
         password_confirm = request.POST.get('password_confirm')
+        invite_token = request.GET.get("invite")
     
         if not name or not email or not password or not password_confirm:
             messages.error(request, "All fields are required.")
@@ -52,6 +55,7 @@ def user_signup(request):
         if User.objects.filter(email=email).exists():
             messages.error(request, "Email is already registered.")
             return redirect('user_signup')
+        
         user = User.objects.create(
             username=email,   
             email=email,
@@ -63,9 +67,28 @@ def user_signup(request):
         request.session['pending_user_id'] = user.id
         
         send_otp_email(user) 
+
+        # --- handle referral ---
+        if invite_token:
+            try:
+                inviter_id = signer.unsign(invite_token)
+                inviter = User.objects.get(id=inviter_id)
+                create_referral_coupon(inviter)  #  reward inviter
+            except (BadSignature, User.DoesNotExist):
+                pass
+        
         return redirect('verify_otp')
 
     return render(request, 'users/user_signup.html')
+
+@login_required
+def generate_invite_link(request):
+    token = signer.sign(request.user.id)
+    invite_url = request.build_absolute_uri(
+        reverse("user_signup") + f"?invite={token}"
+    )
+    return render(request, "users/invite.html", {"invite_url": invite_url})
+
 
 def send_otp_email(user):
     otp = f"{random.randint(1000, 9999)}"

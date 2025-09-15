@@ -13,6 +13,7 @@ urlpatterns = [
     path ('verify_reset_otp/', views.verify_reset_otp, name='verify_reset_otp'),
     path('reset_password/', views.reset_password, name='reset_password'),
 
+    path("invite/", views.generate_invite_link, name="generate_invite_link"),
 
     path("profile/", views.profile_detail, name="profile_detail"),
     path('profile/edit/', views.profile_edit, name='profile_edit'),

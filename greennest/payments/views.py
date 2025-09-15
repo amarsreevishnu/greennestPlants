@@ -1,14 +1,20 @@
+from datetime import timezone
 import razorpay
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.conf import settings
 from django.db import transaction
+from decimal import Decimal
 
-from orders.models import Order
+from coupon.models import Coupon, CouponUsage
+from offer.utils import get_best_offer
+from users.models import Address
+from orders.models import Order, OrderItem
 from payments.models import Payment
 from wallet.models import Wallet, WalletTransaction
 from cart.models import Cart
+
 
 client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
@@ -84,36 +90,42 @@ def wallet_payment(request, order_id):
 
 # Razorpay Checkout
 @login_required
-def razorpay_checkout(request, order_id):
-    order = get_object_or_404(Order, id=order_id, user=request.user)
+@login_required
+def razorpay_checkout(request):
+    cart_data = request.session.get('razorpay_cart_data')
+    if not cart_data:
+        messages.error(request, "Session expired. Please try again.")
+        return redirect("checkout_payment")
 
+    # Convert amounts from string to Decimal
+    total_amount = Decimal(cart_data['total'])
+
+    # Convert to paise
+    amount_in_paise = int(total_amount * 100)
+
+    amount_in_rupees = amount_in_paise / 100
+
+    # Create Razorpay order
     razorpay_order = client.order.create({
-        "amount": int(order.final_amount * 100),
+        "amount": amount_in_paise,
         "currency": "INR",
         "payment_capture": "1"
     })
 
-    # Create or update pending Payment
-    payment, created = Payment.objects.get_or_create(
-        order=order,
+    # Create pending Payment without order yet
+    payment = Payment.objects.create(
         user=request.user,
         method="razorpay",
-        defaults={
-            "amount": order.final_amount,
-            "status": "pending",
-            "razorpay_order_id": razorpay_order["id"],
-        }
+        amount=total_amount,
+        status="pending",
+        razorpay_order_id=razorpay_order["id"],
     )
-    if not created:
-        payment.razorpay_order_id = razorpay_order["id"]
-        payment.status = "pending"
-        payment.save()
 
     context = {
-        "order": order,
         "razorpay_order_id": razorpay_order["id"],
         "razorpay_key": settings.RAZORPAY_KEY_ID,
-        "amount": order.final_amount,
+        "amount_in_paise": amount_in_paise,
+        "amount_in_rupees": amount_in_rupees,
     }
     return render(request, "razorpay_checkout.html", context)
 
@@ -122,59 +134,96 @@ def razorpay_checkout(request, order_id):
 # Razorpay Callback
 @login_required
 def razorpay_callback(request):
-    if request.method == "POST":
-        payment_id = request.POST.get("razorpay_payment_id")
-        order_id = request.POST.get("razorpay_order_id")
-        signature = request.POST.get("razorpay_signature")
+    if request.method != "POST":
+        return redirect("checkout_payment")
 
-        payment = Payment.objects.filter(razorpay_order_id=order_id).first()
-        if not payment:
-            messages.error(request, "Payment record not found ❌")
-            return redirect("cart_detail")
+    payment_id = request.POST.get("razorpay_payment_id")
+    razorpay_order_id = request.POST.get("razorpay_order_id")
+    signature = request.POST.get("razorpay_signature")
 
-        try:
-            if not payment_id or not signature:
-                raise ValueError("Missing payment_id or signature")
+    payment = Payment.objects.filter(razorpay_order_id=razorpay_order_id).first()
+    if not payment:
+        messages.error(request, "Payment record not found ❌")
+        return redirect("checkout_payment")
 
-            params_dict = {
-                "razorpay_order_id": order_id,
-                "razorpay_payment_id": payment_id,
-                "razorpay_signature": signature
-            }
-            client.utility.verify_payment_signature(params_dict)
+    try:
+        params_dict = {
+            "razorpay_order_id": razorpay_order_id,
+            "razorpay_payment_id": payment_id,
+            "razorpay_signature": signature
+        }
+        client.utility.verify_payment_signature(params_dict)
 
-            with transaction.atomic():
-                # refetch cleanly without outer joins
-                order = Order.objects.select_for_update(of=("self",)).get(id=payment.order_id)
+        with transaction.atomic():
+            # Fetch session data
+            cart_data = request.session.get('razorpay_cart_data')
+            if not cart_data:
+                raise ValueError("Session expired")
 
-                # ✅ Success
-                payment.status = "success"
-                payment.razorpay_payment_id = payment_id
-                payment.razorpay_signature = signature
-                payment.save()
+            # Create Order
+            order = Order.objects.create(
+                user=request.user,
+                address_id=cart_data['address_id'],
+                total_amount=Decimal(cart_data['subtotal']),
+                shipping_charge=Decimal(cart_data['shipping']),
+                discount=Decimal(cart_data['discount']),
+                final_amount=Decimal(cart_data['total']),
+                coupon_id=cart_data.get('coupon_id'),
+                status='processing',
+                payment_method='Razorpay',
+            )
 
-                order.status = "processing"
-                order.payment_method = "Razorpay"
-                order.save()
+            # Deduct stock & create OrderItems
+            cart = Cart.objects.filter(user=request.user).first()
+            if not cart:
+                raise ValueError("Cart not found")
 
-            Cart.objects.filter(user=request.user).delete()
+            for item in cart.items.select_related("variant").select_for_update():
+                variant = item.variant
+                variant.refresh_from_db()
+                if variant.stock is not None and variant.stock >= item.quantity:
+                    variant.stock -= item.quantity
+                    variant.save()
+                else:
+                    raise ValueError(f"Insufficient stock for {variant.name}")
+
+                best_offer = get_best_offer(variant)
+                final_price = best_offer["final_price"] if best_offer else variant.price
+
+                OrderItem.objects.create(
+                    order=order,
+                    variant=variant,
+                    quantity=item.quantity,
+                    price=final_price,
+                    total_price=final_price * item.quantity,
+                )
+
+            # Mark coupon usage
+            if cart_data.get('coupon_id'):
+                CouponUsage.objects.update_or_create(
+                    user=request.user,
+                    coupon_id=cart_data['coupon_id'],
+                    defaults={"used": True, "used_at": timezone.now()},
+                )
+
+            # Update Payment
+            payment.status = "success"
+            payment.razorpay_payment_id = payment_id
+            payment.razorpay_signature = signature
+            payment.order = order
+            payment.save()
+
+            # Clear cart & session
+            cart.delete()
+            request.session.pop('razorpay_cart_data', None)
             request.session.pop("applied_coupon_id", None)
+            request.session.pop("selected_address_id", None)
 
-            messages.success(request, "Payment successful via Razorpay ✅")
-            return redirect("order_success", order_id=order.id)
+        messages.success(request, "Payment successful via Razorpay ✅")
+        return redirect("order_success", order_id=order.id)
 
-        except Exception as e:
-            with transaction.atomic():
-                order = Order.objects.get(id=payment.order_id)
-                payment.status = "failed"
-                payment.save()
-                order.status = "failed"
-                order.save()
-
-            messages.error(request, f"Payment failed ❌ Reason: {str(e)}")
-            return redirect("order_failure", order_id=order.id)
-
-    return redirect("cart_detail")
-
-
-
+    except Exception as e:
+        payment.status = "failed"
+        payment.save()
+        messages.error(request, f"Payment failed ❌ Reason: {str(e)}")
+        return redirect("checkout_payment")

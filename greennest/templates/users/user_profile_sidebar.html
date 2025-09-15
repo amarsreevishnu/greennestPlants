@@ -16,9 +16,16 @@
         </div> 
         <div class="sidebar text-center">
             <div>
-                <img src="{{ request.user.profile.avatar.url }}" alt="Profile" 
-                class="img-fluid rounded-circle" width="100">  
-            </div>
+    {% if request.user.profile.avatar %}
+        <img src="{{ request.user.profile.avatar.url }}" 
+             alt="Profile" 
+             class="img-fluid rounded-circle" width="100">
+    {% else %}
+        <img src="{% static 'images/user-profile.jpg' %}" 
+             alt="Default Profile" 
+             class="img-fluid rounded-circle" width="100">
+    {% endif %}
+</div>
 
         <h5>{{ request.user.profile.user.first_name }}</h5>
         <p>{{ request.user.profile.user.email }}</p>
@@ -56,6 +63,11 @@
             <li>
             <a class="nav-link " href="{% url "profile_change_email" %}">
                 Update Email <i class="bi bi-arrow-right"></i>
+            </a>
+            </li>
+            <li>
+            <a class="nav-link " href="{% url "generate_invite_link" %}">
+                🎁 Invite Friends <i class="bi bi-arrow-right"></i>
             </a>
             </li>
         </ul>

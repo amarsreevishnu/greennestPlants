@@ -119,8 +119,9 @@
           </form>
 
           <hr>
-            {% for coupon in coupons %}
+            
             <h6 class="text-center">Available Coupons</h6>
+            {% for coupon in coupons %}
               <div >  
                     <h6 class="card-title ">{{ coupon.code }}
                       (Discount:{{ coupon.discount|floatformat:"0" }}%)</h6>
