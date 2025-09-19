@@ -7,6 +7,9 @@ from django.views.decorators.cache import never_cache
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
+from datetime import timedelta
+from django.utils.timezone import now
+from django.db.models import Sum
 from functools import wraps
 
 from users.views import User
@@ -61,11 +64,61 @@ def admin_dashboard(request):
     order_count = Order.objects.count()
     user_count = User.objects.filter(is_superuser=False).count()
     orders = Order.objects.select_related('user').all().order_by('-created_at')
+    today = now()
+    current_month_total = (
+        Order.objects.filter(created_at__year=today.year, created_at__month=today.month)
+        .aggregate(total_amount=Sum("total_amount"))
+    )["total_amount"] or 0
+
+    filter_type = request.GET.get("filter", "monthly")
+    today = now().date()
+
+    if filter_type == "daily":
+        data = (
+            Order.objects.filter(created_at__date=today)
+            .values("created_at__date")
+            .annotate(total_sales=Sum("total_amount"))
+        )
+    elif filter_type == "weekly":
+        start_week = today - timedelta(days=7)
+        data = (
+            Order.objects.filter(created_at__date__gte=start_week)
+            .values("created_at__date")
+            .annotate(total_sales=Sum("total_amount"))
+        )
+    elif filter_type == "yearly":
+        data = (
+            Order.objects.filter(created_at__year=today.year)
+            .values("created_at__month")
+            .annotate(total_sales=Sum("total_amount"))
+            .order_by("created_at__month")
+        )
+    else:  # monthly
+        data = (
+            Order.objects.filter(created_at__month=today.month)
+            .values("created_at__day")
+            .annotate(total_sales=Sum("total_amount"))
+            .order_by("created_at__day")
+        )
+
+    labels, sales = [], []
+    for d in data:
+        if "created_at__month" in d:
+            labels.append(f"Month {d['created_at__month']}")
+        elif "created_at__day" in d:
+            labels.append(f"Day {d['created_at__day']}")
+        else:
+            labels.append(str(d["created_at__date"]))
+        sales.append(float(d["total_sales"]))
 
     context = {
         'order_count': order_count,
         'user_count': user_count,
         'orders': orders[:5],
+         "labels": labels,
+        "sales": sales,
+        "filter": filter_type,
+        "current_month_total": current_month_total
     }
     return render(request, 'admin_dashboard.html', context)
 

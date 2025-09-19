@@ -22,6 +22,7 @@
                     autocomplete="off">
                     <span id="clear-btn" class="position-absolute top-0 end-0 me-5 mt-1" style="cursor: pointer; display: none;" onclick="clearInput()">✖</span>  
                 </form> {% endcomment %}
+<a href="{% url 'product_offer_create' %}" class="btn btn-success mb-3">Add Offer</a>
             <div class="d-flex align-items-center profile-area">  
               
           <div>
@@ -37,7 +38,7 @@
             
      
 
-<a href="{% url 'product_offer_create' %}" class="btn btn-success mb-3">Add Offer</a>
+
 <table class="table table-bordered">
     <thead>
         <tr>
@@ -67,17 +68,17 @@
 </td>
 
             <td>
-                <a href="{% url 'product_offer_edit' offer.pk %}" class="btn btn-primary btn-sm">Edit</a>
-                <a href="{% url 'product_offer_delete' offer.pk %}" class="btn btn-danger btn-sm">Delete</a>
+                <a href="{% url 'product_offer_edit' offer.pk %}" class="btn  btn-sm"><i class="bi bi-pencil-square text-primary"></i></a>
+                <a href="{% url 'product_offer_delete' offer.pk %}" class="btn  btn-sm"><i class="bi bi-trash text-danger"></i></a>
                  {% if offer.is_active %}
         <a href="{% url 'product_offer_toggle' offer.pk %}" 
-           class="btn btn-warning btn-sm">
-           Deactivate
+           class="btn  btn-sm">
+           <i class="bi bi-toggle-off text-warning"></i>
         </a>
     {% else %}
         <a href="{% url 'product_offer_toggle' offer.pk %}" 
-           class="btn btn-success btn-sm">
-           Activate
+           class="btn  btn-sm">
+           <i class="bi bi-toggle-on text-success"></i>
         </a>
     {% endif %}
             </td>

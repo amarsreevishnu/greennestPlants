@@ -3,7 +3,7 @@ from django.db import models
 from django.utils import timezone
 from django.conf import settings
 
-
+from cloudinary.models import CloudinaryField
 
 
 class User(AbstractUser):
@@ -32,7 +32,7 @@ class Profile(models.Model):
     gender = models.CharField(
         max_length=10, choices=[("male", "Male"), ("female", "Female")], blank=True
     )
-    avatar = models.ImageField(upload_to="avatars/", null=True, blank=True)
+    avatar = CloudinaryField('image', null=True, blank=True)
 
     def __str__(self):
         return f"{self.user.username} Profile"

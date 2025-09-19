@@ -82,7 +82,7 @@ def checkout_address(request):
                         request, 
                         f"⚠️ Minimum order of ₹{applied_coupon.min_order_value} required to use this coupon."
                     )
-                    request.session.pop("applied_coupon_id", None)  # removing invalid coupon
+                    request.session.pop("applied_coupon_id", None)  
                     applied_coupon = None
             else:
                 request.session.pop("applied_coupon_id", None)
@@ -171,6 +171,7 @@ def save_selected_address(request):
 
 
 @login_required
+@never_cache
 def checkout_payment(request):
     user = request.user
     cart = Cart.objects.filter(user=user).first()
@@ -214,6 +215,10 @@ def checkout_payment(request):
             if wallet.balance < total:
                 messages.error(request, "Insufficient wallet balance to complete this order.")
                 return redirect("checkout_payment")
+
+        if payment_method == "cod" and total > 1000:
+            messages.error(request, "Cash on Delivery is not available for orders above ₹1000.")
+            return redirect("checkout_payment")
 
         # For COD and Wallet → create order immediately
         if payment_method in ["cod", "wallet"]:
@@ -279,9 +284,9 @@ def checkout_payment(request):
 
         # For Razorpay → defer order creation
         elif payment_method == "razorpay":
-            # Save cart and checkout info in session
+            
             request.session['razorpay_cart_data'] = {
-                "subtotal": str(subtotal),  # convert to str for JSON serializable
+                "subtotal": str(subtotal),  
                 "shipping": str(shipping),
                 "discount": str(discount),
                 "total": str(total),
@@ -413,7 +418,6 @@ def order_detail(request, order_id):
 
 
 #Cancel the entire order
-# Cancel the entire order
 @login_required
 @never_cache
 def cancel_order(request, order_id):
@@ -449,7 +453,7 @@ def cancel_order(request, order_id):
                 item.variant.stock += item.quantity
                 item.variant.save()
 
-        # ✅ Refund if prepaid (exclude COD)
+        # Refund if prepaid (exclude COD)
         if order.payment_method.lower() not in ["cod", "cash on delivery"]:
             refund_amount = order.final_amount
 
@@ -490,19 +494,18 @@ def cancel_order_item(request, item_id):
             item.variant.stock += item.quantity
             item.variant.save()
 
-        # Check if any active items remain
         active_items_exist = order.items.filter(status="active").exists()
 
         # --- Refund Calculation ---
         if not active_items_exist:
-            # All items cancelled → refund full order (including shipping - discount)
+            
             refund_amount = order.final_amount
         else:
-            # Partial cancellation → refund proportional to item total
+            
             item_total = item.quantity * item.price
 
             if order.discount > 0 and order.subtotal > 0:
-                # Apply proportional share of discount
+                
                 discount_share = (item_total / order.subtotal) * order.discount
             else:
                 discount_share = 0
@@ -529,7 +532,6 @@ def cancel_order_item(request, item_id):
         # Recalculate totals
         order.recalc_totals()
 
-        # Update order status
         order.status = "cancelled" if not active_items_exist else "partially_cancelled"
         order.save()
 
@@ -627,7 +629,6 @@ def download_invoice(request, order_id):
     def q2(val):
         return Decimal(val).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
-    # Only include items that are not cancelled or returned
     items_to_show = items.exclude(status__in=["cancelled", "returned"])
 
     # --- Totals ---

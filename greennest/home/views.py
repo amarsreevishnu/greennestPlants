@@ -10,19 +10,19 @@ def home(request):
     if request.user.is_authenticated:
         return redirect('user_home')
     products = Product.objects.prefetch_related("variants__images").annotate(
-        min_price=Min("variants__price")  # lowest price among variants
+        min_price=Min("variants__price")  
     )
 
-    # Attach a main_image property dynamically for each product
+    # Attach a main_image property 
     for product in products:
-        # Get cheapest variant
+        
         cheapest_variant = (
             product.variants.order_by("price").prefetch_related("images").first()
         )
         if cheapest_variant and cheapest_variant.images.exists():
-            product.main_image = cheapest_variant.images.first()  # assign image
+            product.main_image = cheapest_variant.images.first()  
         else:
-            product.main_image = None  # fallback if no image
+            product.main_image = None  
 
     
     return render(request, "home.html", {"products": products})

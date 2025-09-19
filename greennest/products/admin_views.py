@@ -10,6 +10,7 @@ from django.core.files.base import ContentFile
 from itertools import zip_longest
 from django.contrib import messages
 from io import BytesIO
+from django.db.models import Q
 from functools import wraps
 
 
@@ -26,13 +27,10 @@ def admin_required(view_func):
 
 
 # Product List
-
-from django.db.models import Q
-
 @login_required(login_url='admin_login')
 @never_cache
 def admin_product_list(request):
-    search_query = request.GET.get('search', '')  # get search term
+    search_query = request.GET.get('search', '')  
 
     # Filter products by name if search query exists
     if search_query:
@@ -46,7 +44,7 @@ def admin_product_list(request):
     
     context = {
         'products': page_obj,
-        'search_query': search_query,  # pass the search term back to template
+        'search_query': search_query,  
     }
     return render(request, 'admin/list_product.html', context)
 
@@ -294,7 +292,7 @@ def manage_categories(request, pk=None):
         "admin/manage_categories.html",
         {
             "categories": categories,
-            "category_to_edit": category_to_edit,  # Will be None if not editing
+            "category_to_edit": category_to_edit,  
         },
     )
 

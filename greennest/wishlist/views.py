@@ -50,7 +50,7 @@ def toggle_wishlist(request, variant_id):
 
     count = WishlistItem.objects.filter(user=request.user).count()
 
-    # ✅ Always return JSON
+    # Always return JSON
     return JsonResponse({"status": status, "count": count})
 
 

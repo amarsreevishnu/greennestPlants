@@ -30,7 +30,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = os.getenv("DEBUG") == "True"
 
 ALLOWED_HOSTS = ["*"]
-CSRF_TRUSTED_ORIGINS=['https://77d5a074efd7.ngrok-free.app']
+CSRF_TRUSTED_ORIGINS=['https://e4e157af1819.ngrok-free.app']
 
 
 
@@ -54,14 +54,19 @@ INSTALLED_APPS = [
     'coupon',
     'offer',
     
-    
     # Needed for allauth 
     'django.contrib.sites',
+    
     # Allauth
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
+
+    #cloudinary 
+    'cloudinary',
+    'cloudinary_storage',
+    
 
 
 ]
@@ -170,10 +175,18 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [ os.path.join(BASE_DIR, 'static'),]
 
+# Cloudinary credentials
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.getenv("CLOUDINARY_CLOUD_NAME"),
+    'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
+}
+
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # media files (user uploads)
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -223,3 +236,7 @@ LOGIN_URL = '/users/login/'  # default redirect for admin_required decorator
 # Razorpay settings
 RAZORPAY_KEY_ID = 'rzp_test_R7V0e5hoyTOTHo'
 RAZORPAY_KEY_SECRET = 'zFFwYLsv9IpSGyzpKcn2mUsF'
+
+
+
+

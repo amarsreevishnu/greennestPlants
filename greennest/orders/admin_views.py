@@ -210,7 +210,7 @@ def admin_order_detail(request, order_id):
                 item.status = 'cancelled'
                 item.cancel_approved = True
                 item.save()
-                refund_amount += item.price  # ✅ Refund cancelled items
+                refund_amount += item.price  
 
             # --- Credit refund to wallet ---
             if refund_amount > 0:
@@ -362,7 +362,7 @@ def download_sales_report_pdf(request):
     # Orders list
     p.setFont("Helvetica", 9)
     for order in orders:
-        if y < 80:  # new page if space is low
+        if y < 80:  
             p.showPage()
             y = height - 50
             p.setFont("Helvetica", 9)

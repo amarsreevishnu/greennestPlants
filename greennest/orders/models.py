@@ -86,16 +86,16 @@ class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     variant = models.ForeignKey(ProductVariant, on_delete=models.SET_NULL, null=True)
     quantity = models.PositiveIntegerField()
-    price = models.DecimalField(max_digits=8, decimal_places=2)  # Price per unit
-    total_price = models.DecimalField(max_digits=10, decimal_places=2)  # price * quantity
+    price = models.DecimalField(max_digits=8, decimal_places=2)  
+    total_price = models.DecimalField(max_digits=10, decimal_places=2) 
 
     # status + reasons
     status = models.CharField(max_length=20, choices=ITEM_STATUS, default='active')
-    cancel_reason = models.TextField(null=True, blank=True)   # optional on cancel
+    cancel_reason = models.TextField(null=True, blank=True)   
     cancel_requested_at = models.DateTimeField(null=True, blank=True)
     cancel_approved = models.BooleanField(default=False)
 
-    return_reason = models.TextField(null=True, blank=True)   # required when requesting return
+    return_reason = models.TextField(null=True, blank=True)   
     return_requested_at = models.DateTimeField(null=True, blank=True)
     return_approved = models.BooleanField(default=False)
 

@@ -62,10 +62,10 @@
     {% endif %}
             </td>
             <td>
-                <a href="{% url 'category_offer_edit' offer.id %}" class="btn btn-sm btn-warning">Edit</a>
-                <a href="{% url 'category_offer_delete' offer.id %}" class="btn btn-sm btn-danger">Delete</a>
-                <a href="{% url 'toggle_category_offer' offer.id %}" class="btn btn-sm {% if offer.is_active %}btn-danger{% else %}btn-success{% endif %}">
-                    {% if offer.is_active %}Deactivate{% else %}Activate{% endif %}
+                <a href="{% url 'category_offer_edit' offer.id %}" class="btn btn-sm " ><i class="bi bi-pencil-square text-primary"></i></a>
+                <a href="{% url 'category_offer_delete' offer.id %}" class="btn btn-sm " ><i class="bi bi-trash text-danger"></i></a>
+                <a href="{% url 'toggle_category_offer' offer.id %}" class="btn btn-sm ">
+                    {% if offer.is_active %}<i class="bi bi-toggle-off text-warning"></i>{% else %}<i class="bi bi-toggle-on text-success"></i>{% endif %}
                 </a>
             </td>
         </tr>

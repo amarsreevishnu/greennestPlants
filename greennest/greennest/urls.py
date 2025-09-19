@@ -41,6 +41,7 @@ urlpatterns = [
     
     path('users/wishlist/', include('wishlist.urls')),
 
+    path('greennest_admin/wallet/',include('wallet.admin_urls')),
     path('users/wallet/', include('wallet.urls')),
     
     path('users/payments/', include('payments.urls')),

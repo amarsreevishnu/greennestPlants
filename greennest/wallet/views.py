@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.cache import never_cache
 from django.contrib import messages
 from .models import Wallet, WalletTransaction
     
@@ -21,19 +22,18 @@ def wallet_dashboard(request):
     return render(request, "wallet_dashboard.html", {"wallet": wallet, "transactions": transactions})
 
 
-
-
 @login_required
+@never_cache
 def create_wallet_order(request):
     if request.method == "POST":
-        amount = int(request.POST.get("amount", 0))  # amount entered by user
+        amount = int(request.POST.get("amount", 0))  
 
         if amount <= 0:
             return JsonResponse({"error": "Invalid amount"}, status=400)
 
         client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
         razorpay_order = client.order.create({
-            "amount": amount * 100,  # convert rupees → paise
+            "amount": amount * 100,  # convert rupees to paise
             "currency": "INR",
             "payment_capture": "1"
         })
@@ -51,6 +51,7 @@ def create_wallet_order(request):
 
 @csrf_exempt
 @login_required
+@never_cache
 def verify_wallet_payment(request):
     if request.method == "POST":
         data = json.loads(request.body)
@@ -64,7 +65,7 @@ def verify_wallet_payment(request):
                 "razorpay_signature": data["razorpay_signature"]
             })
 
-            # ✅ Get stored amount from session (or DB)
+            # Get stored amount from session (or DB)
             amount = request.session.get("wallet_recharge_amount", 0)
 
             if amount > 0:

@@ -14,7 +14,7 @@ class Coupon(models.Model):
     valid_from = models.DateTimeField()
     valid_to = models.DateTimeField()
 
-    # ✅ New fields
+    
     max_discount_amount = models.DecimalField(
         max_digits=8, decimal_places=2, null=True, blank=True,
         help_text="Maximum discount amount allowed (e.g., 500 for ₹500 cap)"
@@ -35,13 +35,13 @@ class Coupon(models.Model):
         if subtotal <= 0:
             return Decimal("0.00")
 
-        # ✅ Check minimum order value
+        # Check minimum order value
         if self.min_order_value and subtotal < self.min_order_value:
             return Decimal("0.00")
 
         discount = (subtotal * self.discount) / 100
 
-        # ✅ Apply max cap if defined
+        # Apply max cap amt if defined
         if self.max_discount_amount:
             discount = min(discount, self.max_discount_amount)
 

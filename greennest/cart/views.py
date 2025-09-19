@@ -22,13 +22,11 @@ def add_to_cart(request, variant_id):
 
     cart, _ = Cart.objects.get_or_create(user=request.user)
 
-    # ✅ Get quantity from form (default = 1)
     try:
         quantity = int(request.POST.get("quantity", 1))
     except ValueError:
         quantity = 1
 
-    # ✅ Ensure within limits
     quantity = min(quantity, variant.stock, MAX_QTY_PER_PRODUCT)
 
     cart_item, created = CartItem.objects.get_or_create(cart=cart, variant=variant)
@@ -36,7 +34,6 @@ def add_to_cart(request, variant_id):
     if created:
         cart_item.quantity = quantity
     else:
-        # Increase by selected quantity but not exceed stock/MAX_QTY
         cart_item.quantity = min(cart_item.quantity + quantity, variant.stock, MAX_QTY_PER_PRODUCT)
 
     cart_item.save()
@@ -62,15 +59,14 @@ def cart_detail(request):
 
     for item in cart_items:
         variant = item.variant
-        offer_info = getattr(variant, "best_offer_info", None)  # centralized offer info
+        offer_info = getattr(variant, "best_offer_info", None)  
         final_price = offer_info["final_price"] if offer_info else variant.price
 
-        # annotate item for template
         item.offer_applied = offer_info
         item.discounted_price = final_price
         item.final_total = final_price * item.quantity  
        
-        # --- STOCK CHECK ---
+       
         if variant.stock == 0 or item.quantity > variant.stock:
             item.is_available = False
             out_of_stock_items = True
@@ -117,7 +113,6 @@ def update_cart_quantity(request, item_id, action):
         item.quantity -= 1
         item.save()
 
-    # ✅ Recalculate cart totals
     cart = item.cart
     cart_items = cart.items.all()
 

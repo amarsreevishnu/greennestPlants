@@ -7,8 +7,8 @@ class CouponForm(forms.ModelForm):
         fields = [
             "code",
             "discount",
-            "max_discount_amount",   # ✅ added
-            "min_order_value",       # ✅ added
+            "max_discount_amount",  
+            "min_order_value",       
             "valid_from",
             "valid_to",
             "active",

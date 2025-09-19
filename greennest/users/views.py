@@ -73,7 +73,7 @@ def user_signup(request):
             try:
                 inviter_id = signer.unsign(invite_token)
                 inviter = User.objects.get(id=inviter_id)
-                create_referral_coupon(inviter)  #  reward inviter
+                create_referral_coupon(inviter)  
             except (BadSignature, User.DoesNotExist):
                 pass
         
@@ -201,7 +201,7 @@ def user_home(request):
 
     product_list = []
     for product in products:
-        variant = product.variants.first()  # pick first variant (you can adjust logic)
+        variant = product.variants.first()  
         if not variant:
             continue
 

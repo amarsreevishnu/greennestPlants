@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.cache import never_cache
 from django.utils import timezone
 from django.contrib import messages
 from .models import Coupon, CouponUsage
@@ -9,7 +10,7 @@ from cart.models import Cart
 
 
 @login_required(login_url="user_login")
-
+@never_cache
 def user_coupons(request):
     now = timezone.now()
 
@@ -30,7 +31,6 @@ def user_coupons(request):
         coupon__is_referral=True
     ).select_related("coupon")
 
-    # Build combined list with usage status
     coupon_list = []
 
     # Add global coupons (mark used if present in CouponUsage)
@@ -44,7 +44,6 @@ def user_coupons(request):
             "used": user_usages.get(coupon.id, False),
         })
 
-    # Add referral coupons (from this user's usages only)
     for usage in referral_usages:
         coupon_list.append({
             "coupon": usage.coupon,
@@ -54,6 +53,7 @@ def user_coupons(request):
     return render(request, "user_coupons.html", {"coupon_list": coupon_list})
 
 @login_required
+@never_cache
 def apply_coupon(request):
     if request.method == "POST":
         code = request.POST.get("coupon_code", "").strip()
@@ -64,12 +64,10 @@ def apply_coupon(request):
             messages.error(request, "Invalid coupon code.")
             return redirect("checkout_address")
 
-        # Check coupon validity
         if not coupon.is_valid():
             messages.error(request, "Coupon is expired or inactive.")
             return redirect("checkout_address")
 
-        # Check if user has already used it
         if CouponUsage.objects.filter(user=request.user, coupon=coupon, used=True).exists():
             messages.warning(request, "You have already used this coupon.")
             return redirect("checkout_address")
@@ -92,10 +90,9 @@ def apply_coupon(request):
                 request,
                 f"⚠️ Minimum order of ₹{coupon.min_order_value} required to use this coupon."
             )
-            # ❌ Do NOT save coupon in session
             return redirect("checkout_address")
 
-        # ✅ Save only if all checks passed
+        # Save only if all checks passed
         request.session["applied_coupon_id"] = coupon.id
         request.session.modified = True  
 
@@ -105,6 +102,7 @@ def apply_coupon(request):
     return redirect("checkout_address")
 
 
+@never_cache
 def remove_coupon(request):
     if "applied_coupon_id" in request.session:
         del request.session["applied_coupon_id"]

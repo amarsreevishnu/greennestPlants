@@ -2,9 +2,9 @@ from django.utils import timezone
 from .models import ProductOffer, CategoryOffer
 
 def get_best_offer(variant):
-    """
-    Return best offer (Product Offer vs Category Offer) for a given ProductVariant.
-    """
+   
+    #Return best offer (Product Offer vs Category Offer) for a given ProductVariant.
+   
     original_price = variant.price
     now = timezone.now()
 

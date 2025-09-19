@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.views.decorators.cache import never_cache
 from django.contrib import messages
 from django.utils import timezone
 
@@ -11,15 +12,17 @@ def is_admin(user):
     return user.is_staff or user.is_superuser
 
 # ===== PRODUCT OFFERS =====
-@login_required
+@login_required(login_url='admin_login')
 @user_passes_test(is_admin)
+@never_cache
 def product_offer_list(request):
     offers = ProductOffer.objects.all().order_by('-start_date')
     now = timezone.now()
     return render(request, 'product_offer_list.html', {'offers': offers,'now':now})
 
-@login_required
+@login_required(login_url='admin_login')
 @user_passes_test(is_admin)
+@never_cache
 def product_offer_create(request):
     if request.method == 'POST':
         form = ProductOfferForm(request.POST)
@@ -53,8 +56,9 @@ def product_offer_create(request):
     return render(request, 'add_product_offer.html', {'form': form, 'title': 'Add Product Offer'})
 
 
-@login_required
+@login_required(login_url='admin_login')
 @user_passes_test(is_admin)
+@never_cache
 def product_offer_edit(request, pk):
     offer = get_object_or_404(ProductOffer, pk=pk)
     if request.method == 'POST':
@@ -66,8 +70,9 @@ def product_offer_edit(request, pk):
         form = ProductOfferForm(instance=offer)
     return render(request, 'add_product_offer.html', {'form': form, 'title': 'Edit Product Offer'})
 
-@login_required
+@login_required(login_url='admin_login')
 @user_passes_test(is_admin)
+@never_cache
 def product_offer_delete(request, pk):
     offer = get_object_or_404(ProductOffer, pk=pk)
     if request.method == 'POST':
@@ -75,11 +80,12 @@ def product_offer_delete(request, pk):
         return redirect('product_offer')
     return render(request, 'product_offer_confirm_delete.html', {'offer': offer})
 
-@login_required
+@login_required(login_url='admin_login')
 @user_passes_test(is_admin)
+@never_cache
 def product_offer_toggle(request, pk):
     offer = get_object_or_404(ProductOffer, pk=pk)
-    offer.is_active = not offer.is_active   # flip status
+    offer.is_active = not offer.is_active   
     offer.save()
     return redirect('product_offer')
 
@@ -88,8 +94,9 @@ def product_offer_toggle(request, pk):
 
 
 # ===== CATEGORY OFFERS =====
-@login_required
+@login_required(login_url='admin_login')
 @user_passes_test(is_admin)
+@never_cache
 def category_offer_list(request):
     offers = CategoryOffer.objects.all().order_by("-start_date")
     now = timezone.now()  
@@ -98,8 +105,9 @@ def category_offer_list(request):
 from django.contrib import messages
 from .models import CategoryOffer  
 
-@login_required
+@login_required(login_url='admin_login')
 @user_passes_test(is_admin)
+@never_cache
 def category_offer_create(request):
     if request.method == 'POST':
         form = CategoryOfferForm(request.POST)
@@ -129,8 +137,9 @@ def category_offer_create(request):
 
 
 
-@login_required
+@login_required(login_url='admin_login')
 @user_passes_test(is_admin)
+@never_cache
 def category_offer_edit(request, pk):
     offer = get_object_or_404(CategoryOffer, pk=pk)
     if request.method == 'POST':
@@ -145,6 +154,7 @@ def category_offer_edit(request, pk):
 
 @login_required
 @user_passes_test(is_admin)
+@never_cache
 def category_offer_delete(request, pk):
     offer = get_object_or_404(CategoryOffer, pk=pk)
     if request.method == 'POST':
@@ -155,9 +165,10 @@ def category_offer_delete(request, pk):
 
 @login_required
 @user_passes_test(is_admin)
+@never_cache
 def toggle_category_offer(request, offer_id):
     offer = get_object_or_404(CategoryOffer, id=offer_id)
     offer.is_active = not offer.is_active
     offer.save()
-    messages.success(request, f"{offer.category.name} offer toggled successfully.")
+    messages.success(request, f"{offer.category.name} offer {'activate' if offer.is_active else 'deactivate'} successfully.")
     return redirect('category_offer')

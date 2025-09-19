@@ -1,0 +1,55 @@
+{% extends "greenest_admin/base.html" %}
+{% block content %}
+
+
+<!-- Main content area -->
+    <div class="col-lg-10 p-0" style="background: #f8f9fa;">
+      <div class="main-content">
+
+        <!-- Top section -->
+        <div class="content-section d-flex justify-content-between align-items-center flex-wrap">
+          <div>
+              <h4>Transaction Details</h4>
+          </div>
+          <div class="d-flex align-items-center mt-2 mt-lg-0 me-5 ">
+                 
+          </div>
+        </div>
+<div class="content-section">
+  <div class="table-responsive">
+
+
+
+
+<table class="table table-bordered">
+    <tr><th>Transaction ID</th><td>{{ tx.id }}</td></tr>
+    <tr><th>Date</th><td>{{ tx.created_at|date:"Y-m-d H:i" }}</td></tr>
+    <tr><th>User</th><td>{{ tx.wallet.user.username }} ({{ tx.wallet.user.email }})</td></tr>
+    <tr><th>Type</th><td>{{ tx.transaction_type }}</td></tr>
+    <tr><th>Amount</th><td>₹{{ tx.amount }}</td></tr>
+    <tr><th>Note</th><td>{{ tx.note|default:"-" }}</td></tr>
+    <tr>
+        <th>Source</th>
+        <td>
+            {% if tx.order %}
+                Related to Order #{{ tx.order.id }}
+                <a href="{% url 'admin_order_detail' tx.order.id %}" class="btn btn-sm btn-primary">
+                    View Order
+                </a>
+            {% else %}
+                Manual Update / Other Source
+            {% endif %}
+        </td>
+    </tr>
+</table>
+
+<a href="{% url 'admin_wallet_list' %}" class="btn btn-secondary">Back to Transactions</a>
+
+
+ </div>   
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

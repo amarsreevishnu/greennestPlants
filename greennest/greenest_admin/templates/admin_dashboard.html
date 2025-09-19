@@ -57,26 +57,9 @@
       <div class="col-md-4 ">
         <div class="card p-3 text-center  ">
           <h6>Total Sales</h6>
-          <h3>₹ 4,235</h3>
+          <h3>₹ {{current_month_total}}</h3>
           <div class="small text-muted">THIS MONTH</div>
-          <!-- Demo bar chart -->
-            <div  style="height:44px;  " >
-              <svg width="100%" height="44" >
-                <!-- Replace with real chart library for actual data -->
-                <rect x="7" y="20" width="5" height="20" fill="#27ae60"/>
-                <rect x="15" y="30" width="5" height="10" fill="#27ae60"/>
-                <rect x="23" y="27" width="5" height="13" fill="#27ae60"/>
-                <rect x="31" y="21" width="5" height="19" fill="#27ae60"/>
-                <rect x="39" y="15" width="5" height="25" fill="#27ae60"/>
-                <rect x="47" y="18" width="5" height="22" fill="#27ae60"/>
-                <rect x="55" y="26" width="5" height="14" fill="#27ae60"/>
-                <rect x="63" y="24" width="5" height="16" fill="#27ae60"/>
-                <rect x="71" y="32" width="5" height="8" fill="#27ae60"/>
-                <rect x="79" y="28" width="5" height="12" fill="#27ae60"/>
-                <rect x="87" y="19" width="5" height="21" fill="#27ae60"/>
-                <rect x="95" y="34" width="5" height="6" fill="#27ae60"/>
-              </svg>
-            </div>
+          
         </div>
       </div>
       <div class="col-md-4">
@@ -84,19 +67,7 @@
           <h6>Customers</h6>
           <h3>{{user_count}}</h3>
           <div class="small text-muted">THIS MONTH</div>
-          <!-- Demo line chart -->
-            <div style="height:44px;">
-              <svg width="100%" height="44">
-                <polyline points="7,40 20,22 37,30 55,17 72,23 90,31 110,13" style="fill:none;stroke:#27ae60;stroke-width:3"/>
-                <circle cx="7" cy="40" r="2" fill="#27ae60"/>
-                <circle cx="20" cy="22" r="2" fill="#27ae60"/>
-                <circle cx="37" cy="30" r="2" fill="#27ae60"/>
-                <circle cx="55" cy="17" r="2" fill="#27ae60"/>
-                <circle cx="72" cy="23" r="2" fill="#27ae60"/>
-                <circle cx="90" cy="31" r="2" fill="#27ae60"/>
-                <circle cx="110" cy="13" r="2" fill="#27ae60"/>
-              </svg>
-            </div>
+          
         </div>
       </div>
       <div class="col-md-4">
@@ -104,28 +75,15 @@
           <h6>Orders</h6>
           <h3>{{order_count}}</h3>
           <div class="small text-muted">MONTHLY GOALS: 1,000</div>
-          <div class="progress mt-2" style="height: 6px;">
-            <div class="progress-bar bg-success" style="width: 73%;"></div>
-          </div>
+         
         </div>
       </div>
     </div>
 
     <!-- Best Selling & Recent Orders -->
     <div class="row g-3">
-      <div class="col-md-4">
-        <div class="card p-3">
-          <h6>Best Selling</h6>
-          <p class="fw-bold">₹ 2,400 <small class="text-muted">Total Sales</small></p>
-          <ul class="list-unstyled small">
-            <li>Classic Monochrome Tees — ₹940</li>
-            <li>Monochromatic Wardrobe — ₹720</li>
-            <li>Essential Neutrals — ₹740</li>
-          </ul>
-          <span class="best-selling-pie"></span>
-        </div>
-      </div>
-      <div class="col-md-8">
+      
+      <div class="col-md-12">
         <div class="card p-3">
           <div class="d-flex justify-content-between align-items-center">
             <h6>Recent Orders</h6>
@@ -169,6 +127,35 @@
 </div>
 
 
+<h2>📊 Sales Dashboard</h2>
 
+<form method="get">
+  <select name="filter" onchange="this.form.submit()">
+    <option value="daily" {% if filter == 'daily' %}selected{% endif %}>Daily</option>
+    <option value="weekly" {% if filter == 'weekly' %}selected{% endif %}>Weekly</option>
+    <option value="monthly" {% if filter == 'monthly' %}selected{% endif %}>Monthly</option>
+    <option value="yearly" {% if filter == 'yearly' %}selected{% endif %}>Yearly</option>
+  </select>
+</form>
+
+<canvas id="salesChart" width="400" height="200"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const ctx = document.getElementById('salesChart').getContext('2d');
+  const salesChart = new Chart(ctx, {
+    type: 'bar', // or 'line'
+    data: {
+      labels: {{ labels|safe }},
+      datasets: [{
+        label: 'Total Sales',
+        data: {{ sales|safe }},
+        borderColor: 'blue',
+        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+        fill: true
+      }]
+    }
+  });
+</script>
 {% endblock %}
 
