@@ -4,7 +4,6 @@ from django.conf import settings
 from products.models import ProductVariant
 from users.models import Address
 from coupon.models import Coupon
-from offer.models import ProductOffer, CategoryOffer
 
 class Order(models.Model):
     STATUS_CHOICES = [
@@ -18,6 +17,7 @@ class Order(models.Model):
         ('return_requested', 'Return Requested'),
         ('returned', 'Returned'),
         ("partially_returned", "Partially Returned"),
+        ('failed', 'Failed'),  
     ]
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True)
@@ -82,6 +82,7 @@ class OrderItem(models.Model):
         ('return_requested', 'Return Requested'),
         ('returned', 'Returned'),
         ("return_rejected", "Return Rejected"),
+        ('failed', 'Failed')
     ]
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     variant = models.ForeignKey(ProductVariant, on_delete=models.SET_NULL, null=True)

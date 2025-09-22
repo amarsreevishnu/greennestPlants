@@ -1,0 +1,93 @@
+
+<!-- orders/templates/orders/top_charts.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Top Selling Products & Categories</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<h2>Top Selling Products ({{ selected_period|title }})</h2>
+<ol>
+    {% for item in top_list %}
+        <li>{{ item }}</li>
+    {% empty %}
+        <li>No sales yet.</li>
+    {% endfor %}
+</ol>
+
+
+
+    <h2>Filter: 
+        <a href="?period=daily">Daily</a> | 
+        <a href="?period=weekly">Weekly</a> | 
+        <a href="?period=monthly">Monthly</a> | 
+        <a href="?period=yearly">Yearly</a>
+    </h2>
+
+    <h3>Top 10 Products</h3>
+    <canvas id="productsChart"></canvas>
+
+    <h3>Top 10 Categories</h3>
+    <canvas id="categoriesChart"></canvas>
+
+    <script>
+        const topProducts = {{ top_products|safe }};
+        const topCategories = {{ top_categories|safe }};
+
+        // Products Chart
+        const productLabels = topProducts.map(item => item.product__name);
+        const productData = topProducts.map(item => item.total_sold);
+
+        const ctx1 = document.getElementById('productsChart').getContext('2d');
+        new Chart(ctx1, {
+            type: 'bar',
+            data: {
+                labels: productLabels,
+                datasets: [{
+                    label: 'Quantity Sold',
+                    data: productData,
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                }]
+            }
+        });
+
+        // Categories Chart
+        const categoryLabels = topCategories.map(item => item.product__category__name);
+        const categoryData = topCategories.map(item => item.total_sold);
+
+        const ctx2 = document.getElementById('categoriesChart').getContext('2d');
+        new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: categoryLabels,
+                datasets: [{
+                    label: 'Quantity Sold',
+                    data: categoryData,
+                    backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                }]
+            }
+        });
+
+    // Top Items Chart
+const itemLabels = topItems.map(item => item['variant__name']);
+const itemData = topItems.map(item => item.total_sold);
+
+const ctx1 = document.getElementById('itemsChart').getContext('2d');
+new Chart(ctx1, {
+    type: 'bar',
+    data: {
+        labels: itemLabels,
+        datasets: [{
+            label: 'Quantity Sold',
+            data: itemData,
+            backgroundColor: 'rgba(54, 162, 235, 0.7)',
+        }]
+    }
+});
+
+    </script>
+</body>
+</html>

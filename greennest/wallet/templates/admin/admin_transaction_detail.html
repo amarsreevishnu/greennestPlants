@@ -1,0 +1,40 @@
+{% extends "greenest_admin/base.html " %}
+{% load static %}
+{% block title %}Transaction Detail{% endblock %}
+
+{% block content %}
+<!-- Main content area -->
+    <div class="col-lg-10 p-0" style="background: #f8f9fa;">
+      <div class="main-content">
+
+<div class="container mt-4">
+    <h2>Transaction Detail</h2>
+    <div class="card mb-3">
+        <div class="card-body">
+            <p><strong>User:</strong> {{ transaction.user.get_full_name }} ({{ transaction.user.email }})</p>
+            <p><strong>Transaction ID:</strong> {{ transaction.id }}</p>
+            <p><strong>Transaction Date:</strong> {{ transaction.created_at|date:"d M Y, H:i" }}</p>
+            <p><strong>Transaction Type:</strong> 
+                {% if transaction.transaction_type == "DEBIT" %}
+                    <span class="text-danger">{{ transaction.transaction_type }}</span>
+                {% else %}
+                    <span class="text-success">{{ transaction.transaction_type }}</span>
+                {% endif %}
+            </p>
+            <p><strong>Source of Transaction:</strong> {{ transaction.source|default:"-" }}</p>
+            <p><strong>Description:</strong> {{ transaction.description|default:"-" }}</p>
+
+            {% if transaction.source_order %}
+            <a href="{% url 'admin_order_detail' transaction.source_order.id %}" class="btn btn-primary mt-2">
+                View Related Order
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <a href="{% url 'admin_wallet' %}" class="btn btn-secondary">Back to Wallet Dashboard</a>
+</div>
+
+     </div>
+    </div>
+{% endblock %}

@@ -2,6 +2,7 @@ from django.utils import timezone
 import razorpay
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.cache import never_cache
 from django.contrib import messages
 from django.conf import settings
 from django.db import transaction
@@ -14,7 +15,7 @@ from orders.models import Order, OrderItem
 from payments.models import Payment
 from wallet.models import Wallet, WalletTransaction
 from cart.models import Cart
-
+from wallet.utils import add_to_admin_wallet, deduct_from_admin_wallet
 
 client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
@@ -28,7 +29,7 @@ def cod_payment(request, order_id):
         user=request.user,
         method="cod",
         amount=order.final_amount,  
-        status="success",
+        status="pending",
         transaction_id=f"COD-{order.id}"
     )
 
@@ -57,15 +58,20 @@ def wallet_payment(request, order_id):
         return redirect("checkout_payment")
 
     # Deduct wallet balance
-    wallet.balance -= order.final_amount
-    wallet.save()
+    with transaction.atomic():
+        # Deduct user wallet
+        wallet.balance -= order.final_amount
+        wallet.save()
+        WalletTransaction.objects.create(
+            wallet=wallet,
+            transaction_type="debit",
+            amount=order.final_amount,
+            description=f"Payment for Order #{order.display_id}"
+        )
 
-    tx = WalletTransaction.objects.create(
-        wallet=wallet,
-        transaction_type="debit",
-        amount=order.final_amount,
-        description=f"Payment for Order #{order.display_id}"
-    )
+        # Credit admin wallet
+        add_to_admin_wallet(user, order.final_amount, source="ORDER", description=f"Prepaid Order #{order.display_id}", source_order=order)
+
 
     Payment.objects.create(
         order=order,
@@ -73,7 +79,7 @@ def wallet_payment(request, order_id):
         method="wallet",
         amount=order.final_amount,
         status="success",
-        transaction_id=f"WALLET-{tx.id}"
+        transaction_id=f"WALLET-{order.id}"
     )
 
     order.status = "processing"
@@ -99,8 +105,6 @@ def razorpay_checkout(request):
 
     # Convert amounts from string to Decimal
     total_amount = Decimal(cart_data['total'])
-
-    # Convert to paise
     amount_in_paise = int(total_amount * 100)
 
     amount_in_rupees = amount_in_paise / 100
@@ -112,20 +116,17 @@ def razorpay_checkout(request):
         "payment_capture": "1"
     })
 
-    # Create pending Payment without order yet
-    payment = Payment.objects.create(
-        user=request.user,
-        method="razorpay",
-        amount=total_amount,
-        status="pending",
-        razorpay_order_id=razorpay_order["id"],
-    )
+    payment = Payment.objects.get(id=cart_data['payment_id'])
+    payment.razorpay_order_id = razorpay_order["id"]
+    payment.save()
 
     context = {
         "razorpay_order_id": razorpay_order["id"],
         "razorpay_key": settings.RAZORPAY_KEY_ID,
         "amount_in_paise": amount_in_paise,
         "amount_in_rupees": amount_in_rupees,
+        "order_id": cart_data['order_id'],
+        
     }
     return render(request, "razorpay_checkout.html", context)
 
@@ -146,6 +147,7 @@ def razorpay_callback(request):
         messages.error(request, "Payment record not found ❌")
         return redirect("checkout_payment")
 
+    order = payment.order
     try:
         params_dict = {
             "razorpay_order_id": razorpay_order_id,
@@ -155,23 +157,17 @@ def razorpay_callback(request):
         client.utility.verify_payment_signature(params_dict)
 
         with transaction.atomic():
-            # Fetch session data
-            cart_data = request.session.get('razorpay_cart_data')
-            if not cart_data:
-                raise ValueError("Session expired")
+            # Payment successful
+            payment.status = "success"
+            payment.razorpay_payment_id = payment_id
+            payment.razorpay_signature = signature
+            payment.save()
 
-            # Create Order
-            order = Order.objects.create(
-                user=request.user,
-                address_id=cart_data['address_id'],
-                total_amount=Decimal(cart_data['subtotal']),
-                shipping_charge=Decimal(cart_data['shipping']),
-                discount=Decimal(cart_data['discount']),
-                final_amount=Decimal(cart_data['total']),
-                coupon_id=cart_data.get('coupon_id'),
-                status='processing',
-                payment_method='Razorpay',
-            )
+            order.status = "processing"
+            order.save()
+
+            # Credit admin wallet
+            add_to_admin_wallet(order.user, order.final_amount, source="ORDER", description=f"Prepaid Razorpay Order #{order.id}",source_order=order)
 
             # Deduct stock & create OrderItems
             cart = Cart.objects.filter(user=request.user).first()
@@ -199,19 +195,14 @@ def razorpay_callback(request):
                 )
 
             # Mark coupon usage
-            if cart_data.get('coupon_id'):
-                CouponUsage.objects.update_or_create(
-                    user=request.user,
-                    coupon_id=cart_data['coupon_id'],
-                    defaults={"used": True, "used_at": timezone.now()},
-                )
+            if cart_data := request.session.get('razorpay_cart_data'):
+                if cart_data.get('coupon_id'):
+                    CouponUsage.objects.update_or_create(
+                        user=request.user,
+                        coupon_id=cart_data['coupon_id'],
+                        defaults={"used": True, "used_at": timezone.now()},
+                    )
 
-            # Update Payment
-            payment.status = "success"
-            payment.razorpay_payment_id = payment_id
-            payment.razorpay_signature = signature
-            payment.order = order
-            payment.save()
 
             # Clear cart & session
             cart.delete()
@@ -227,3 +218,15 @@ def razorpay_callback(request):
         payment.save()
         messages.error(request, f"Payment failed ❌ Reason: {str(e)}")
         return redirect("checkout_payment")
+
+
+
+@login_required
+@never_cache
+def razorpay_failed_payment(request,order_id):
+    # No order yet, so just show generic failure
+    if order_id:
+        order = Order.objects.filter(id=order_id, user=request.user, status="pending").first()
+        if order:
+            order.delete()  # Remove pending order
+    return render(request, "razorpay_failed.html")

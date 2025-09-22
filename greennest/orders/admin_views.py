@@ -6,10 +6,11 @@ from django.views.decorators.cache import never_cache
 from django.db.models import Q, Exists, OuterRef
 from django.contrib import messages
 from django.utils import timezone
+from django.db.models.functions import Concat
+from payments.models import Payment
 from orders.models import Order, OrderItem
 
-
-from django.db.models import Sum, Count
+from django.db.models import Sum, F, Value, Count
 from datetime import datetime, timedelta
 import pandas as pd
 from io import BytesIO
@@ -23,6 +24,8 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.cache import never_cache
 from orders.models import Order, OrderItem
 from wallet.models import Wallet, WalletTransaction
+from wallet.utils import add_to_admin_wallet, deduct_from_admin_wallet
+from datetime import datetime, timedelta
 
 
 @login_required(login_url='admin_login')
@@ -108,6 +111,18 @@ def admin_order_detail(request, order_id):
         if status:
             order.status = status
             order.save(update_fields=['status'])
+            if status == "delivered":
+                
+                payment = Payment.objects.filter(order=order, method="cod").first()
+                if payment and payment.status == "pending":
+                    payment.status = "success"
+                    payment.save(update_fields=["status"])
+                    add_to_admin_wallet(
+                        order.user,
+                        order.final_amount,
+                        source="COD",
+                        description=f"COD Payment credited for Order #{order.display_id}"
+                    )
             messages.success(request, f"Order status updated to {order.get_status_display()}")
             return redirect('admin_order_detail', order_id=order.id)
 
@@ -140,6 +155,10 @@ def admin_order_detail(request, order_id):
                     transaction_type="credit",
                     description=f"Refund for returned Order #{order.display_id  }"
                 )
+
+                # Deduct from admin wallet for this refunded amount
+                deduct_from_admin_wallet(order.user, refund_amount, source="Order Item Cancellation", description=f"Refund for cancelled item in Order #{order.display_id}",source_order=order)
+
                 messages.success(request, f"Return approved. ₹{refund_amount} refunded to {order.user.full_name}'s wallet.")
             else:
                 messages.success(request, "Return approved for the whole order (no refund).")
@@ -178,6 +197,10 @@ def admin_order_detail(request, order_id):
                     transaction_type="credit",
                     description=f"Refund for returned item {item.variant} in Order #{order.display_id}"
                 )
+
+                # Deduct from admin wallet for this refunded amount
+                deduct_from_admin_wallet(order.user, refund_amount, source="Order Item Return", description=f"Refund for Return item in Order #{order.display_id}", source_order=order)
+                
                 messages.success(request, f"Return approved. ₹{refund_amount} refunded to {order.user.username}'s wallet.")
             else:
                 messages.success(request, f"Return approved for item {item.variant} (no refund).")
@@ -381,3 +404,63 @@ def download_sales_report_pdf(request):
     response = HttpResponse(buffer, content_type="application/pdf")
     response["Content-Disposition"] = 'attachment; filename="sales_report.pdf"'
     return response
+
+
+
+def get_top_products_and_categories(request):
+    # Filter by time period
+    period = request.GET.get('period', 'monthly')  # default monthly
+    now = datetime.now()
+
+    if period == 'daily':
+        start_date = now - timedelta(days=1)
+    elif period == 'weekly':
+        start_date = now - timedelta(weeks=1)
+    elif period == 'monthly':
+        start_date = now - timedelta(days=30)
+    elif period == 'yearly':
+        start_date = now - timedelta(days=365)
+    else:
+        start_date = now - timedelta(days=30)
+    
+    top_items = (
+        OrderItem.objects.filter(
+            order__status__in=['delivered', 'completed'],
+            order__created_at__gte=start_date,
+            variant__isnull=False
+        )
+        .annotate(
+            product_variant_name=Concat(
+                F('variant__product__name'), Value(' - '), F('variant__variant_type')
+            )
+        )
+        .values('product_variant_name')
+        .annotate(total_sold=Sum('quantity'))
+        .order_by('-total_sold')[:10]
+    )
+
+
+    # Top 10 Products
+    top_products = (
+        OrderItem.objects.filter(order__status__in=['delivered', 'completed'], order__created_at__gte=start_date)
+        .values('variant__product__id', 'variant__product__name')
+        .annotate(total_sold=Sum('quantity'))
+        .order_by('-total_sold')[:10]
+    )
+
+    # Top 10 Categories
+    top_categories = (
+        OrderItem.objects.filter(order__status__in=['delivered', 'completed'], order__created_at__gte=start_date)
+        .values('variant__product__category__id', 'variant__product__category__name')
+        .annotate(total_sold=Sum('quantity'))
+        .order_by('-total_sold')[:10]
+    )
+    top_list = [item['product_variant_name'] for item in top_items]
+    context = {
+        'top_products': list(top_products),
+        'top_categories': list(top_categories),
+        'selected_period': period,
+        "top_list":top_list
+    }
+
+    return render(request, 'admin/top_charts.html', context)

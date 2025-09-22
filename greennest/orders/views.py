@@ -15,6 +15,8 @@ from cart.models import Cart, CartItem
 from users.models import Address
 from wallet.models import Wallet, WalletTransaction
 from coupon.models import Coupon, CouponUsage
+from payments.models import Payment
+from wallet.utils import add_to_admin_wallet, deduct_from_admin_wallet
 
 from django.db import transaction
 from django.db.models import F
@@ -285,14 +287,38 @@ def checkout_payment(request):
         # For Razorpay → defer order creation
         elif payment_method == "razorpay":
             
-            request.session['razorpay_cart_data'] = {
-                "subtotal": str(subtotal),  
-                "shipping": str(shipping),
-                "discount": str(discount),
-                "total": str(total),
-                "address_id": selected_address.id,
-                "coupon_id": applied_coupon.id if applied_coupon else None,
-            }
+            with transaction.atomic():
+                order = Order.objects.create(
+                    user=user,
+                    address=selected_address,
+                    total_amount=subtotal,
+                    shipping_charge=shipping,
+                    discount=discount,
+                    final_amount=total,
+                    coupon=applied_coupon,
+                    status="pending",
+                    payment_method="Razorpay",
+                )
+
+                payment = Payment.objects.create(
+                    user=user,
+                    order=order,
+                    amount=total,
+                    method="razorpay",
+                    status="pending",
+                )
+
+                request.session['razorpay_cart_data'] = {
+                    "subtotal": str(subtotal),
+                    "shipping": str(shipping),
+                    "discount": str(discount),
+                    "total": str(total),
+                    "address_id": selected_address.id,
+                    "coupon_id": applied_coupon.id if applied_coupon else None,
+                    "payment_id": payment.id,
+                    "order_id": order.id,
+                }
+
             return redirect("razorpay_checkout")
 
         else:
@@ -333,11 +359,6 @@ def order_success(request, order_id):
 
 
 
-@login_required
-@never_cache
-def razorpay_failed_payment(request):
-    # No order yet, so just show generic failure
-    return render(request, "orders/razorpay_failed.html")
 
 
 @login_required
@@ -467,6 +488,8 @@ def cancel_order(request, order_id):
                 amount=refund_amount,
                 description=f"Refund for cancelled Order #{order.display_id}"
             )
+            # Deduct from admin wallet
+            deduct_from_admin_wallet(order.user, order.final_amount, source="Order Cancellation", description=f"Refund for Order #{order.display_id}", source_order=order)
 
         messages.success(request, "Order cancelled successfully ✅")
         return redirect("order_list")
@@ -529,6 +552,9 @@ def cancel_order_item(request, item_id):
                 )
             )
 
+        # Deduct from admin wallet for this refunded amount
+        deduct_from_admin_wallet(order.user, refund_amount, source="Order Item Cancellation", description=f"Refund for cancelled item in Order #{order.display_id}", source_order=order)
+        
         # Recalculate totals
         order.recalc_totals()
 

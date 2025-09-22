@@ -6,7 +6,7 @@ urlpatterns = [
     path("save-selected-address/",views.save_selected_address, name="save_selected_address"),
     path('checkout/payment/', views.checkout_payment, name='checkout_payment'),
     path('success/<int:order_id>/', views.order_success, name='order_success'),
-    path("razorpay/failure/", views.razorpay_failed_payment, name="razorpay_failed_payment"),
+    
     
 
     path("list/", views.order_list, name="order_list"),
