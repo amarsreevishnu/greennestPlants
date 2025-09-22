@@ -15,7 +15,7 @@ from orders.models import Order, OrderItem
 from payments.models import Payment
 from wallet.models import Wallet, WalletTransaction
 from cart.models import Cart
-
+from wallet.utils import add_to_admin_wallet, deduct_from_admin_wallet
 
 client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
@@ -29,7 +29,7 @@ def cod_payment(request, order_id):
         user=request.user,
         method="cod",
         amount=order.final_amount,  
-        status="success",
+        status="pending",
         transaction_id=f"COD-{order.id}"
     )
 
@@ -58,15 +58,20 @@ def wallet_payment(request, order_id):
         return redirect("checkout_payment")
 
     # Deduct wallet balance
-    wallet.balance -= order.final_amount
-    wallet.save()
+    with transaction.atomic():
+        # Deduct user wallet
+        wallet.balance -= order.final_amount
+        wallet.save()
+        WalletTransaction.objects.create(
+            wallet=wallet,
+            transaction_type="debit",
+            amount=order.final_amount,
+            description=f"Payment for Order #{order.display_id}"
+        )
 
-    tx = WalletTransaction.objects.create(
-        wallet=wallet,
-        transaction_type="debit",
-        amount=order.final_amount,
-        description=f"Payment for Order #{order.display_id}"
-    )
+        # Credit admin wallet
+        add_to_admin_wallet(user, order.final_amount, source="ORDER", description=f"Prepaid Order #{order.display_id}", source_order=order)
+
 
     Payment.objects.create(
         order=order,
@@ -74,7 +79,7 @@ def wallet_payment(request, order_id):
         method="wallet",
         amount=order.final_amount,
         status="success",
-        transaction_id=f"WALLET-{tx.id}"
+        transaction_id=f"WALLET-{order.id}"
     )
 
     order.status = "processing"
@@ -160,6 +165,9 @@ def razorpay_callback(request):
 
             order.status = "processing"
             order.save()
+
+            # Credit admin wallet
+            add_to_admin_wallet(order.user, order.final_amount, source="ORDER", description=f"Prepaid Razorpay Order #{order.id}",source_order=order)
 
             # Deduct stock & create OrderItems
             cart = Cart.objects.filter(user=request.user).first()

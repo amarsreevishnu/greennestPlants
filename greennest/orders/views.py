@@ -16,6 +16,7 @@ from users.models import Address
 from wallet.models import Wallet, WalletTransaction
 from coupon.models import Coupon, CouponUsage
 from payments.models import Payment
+from wallet.utils import add_to_admin_wallet, deduct_from_admin_wallet
 
 from django.db import transaction
 from django.db.models import F
@@ -487,6 +488,8 @@ def cancel_order(request, order_id):
                 amount=refund_amount,
                 description=f"Refund for cancelled Order #{order.display_id}"
             )
+            # Deduct from admin wallet
+            deduct_from_admin_wallet(order.user, order.final_amount, source="Order Cancellation", description=f"Refund for Order #{order.display_id}", source_order=order)
 
         messages.success(request, "Order cancelled successfully ✅")
         return redirect("order_list")
@@ -549,6 +552,9 @@ def cancel_order_item(request, item_id):
                 )
             )
 
+        # Deduct from admin wallet for this refunded amount
+        deduct_from_admin_wallet(order.user, refund_amount, source="Order Item Cancellation", description=f"Refund for cancelled item in Order #{order.display_id}", source_order=order)
+        
         # Recalculate totals
         order.recalc_totals()
 

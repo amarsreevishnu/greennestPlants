@@ -26,15 +26,7 @@
             <div class="text-muted small">Admin &gt; Dashboard</div>
           </div>
           <div class="d-flex align-items-center mt-lg-0 me-5 ">
-            <form class="d-none d-md-block me-3"  method="get" id="search-form">
-                <input 
-                id="search-input"
-                class="form-control rounded-pill px-3" 
-                placeholder="Search"  
-                style="min-width:300px;"
-                autocomplete="off">
-                <span id="clear-btn" class="position-absolute top-0 end-0 me-5 mt-1" style="cursor: pointer; display: none;" onclick="clearInput()">✖</span>  
-                </form>
+            
             <div class="d-flex align-items-center profile-area">  
               <span style="font-size:1.5rem;"><i class="bi bi-bell"></i></span>
               <img src="{% static "images/GreenNest-Logo(green).png" %}" class="rounded-circle me-2" alt="User">
@@ -55,38 +47,97 @@
         <!-- Stats row -->
     <div class="row g-3 mb-4">
       <div class="col-md-4 ">
-        <div class="card p-3 text-center  ">
+        <div class="card p-3 text-center text-bg-danger   ">
           <h6>Total Sales</h6>
           <h3>₹ {{current_month_total}}</h3>
-          <div class="small text-muted">THIS MONTH</div>
+          <div class="small text-muted"></div>
           
         </div>
       </div>
       <div class="col-md-4">
-        <div class="card p-3">
+        <div class="card  text-center text-bg-warning  p-3">
           <h6>Customers</h6>
           <h3>{{user_count}}</h3>
-          <div class="small text-muted">THIS MONTH</div>
+          <div class="small text-muted"></div>
           
         </div>
       </div>
       <div class="col-md-4">
-        <div class="card p-3">
+        <div class="card  text-center text-bg-primary  p-3">
           <h6>Orders</h6>
           <h3>{{order_count}}</h3>
-          <div class="small text-muted">MONTHLY GOALS: 1,000</div>
+          <div class="small text-muted"></div>
          
         </div>
       </div>
     </div>
 
+    
     <!-- Best Selling & Recent Orders -->
     <div class="row g-3">
       
+      <div class="col-md-6">
+        <div class="card p-3">
+          <div class="text-center pb-2">
+            <h6 >Top Selling Products</h6>
+            
+          </div>
+          <ul>
+              {% for item in top_items %}
+                  <li>{{ item.product_variant_name}} :-{{item.total_sold}}</li>
+              {% empty %}
+                  <li>No sales yet.</li>
+              {% endfor %}
+          </ul>
+        </div>
+      </div>
+     <!-- Top Selling -->
+      <div class="col-md-6">
+        <div class="card p-3">
+          <div class="text-center pb-2">
+            <h6>Top Selling Category</h6>
+          </div>
+          <ul>
+              {% for item in top_categories %}
+                  <li>{{ item.variant__product__category__name }}</li>
+                  
+              {% empty %}
+                  <li>No sales yet.</li>
+              {% endfor %}
+          </ul>
+        </div>
+      </div>
+         
+        </div>
+    </div>
+<!-- Recent Orders -->
+    <div class="row g-3">
+        <!-- Chart -->
+      <div class="col-md-10">
+        <div class="card p-3">
+          <div class="small text-muted">
+            <h2 class="text-center">📊 Sales chart</h2>
+
+             <select id="filterSelect">
+  <option value="daily" {% if filter == 'daily' %}selected{% endif %}>Daily</option>
+  <option value="weekly" {% if filter == 'weekly' %}selected{% endif %}>Weekly</option>
+  <option value="monthly" {% if filter == 'monthly' %}selected{% endif %}>Monthly</option>
+  <option value="yearly" {% if filter == 'yearly' %}selected{% endif %}>Yearly</option>
+</select>
+
+
+              <canvas id="salesChart" width="400" height="200"></canvas>
+          </div>
+         
+        </div>
+      </div>
+
+
+
       <div class="col-md-12">
         <div class="card p-3">
           <div class="d-flex justify-content-between align-items-center">
-            <h6>Recent Orders</h6>
+            <h6 class="text-center">Recent Orders</h6>
             <a href="{% url 'admin_order_list' %}" class="small text-decoration-none">View All</a>
           </div>
           <table class="table table-sm mt-2">
@@ -121,41 +172,57 @@
           </table>
         </div>
       </div>
-    </div>
+      
+
   </main>
   </div>
 </div>
 
 
-<h2>📊 Sales Dashboard</h2>
 
-<form method="get">
-  <select name="filter" onchange="this.form.submit()">
-    <option value="daily" {% if filter == 'daily' %}selected{% endif %}>Daily</option>
-    <option value="weekly" {% if filter == 'weekly' %}selected{% endif %}>Weekly</option>
-    <option value="monthly" {% if filter == 'monthly' %}selected{% endif %}>Monthly</option>
-    <option value="yearly" {% if filter == 'yearly' %}selected{% endif %}>Yearly</option>
-  </select>
-</form>
 
-<canvas id="salesChart" width="400" height="200"></canvas>
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
-  const ctx = document.getElementById('salesChart').getContext('2d');
-  const salesChart = new Chart(ctx, {
-    type: 'bar', // or 'line'
-    data: {
-      labels: {{ labels|safe }},
-      datasets: [{
-        label: 'Total Sales',
-        data: {{ sales|safe }},
-        borderColor: 'blue',
-        backgroundColor: 'rgba(54, 162, 235, 0.5)',
-        fill: true
-      }]
+  let salesChart;
+
+  function renderChart(labels, sales) {
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    if (salesChart) {
+      salesChart.destroy();
     }
+    salesChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Total Sales',
+          data: sales,
+          borderColor: 'blue',
+          backgroundColor: 'rgba(54, 162, 235, 0.5)',
+          fill: true
+        }]
+      }
+    });
+  }
+
+  // Initial chart (Django context data)
+  renderChart({{ labels|safe }}, {{ sales|safe }});
+
+  // On filter change -> AJAX call
+  $("#filterSelect").on("change", function() {
+    const filterValue = $(this).val();
+    $.ajax({
+      url: "{% url 'admin_dashboard' %}",
+      data: { filter: filterValue },
+      success: function(response) {
+        renderChart(response.labels, response.sales);
+      }
+    });
   });
 </script>
+
 {% endblock %}
 

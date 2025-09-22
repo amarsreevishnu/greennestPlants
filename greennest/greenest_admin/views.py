@@ -1,3 +1,5 @@
+
+from django.http import JsonResponse
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import user_passes_test, login_required, user_passes_test
@@ -6,14 +8,15 @@ from django.contrib.auth import get_user_model
 from django.views.decorators.cache import never_cache
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q,F
 from datetime import timedelta
+from django.db.models.functions import Concat
 from django.utils.timezone import now
-from django.db.models import Sum
+from django.db.models import Sum,Value
 from functools import wraps
 
 from users.views import User
-from orders.models import Order
+from orders.models import Order, OrderItem
 
 User = get_user_model()
 
@@ -70,6 +73,79 @@ def admin_dashboard(request):
         .aggregate(total_amount=Sum("total_amount"))
     )["total_amount"] or 0
 
+    top_items = (
+        OrderItem.objects.filter(
+            order__status__in=['delivered', 'completed'],
+            variant__isnull=False
+        )
+        .annotate(
+            product_variant_name=Concat(
+                F('variant__product__name'), Value(' - '), F('variant__variant_type')
+            )
+        )
+        .values('product_variant_name')
+        .annotate(total_sold=Sum('quantity'))
+        .order_by('-total_sold')[:10]
+    )
+    top_categories = (
+        OrderItem.objects.filter(
+            order__status__in=['delivered', 'completed'],   
+            
+            variant__isnull=False
+        )
+        .values('variant__product__category__name')         
+        .annotate(
+            total_revenue=Sum(F('quantity') * F('price'))   
+        )
+        .order_by('-total_revenue')[:10]
+        )
+
+
+
+
+   
+@admin_required
+@never_cache
+def admin_dashboard(request):
+    order_count = Order.objects.count()
+    user_count = User.objects.filter(is_superuser=False).count()
+    orders = Order.objects.select_related('user').all().order_by('-created_at')
+    today = now()
+    current_month_total = (
+        Order.objects.filter(created_at__year=today.year, created_at__month=today.month)
+        .aggregate(total_amount=Sum("total_amount"))
+    )["total_amount"] or 0
+
+    top_items = (
+        OrderItem.objects.filter(
+            order__status__in=['delivered', 'completed'],
+            variant__isnull=False
+        )
+        .annotate(
+            product_variant_name=Concat(
+                F('variant__product__name'), Value(' - '), F('variant__variant_type')
+            )
+        )
+        .values('product_variant_name')
+        .annotate(total_sold=Sum('quantity'))
+        .order_by('-total_sold')[:10]
+    )
+    top_categories = (
+        OrderItem.objects.filter(
+            order__status__in=['delivered', 'completed'],   
+            
+            variant__isnull=False
+        )
+        .values('variant__product__category__name')         
+        .annotate(
+            total_revenue=Sum(F('quantity') * F('price'))   
+        )
+        .order_by('-total_revenue')[:10]
+        )
+
+
+
+
     filter_type = request.GET.get("filter", "monthly")
     today = now().date()
 
@@ -110,17 +186,28 @@ def admin_dashboard(request):
         else:
             labels.append(str(d["created_at__date"]))
         sales.append(float(d["total_sales"]))
+    
+    # If AJAX request -> return JSON (for chart only)
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({
+            "labels": labels,
+            "sales": sales,
+        })
 
+    # Else -> full page render
     context = {
-        'order_count': order_count,
-        'user_count': user_count,
-        'orders': orders[:5],
-         "labels": labels,
+        "order_count": order_count,
+        "user_count": user_count,
+        "orders": orders[:5],
+        "labels": labels,
         "sales": sales,
         "filter": filter_type,
-        "current_month_total": current_month_total
+        "current_month_total": current_month_total,
+        "top_items": top_items,
+        "top_categories": top_categories,
     }
-    return render(request, 'admin_dashboard.html', context)
+    return render(request, "admin_dashboard.html", context)
+
 
 
 
