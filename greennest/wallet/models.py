@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 
 class Wallet(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -17,3 +18,4 @@ class WalletTransaction(models.Model):
 
     def __str__(self):
         return f"{self.transaction_type} ₹{self.amount} ({self.wallet.user.username})"
+

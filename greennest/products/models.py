@@ -1,5 +1,5 @@
 from django.db import models
-
+from cloudinary.models import CloudinaryField
 
 # Category Model (dynamic)
 class Category(models.Model):
@@ -66,7 +66,6 @@ class ProductVariant(models.Model):
 # Variant Images (up to 3 images per variant)
 class VariantImage(models.Model):
     variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, related_name="images")
-    image = models.ImageField(upload_to="products/variants/")
-
+    image = CloudinaryField('image', folder="products", null=True, blank=True) 
     def __str__(self):
         return f"Image for {self.variant.product.name} - {self.variant.variant_type}"

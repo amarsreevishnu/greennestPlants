@@ -1,12 +1,16 @@
 import base64
 import re
+import cloudinary.uploader
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
+
 from .models import Category, Product, ProductVariant, VariantImage
+
 from django.views.decorators.cache import never_cache
 from django.core.paginator import Paginator
 from django.core.files.base import ContentFile
+from cloudinary.uploader import upload, destroy
 from itertools import zip_longest
 from django.contrib import messages
 from io import BytesIO
@@ -180,39 +184,60 @@ def admin_edit_product(request, product_id):
                     price=price,
                     stock=stock
                 )
-
-            # Handle images
+            
+            # ---- Handle images ----
             existing_image_ids = request.POST.getlist(f"existing_variant_images_{idx}[]")
             existing_images = list(variant.images.all().order_by("id"))
 
             for i in range(3):
-                # 1. Cropped image from base64 hidden input
+                # 1. Cropped image (base64)
                 cropped_img = request.POST.get(f"variant_{idx}_cropped_{i}")
                 if cropped_img and ";base64," in cropped_img:
                     format, imgstr = cropped_img.split(";base64,")
                     ext = format.split("/")[-1]
                     img_data = ContentFile(base64.b64decode(imgstr), name=f"variant_{variant.id}_{i}.{ext}")
 
+                    # ---- Upload to Cloudinary ----
+                    upload_result = upload(img_data, folder="products/variants/")
+                    image_url = upload_result["secure_url"]
+                    public_id = upload_result["public_id"]
+
                     if i < len(existing_images):
-                        existing_images[i].image.save(img_data.name, img_data, save=True)
+                        # delete old from cloudinary before replacing
+                        try:
+                            destroy(existing_images[i].image.public_id)
+                        except Exception:
+                            pass
+                        existing_images[i].image = image_url
+                        existing_images[i].save()
                     else:
-                        VariantImage.objects.create(variant=variant, image=img_data)
+                        VariantImage.objects.create(variant=variant, image=image_url)
                     continue
 
-                # 2. Uploaded image file
+                # 2. Uploaded file
                 file_field = f"variant_images_{idx}_{i}"
                 if file_field in request.FILES:
                     if i < len(existing_images):
-                        existing_images[i].image.save(request.FILES[file_field].name, request.FILES[file_field], save=True)
+                        try:
+                            destroy(existing_images[i].image.public_id)
+                        except Exception:
+                            pass
+                        existing_images[i].image = request.FILES[file_field]
+                        existing_images[i].save()
                     else:
                         VariantImage.objects.create(variant=variant, image=request.FILES[file_field])
                     continue
 
-                # 3. Remove or keep existing images
+                # 3. Remove if unchecked
                 if i < len(existing_images):
                     img = existing_images[i]
                     if str(img.id) not in existing_image_ids:
+                        try:
+                            destroy(img.image.public_id)
+                        except Exception:
+                            pass
                         img.delete()
+
 
         # Delete removed variants
         for vid, variant in existing_variants.items():
@@ -234,6 +259,7 @@ def admin_edit_product(request, product_id):
         "product": product,
         "variants": variants,
     })
+
 #Soft Delete Product
 @admin_required
 @never_cache

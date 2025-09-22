@@ -86,7 +86,7 @@ var options = {
     "theme": { "color": "#004F44" },
     "modal": {
     "ondismiss": function(){
-        window.location.href = "{% url 'razorpay_failed_payment' %}";
+        window.location.href = "{% url 'razorpay_failed_payment' order_id=order_id %}";
     }
 }
 };

@@ -32,6 +32,9 @@
                     </td>
                     <td>
                         <strong>{{ entry.variant.product.name }} - {{ entry.variant.variant_type }}</strong>
+                        <div class="text-muted small">
+                            <a href="{% url 'user_product_detail' entry.variant.product.id %}" class="text-info text-decoration-none">View</a>
+                        </div>
                     </td>
                     <td>
                         {% if entry.final_price < entry.original_price %}
