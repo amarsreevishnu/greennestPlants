@@ -36,7 +36,6 @@ def admin_wallet_dashboard(request):
 
     transactions = AdminTransaction.objects.select_related('user', 'source_order').all().order_by('-date')
 
-    # Search and filter
     q = request.GET.get('q', '').strip()
     if q:
         filters = Q(user__username__icontains=q) | Q(transaction_type__icontains=q) | Q(source__icontains=q)

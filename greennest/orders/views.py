@@ -7,7 +7,7 @@ from django.utils.dateparse import parse_date
 from offer.utils import get_best_offer
 from django.utils import timezone
 from django.http import HttpResponse, Http404
-from django.db.models import Q, Prefetch
+from django.db.models import Q,F, Prefetch
 from django.contrib import messages
 
 from .models import Order, OrderItem
@@ -19,7 +19,6 @@ from payments.models import Payment
 from wallet.utils import add_to_admin_wallet, deduct_from_admin_wallet
 
 from django.db import transaction
-from django.db.models import F
 from decimal import Decimal, ROUND_HALF_UP
 from django.utils.text import slugify
 from reportlab.pdfbase.ttfonts import TTFont
@@ -82,7 +81,7 @@ def checkout_address(request):
                 else:
                     messages.warning(
                         request, 
-                        f"⚠️ Minimum order of ₹{applied_coupon.min_order_value} required to use this coupon."
+                        f"Minimum order of ₹{applied_coupon.min_order_value} required to use this coupon."
                     )
                     request.session.pop("applied_coupon_id", None)  
                     applied_coupon = None
@@ -135,7 +134,7 @@ def checkout_address(request):
         elif action == "proceed":
             selected_address_id = request.POST.get("address")
             if not selected_address_id:
-                messages.error(request, "⚠️ Please select an address to proceed.")
+                messages.error(request, "Please select an address to proceed.")
                 return redirect("checkout_address")
             request.session["selected_address_id"] = selected_address_id
             return redirect("checkout_payment")

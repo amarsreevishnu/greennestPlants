@@ -216,6 +216,7 @@ def razorpay_callback(request):
     except Exception as e:
         payment.status = "failed"
         payment.save()
+        
         messages.error(request, f"Payment failed ❌ Reason: {str(e)}")
         return redirect("checkout_payment")
 

@@ -33,7 +33,7 @@ def create_wallet_order(request):
 
         client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
         razorpay_order = client.order.create({
-            "amount": amount * 100,  # convert rupees to paise
+            "amount": amount * 100,  
             "currency": "INR",
             "payment_capture": "1"
         })

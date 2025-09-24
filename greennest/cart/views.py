@@ -44,7 +44,6 @@ def add_to_cart(request, variant_id):
     return redirect('cart_detail')
 
 
-
 @login_required
 @never_cache
 def cart_detail(request):
