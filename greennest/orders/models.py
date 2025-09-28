@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from decimal import Decimal
 
 from products.models import ProductVariant
 from users.models import Address
@@ -58,11 +59,15 @@ class Order(models.Model):
 
         self.total_amount = subtotal
 
+         # --- Tax (18% example) ---
+        tax_rate = Decimal("0.18")
+        self.tax = subtotal * tax_rate if subtotal > 0 else Decimal("0.00")
+
         # If coupon applied, discount comes from coupon, else keep current discount
         if self.coupon and self.coupon.is_valid():
             self.discount = self.coupon.calculate_discount(subtotal)
         else:
-            self.discount = 0
+            self.discount = Decimal("0.00")
 
         self.final_amount = max(subtotal + self.shipping_charge + self.tax - self.discount, 0)
         self.save()

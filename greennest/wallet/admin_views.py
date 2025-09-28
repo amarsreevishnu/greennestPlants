@@ -22,6 +22,8 @@ def wallet_list(request):
     transactions = WalletTransaction.objects.select_related("wallet__user").order_by("-created_at")
     return render(request, "admin/wallet_list.html", {"transactions": transactions})
 
+@user_passes_test(is_admin)
+@never_cache
 def wallet_detials(request,transaction_id):
     tx = get_object_or_404(WalletTransaction.objects.select_related("wallet__user"), id=transaction_id)
     return render(request,"admin/wallet_details.html",{"tx":tx})
@@ -29,7 +31,8 @@ def wallet_detials(request,transaction_id):
 
 
 # ----------------- Admin Wallet Dashboard -----------------
-@staff_member_required
+@user_passes_test(is_admin)
+@never_cache
 def admin_wallet_dashboard(request):
     wallet = AdminWallet.objects.first()
     total_balance = wallet.balance if wallet else 0
@@ -55,7 +58,8 @@ def admin_wallet_dashboard(request):
 
 
 # ----------------- Transaction Detail -----------------
-@staff_member_required
+@user_passes_test(is_admin)
+@never_cache
 def admin_transaction_detail(request, transaction_id):
     transaction = get_object_or_404(AdminTransaction.objects.select_related('user', 'source_order'), id=transaction_id)
     print(transaction.source_order)

@@ -6,7 +6,7 @@ from django.views.decorators.cache import never_cache
 from django.utils.dateparse import parse_date
 from offer.utils import get_best_offer
 from django.utils import timezone
-from django.http import HttpResponse, Http404
+from django.http import HttpResponse
 from django.db.models import Q,F, Prefetch
 from django.contrib import messages
 
@@ -20,7 +20,6 @@ from wallet.utils import add_to_admin_wallet, deduct_from_admin_wallet
 
 from django.db import transaction
 from decimal import Decimal, ROUND_HALF_UP
-from django.utils.text import slugify
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
@@ -198,8 +197,10 @@ def checkout_payment(request):
         applied_coupon = Coupon.objects.filter(id=coupon_id, active=True).first()
         if applied_coupon and applied_coupon.is_valid():
             discount = applied_coupon.calculate_discount(subtotal)
-
+    
     total = subtotal + shipping - discount
+    tax = total * Decimal('0.18')
+    total=subtotal + tax+shipping - discount
 
     if request.method == "POST":
         address_id = request.POST.get("address_id") or request.session.get("selected_address_id")
@@ -235,6 +236,7 @@ def checkout_payment(request):
                         final_amount=total,
                         coupon=applied_coupon,
                         status=order_status,
+                        tax=tax,
                         payment_method=payment_method,
                     )
 
@@ -293,6 +295,7 @@ def checkout_payment(request):
                     total_amount=subtotal,
                     shipping_charge=shipping,
                     discount=discount,
+                    tax=tax,
                     final_amount=total,
                     coupon=applied_coupon,
                     status="pending",
@@ -339,6 +342,7 @@ def checkout_payment(request):
         "subtotal": subtotal,
         "shipping": shipping,
         "discount": discount,
+        "tax":tax,
         "total": total,
         "applied_coupon": applied_coupon,
         "selected_address": selected_address,
@@ -417,7 +421,8 @@ def order_detail(request, order_id):
     if hasattr(order, "other_discount") and order.other_discount:
         other_discount = order.other_discount
 
-    total = subtotal - coupon_discount - other_discount + shipping
+    tax = order.tax
+    total = subtotal - coupon_discount - other_discount + shipping+tax
 
     # Flags for UI actions
     for item in items:
@@ -431,6 +436,7 @@ def order_detail(request, order_id):
         "shipping": shipping,
         "coupon_discount": coupon_discount,
         "other_discount": other_discount,
+        "tax":tax,
         "total": total,
     })
 
@@ -511,28 +517,34 @@ def cancel_order_item(request, item_id):
         item.cancel_approved = True
         item.save()
 
-        # Increment stock
         if item.variant:
             item.variant.stock += item.quantity
             item.variant.save()
 
+        # --- Check active items ---
         active_items_exist = order.items.filter(status="active").exists()
 
         # --- Refund Calculation ---
         if not active_items_exist:
-            
+            # Full order refund (use latest final amount)
             refund_amount = order.final_amount
         else:
-            
+            # Item-level refund
             item_total = item.quantity * item.price
 
-            if order.discount > 0 and order.subtotal > 0:
-                
-                discount_share = (item_total / order.subtotal) * order.discount
-            else:
-                discount_share = 0
+            # Make sure subtotal is recalculated first
+            subtotal_before = sum(i.total_price for i in order.items.filter(status__in=["active", "delivered", "cancelled"]))
 
-            refund_amount = item_total - discount_share
+            if subtotal_before > 0:
+                tax_share = (item_total / subtotal_before) * order.tax
+                # Proportional coupon share
+                discount_share = (item_total / subtotal_before) * order.discount
+            else:
+                tax_share = Decimal("0.00")
+                discount_share = Decimal("0.00")
+
+            # Final refund = item + tax_share − discount_share
+            refund_amount = item_total + tax_share - discount_share
 
         # --- Refund to wallet if prepaid ---
         if order.payment_method.lower() not in ["cod", "cash on delivery"]:
@@ -552,9 +564,15 @@ def cancel_order_item(request, item_id):
             )
 
         # Deduct from admin wallet for this refunded amount
-        deduct_from_admin_wallet(order.user, refund_amount, source="Order Item Cancellation", description=f"Refund for cancelled item in Order #{order.display_id}", source_order=order)
-        
-        # Recalculate totals
+        deduct_from_admin_wallet(
+            order.user,
+            refund_amount,
+            source="Order Item Cancellation",
+            description=f"Refund for cancelled item in Order #{order.display_id}",
+            source_order=order,
+        )
+
+        # --- Recalculate totals after cancellation ---
         order.recalc_totals()
 
         order.status = "cancelled" if not active_items_exist else "partially_cancelled"
@@ -659,8 +677,7 @@ def download_invoice(request, order_id):
     # --- Totals ---
     if items_to_show.exists():
         subtotal = sum(item.total_price for item in items_to_show)
-        tax = sum(q2(item.total_price * getattr(item.variant.product, "tax_rate", 0) / 100)
-                  for item in items_to_show)
+        tax = order.tax
         shipping = order.shipping_charge or Decimal("0.00")
     else:
         subtotal = Decimal("0.00")
@@ -677,7 +694,7 @@ def download_invoice(request, order_id):
 
     # --- Final Amount ---
     final_amount = q2(subtotal + shipping - coupon_discount - other_discount + tax)
-
+    print(tax)
     # ------------------ HEADER ------------------
     company_name = "GreenNest Pvt Ltd"
     company_address = "123, MG Road, TVPM, Kerala, 682001"

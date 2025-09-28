@@ -30,7 +30,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = os.getenv("DEBUG") == "True"
 
 ALLOWED_HOSTS = ["*"]
-CSRF_TRUSTED_ORIGINS=['https://e4e157af1819.ngrok-free.app']
+CSRF_TRUSTED_ORIGINS=['https://a60d2274e33a.ngrok-free.app']
 
 
 
