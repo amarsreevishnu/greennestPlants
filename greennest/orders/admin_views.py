@@ -26,7 +26,7 @@ from orders.models import Order, OrderItem
 from wallet.models import Wallet, WalletTransaction
 from wallet.utils import add_to_admin_wallet, deduct_from_admin_wallet
 from datetime import datetime, timedelta
-
+from django.utils.dateparse import parse_date
 
 @login_required(login_url='admin_login')
 @never_cache
@@ -318,8 +318,6 @@ def sales_report(request):
 
 
 
-
-from django.utils.dateparse import parse_date
 
 def download_sales_report_pdf(request):
     orders = Order.objects.filter(status__in=["completed", "delivered"])

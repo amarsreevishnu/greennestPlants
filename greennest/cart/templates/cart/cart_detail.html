@@ -76,12 +76,9 @@
 
             <!-- Total -->
             <td id="item-total-{{ item.id }}" class="align-middle">
-              {% if item.offer_applied and item.discounted_price != item.variant.price %}
-                <span class="text-danger">₹{{ item.final_total }}</span><br>
-                <small class="text-muted"><del>₹{{ item.variant.price|floatformat:2 }}</del></small>
-              {% else %}
+              
                 ₹{{ item.final_total }}
-              {% endif %}
+              
             </td>
           </tr>
           {% empty %}

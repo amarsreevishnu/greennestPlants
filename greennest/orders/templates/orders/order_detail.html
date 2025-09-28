@@ -149,6 +149,15 @@
     {% endif %}
   </div>
 
+  <div class="d-flex justify-content-between">
+    <span>Tax</span>
+    {% if tax %}
+      <span>{{tax}}</span>
+    {% else %}
+      <span>₹ 0.00</span>
+    {% endif %}
+  </div>
+
   <hr>
   <div class="d-flex justify-content-between fw-bold">
     <span>Total</span>
