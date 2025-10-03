@@ -318,7 +318,6 @@ def sales_report(request):
 
 
 
-
 def download_sales_report_pdf(request):
     orders = Order.objects.filter(status__in=["completed", "delivered"])
 
@@ -336,22 +335,33 @@ def download_sales_report_pdf(request):
     p = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
 
-    # Title
-    p.setFont("Helvetica-Bold", 16)
-    p.drawString(200, height - 50, "Sales Report")
+    # =================== HEADER ===================
+    p.setFont("Helvetica-Bold", 20)
+    p.drawCentredString(width / 2, height - 50, "Greennest-Plants")
 
-    # Date
+    p.setFont("Helvetica-Bold", 14)
+    p.drawCentredString(width / 2, height - 75, "Sales Report")
+
+    # Line separator
+    p.setLineWidth(1)
+    p.line(50, height - 90, width - 50, height - 90)
+
+    # =================== DATE ===================
     p.setFont("Helvetica", 10)
-    p.drawString(50, height - 80, f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    p.drawString(50, height - 110, f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
 
-    # Summary
+    if start_date and end_date:
+        p.setFont("Helvetica-Oblique", 10)
+        p.drawString(50, height - 125, f"Date Range: {start_date} to {end_date}")
+
+    # =================== SUMMARY ===================
     total_orders = orders.count()
     total_revenue = orders.aggregate(Sum("final_amount"))["final_amount__sum"] or 0
     total_discount = orders.aggregate(Sum("discount"))["discount__sum"] or 0
     total_tax = orders.aggregate(Sum("tax"))["tax__sum"] or 0
     total_shipping = orders.aggregate(Sum("shipping_charge"))["shipping_charge__sum"] or 0
 
-    y = height - 120
+    y = height - 160
     summary = [
         f"Total Orders: {total_orders}",
         f"Total Revenue: Rs.{total_revenue:.2f}",
@@ -362,38 +372,43 @@ def download_sales_report_pdf(request):
     p.setFont("Helvetica", 11)
     for line in summary:
         p.drawString(50, y, line)
-        y -= 20
+        y -= 18
 
-    # Table Header
-    y -= 20
+    # =================== TABLE ===================
+    y -= 10
     p.setFont("Helvetica-Bold", 10)
     p.drawString(50, y, "Order ID")
     p.drawString(150, y, "User")
     p.drawString(230, y, "Status")
     p.drawString(330, y, "Final Amount")
-    p.drawString(400, y, "Date")
+    p.drawString(420, y, "Date")
     y -= 15
     p.line(50, y, 500, y)
     y -= 15
 
-    p.setFont("Helvetica", 10)
-    if start_date and end_date:
-        p.drawString(50, height - 95, f"Date Range: {start_date} to {end_date}")
-        
-    # Orders list
+    # =================== ORDERS ===================
     p.setFont("Helvetica", 9)
     for order in orders:
-        if y < 80:  
+        if y < 80:  # Create new page if space is low
             p.showPage()
             y = height - 50
+            p.setFont("Helvetica-Bold", 10)
+            p.drawString(50, y, "Order ID")
+            p.drawString(150, y, "User")
+            p.drawString(230, y, "Status")
+            p.drawString(330, y, "Final Amount")
+            p.drawString(420, y, "Date")
+            y -= 15
+            p.line(50, y, 500, y)
+            y -= 15
             p.setFont("Helvetica", 9)
 
         p.drawString(50, y, str(order.display_id))
         p.drawString(150, y, str(order.user.first_name))
         p.drawString(230, y, str(order.status))
         p.drawString(330, y, f"Rs.{order.final_amount:.2f}")
-        p.drawString(400, y, order.created_at.strftime("%Y-%m-%d"))
-        y -= 20
+        p.drawString(420, y, order.created_at.strftime("%Y-%m-%d"))
+        y -= 18
 
     p.save()
     buffer.seek(0)
