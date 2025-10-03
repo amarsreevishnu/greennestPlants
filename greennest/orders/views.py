@@ -656,7 +656,6 @@ def request_return_item(request, order_id, item_id):
 
 @login_required
 def download_invoice(request, order_id):
-    
     order = get_object_or_404(Order, id=order_id, user=request.user)
     items = order.items.all()
 
@@ -664,70 +663,61 @@ def download_invoice(request, order_id):
     p = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
 
-    # Register font
-    font_name_to_use = "Arial"
-    pdfmetrics.registerFont(TTFont("Arial", "arial.ttf"))
-    p.setFont(font_name_to_use, 12)
+    # ------------------ FONT ------------------
+    font_name = "Helvetica"  # Built-in font, works everywhere
+    p.setFont(font_name, 12)
 
     def q2(val):
         return Decimal(val).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
+    # Filter items (exclude cancelled/returned)
     items_to_show = items.exclude(status__in=["cancelled", "returned"])
 
     # --- Totals ---
-    if items_to_show.exists():
-        subtotal = sum(item.total_price for item in items_to_show)
-        tax = order.tax
-        shipping = order.shipping_charge or Decimal("0.00")
-    else:
-        subtotal = Decimal("0.00")
-        tax = Decimal("0.00")
-        shipping = Decimal("0.00")
+    subtotal = sum(item.total_price for item in items_to_show) if items_to_show.exists() else Decimal("0.00")
+    tax = Decimal(order.tax or "0.00")
+    shipping = Decimal(order.shipping_charge or "0.00")
 
-    # --- Discounts ---
+    # Discounts
     coupon_discount = Decimal("0.00")
     other_discount = getattr(order, "other_discount", Decimal("0.00"))
-
     if order.coupon and subtotal > 0:
         original_subtotal = sum(item.price * item.quantity for item in items)
         coupon_discount = (subtotal / original_subtotal * order.discount) if original_subtotal > 0 else order.discount
 
-    # --- Final Amount ---
+    # Final amount
     final_amount = q2(subtotal + shipping - coupon_discount - other_discount + tax)
-    print(tax)
+
     # ------------------ HEADER ------------------
     company_name = "GreenNest Pvt Ltd"
     company_address = "123, MG Road, TVPM, Kerala, 682001"
     company_phone = "+91-9876543210"
     company_email = "greennest.ecom@gmail.com"
 
-    p.setFont(font_name_to_use, 14)
+    p.setFont(font_name, 14)
     p.drawCentredString(width / 2, height - 50, company_name)
 
-    p.setFont(font_name_to_use, 10)
+    p.setFont(font_name, 10)
     p.drawCentredString(width / 2, height - 65, company_address)
     p.drawCentredString(width / 2, height - 80, f"Phone: {company_phone} | Email: {company_email}")
 
     p.setLineWidth(1)
     p.line(40, height - 90, width - 40, height - 90)
 
-    p.setFont(font_name_to_use, 14)
-    if order.status.lower() == "delivered":
-        title_text = f"Invoice No: {order.display_id}"
-    else:
-        title_text = f"Order Summary ({order.status.capitalize()})"
+    p.setFont(font_name, 14)
+    title_text = f"Invoice No: {order.display_id}" if order.status.lower() == "delivered" else f"Order Summary ({order.status.capitalize()})"
     p.drawCentredString(width / 2, height - 110, title_text)
 
-    p.setFont(font_name_to_use, 10)
-    p.drawString(50, height - 115, f"Date: {order.created_at.strftime('%d %b %Y')}")
-    p.drawString(50, height - 130, f"Status: {order.status}")
+    p.setFont(font_name, 10)
+    p.drawString(50, height - 125, f"Date: {order.created_at.strftime('%d %b %Y')}")
+    p.drawString(50, height - 140, f"Status: {order.status}")
 
     # ------------------ CUSTOMER ADDRESS ------------------
-    y = height - 160
-    p.setFont(font_name_to_use, 12)
+    y = height - 170
+    p.setFont(font_name, 12)
     p.drawString(50, y, "Shipping Address:")
     y -= 15
-    p.setFont(font_name_to_use, 10)
+    p.setFont(font_name, 10)
     p.drawString(50, y, order.address.full_name)
     y -= 15
     p.drawString(50, y, f"{order.address.line1}, {order.address.line2}")
@@ -738,35 +728,34 @@ def download_invoice(request, order_id):
 
     # ------------------ ITEMS TABLE ------------------
     y -= 30
-    p.setFont(font_name_to_use, 12)
+    p.setFont(font_name, 12)
     p.drawString(50, y, "Product")
     p.drawString(250, y, "Price")
     p.drawString(350, y, "Qty")
     p.drawString(400, y, "Total")
     y -= 20
 
-    p.setFont(font_name_to_use, 10)
-
+    p.setFont(font_name, 10)
     for item in items_to_show:
-        p.drawString(50, y, f"{item.variant.product.name} ({item.variant.variant_type})")
+        product_name = f"{item.variant.product.name} ({item.variant.variant_type})"
+        p.drawString(50, y, product_name)
         p.drawRightString(320, y, f"{item.price:.2f}")
         p.drawRightString(370, y, str(item.quantity))
         p.drawRightString(470, y, f"{item.total_price:.2f}")
         y -= 15
+        # New page if too long
         if y < 100:
             p.showPage()
             y = height - 50
-            p.setFont(font_name_to_use, 10)
+            p.setFont(font_name, 10)
 
     # ------------------ TOTALS ------------------
     y -= 20
     line_height = 15
-    p.setFont(font_name_to_use, 10)
-
+    p.setFont(font_name, 10)
     p.drawString(350, y, "Subtotal:")
     p.drawRightString(width - 50, y, f"{subtotal:.2f}")
     y -= line_height
-
     p.drawString(350, y, "Shipping:")
     p.drawRightString(width - 50, y, f"{shipping:.2f}")
     y -= line_height
@@ -775,7 +764,6 @@ def download_invoice(request, order_id):
         p.drawString(350, y, "Coupon Discount:")
         p.drawRightString(width - 50, y, f"-{coupon_discount:.2f}")
         y -= line_height
-
     if other_discount > 0:
         p.drawString(350, y, "Other Discount:")
         p.drawRightString(width - 50, y, f"-{other_discount:.2f}")
@@ -785,22 +773,20 @@ def download_invoice(request, order_id):
     p.drawRightString(width - 50, y, f"{tax:.2f}")
     y -= line_height + 5
 
-    p.setFont(font_name_to_use, 12)
-    if order.status.lower() == "delivered":
-        p.drawString(350, y, "Final Amount:")
-        p.drawRightString(width - 50, y, f"{final_amount:.2f}")
-    else:
-        p.drawString(350, y, "Payable Amount:")
-        p.drawRightString(width - 50, y, f"{final_amount:.2f}")
+    p.setFont(font_name, 12)
+    total_label = "Final Amount:" if order.status.lower() == "delivered" else "Payable Amount:"
+    p.drawString(350, y, total_label)
+    p.drawRightString(width - 50, y, f"{final_amount:.2f}")
 
     # ------------------ FOOTER ------------------
-    p.setFont(font_name_to_use, 8)
+    p.setFont(font_name, 8)
     p.drawString(50, 50, "Thank you for shopping with us!")
 
+    # Finish PDF
     p.showPage()
     p.save()
-
     buffer.seek(0)
+
     response = HttpResponse(buffer, content_type="application/pdf")
     filename = "invoice" if order.status.lower() == "delivered" else "order_summary"
     response["Content-Disposition"] = f'attachment; filename="{filename}_{order.display_id}.pdf"'
