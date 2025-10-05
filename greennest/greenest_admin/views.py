@@ -15,8 +15,11 @@ from django.utils.timezone import now
 from django.db.models import Sum,Value
 from functools import wraps
 
+from wallet.models import AdminWallet
 from users.views import User
 from orders.models import Order, OrderItem
+from .forms import BannerForm
+from .models import Banner
 
 User = get_user_model()
 
@@ -61,48 +64,6 @@ def admin_logout(request):
     return redirect('admin_login')
 
 
-@admin_required
-@never_cache
-def admin_dashboard(request):
-    order_count = Order.objects.count()
-    user_count = User.objects.filter(is_superuser=False).count()
-    orders = Order.objects.select_related('user').all().order_by('-created_at')
-    today = now()
-    current_month_total = (
-        Order.objects.filter(created_at__year=today.year, created_at__month=today.month)
-        .aggregate(total_amount=Sum("total_amount"))
-    )["total_amount"] or 0
-
-    top_items = (
-        OrderItem.objects.filter(
-            order__status__in=['delivered', 'completed'],
-            variant__isnull=False
-        )
-        .annotate(
-            product_variant_name=Concat(
-                F('variant__product__name'), Value(' - '), F('variant__variant_type')
-            )
-        )
-        .values('product_variant_name')
-        .annotate(total_sold=Sum('quantity'))
-        .order_by('-total_sold')[:10]
-    )
-    top_categories = (
-        OrderItem.objects.filter(
-            order__status__in=['delivered', 'completed'],   
-            
-            variant__isnull=False
-        )
-        .values('variant__product__category__name')         
-        .annotate(
-            total_revenue=Sum(F('quantity') * F('price'))   
-        )
-        .order_by('-total_revenue')[:10]
-        )
-
-
-
-
    
 @admin_required
 @never_cache
@@ -110,6 +71,7 @@ def admin_dashboard(request):
     order_count = Order.objects.count()
     user_count = User.objects.filter(is_superuser=False).count()
     orders = Order.objects.select_related('user').all().order_by('-created_at')
+    wallet_balance=AdminWallet.objects.aggregate(total=Sum('balance'))['total'] or 0
     today = now()
     current_month_total = (
         Order.objects.filter(created_at__year=today.year, created_at__month=today.month)
@@ -205,6 +167,7 @@ def admin_dashboard(request):
         "current_month_total": current_month_total,
         "top_items": top_items,
         "top_categories": top_categories,
+        "wallet_balance": wallet_balance,
     }
     return render(request, "admin_dashboard.html", context)
 
@@ -251,3 +214,54 @@ def toggle_user_status(request, user_id):
         # messages.success(request, f"User {user.username} has been {action}.")
 
     return redirect('admin_user_list')
+
+@admin_required
+@never_cache
+def add_banner(request):
+    if request.method == 'POST':
+        form = BannerForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Banner added successfully!")
+            return redirect('add_banner')
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = BannerForm()
+
+    banners = Banner.objects.all()
+    return render(request, 'add_banner.html', {'form': form, 'banners': banners})
+
+
+@admin_required
+@never_cache
+def edit_banner(request, banner_id):
+    # Get the banner or 404 if not found
+    banner = get_object_or_404(Banner, id=banner_id)
+
+    if request.method == 'POST':
+        # Bind form to POST data and uploaded files
+        form = BannerForm(request.POST, request.FILES, instance=banner)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Banner updated successfully!")
+            return redirect('add_banner')  # Redirect to main add/manage banner page
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        # Display form with existing banner data
+        form = BannerForm(instance=banner)
+
+    return render(request, 'edit_banner.html', {
+        'form': form,
+        'banner': banner
+    })
+
+
+@admin_required
+@never_cache
+def delete_banner(request, banner_id):
+    banner = get_object_or_404(Banner, id=banner_id)
+    banner.delete()
+    messages.success(request, "Banner deleted successfully!")
+    return redirect('add_banner')

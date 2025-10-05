@@ -22,6 +22,14 @@ input::placeholder {
   
 }
 
+.hero-slide {
+  height: 90vh;
+  min-height: 300px;  /* ensures visibility on small devices */
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
 .hero::before {
   content: "";
   position: absolute;

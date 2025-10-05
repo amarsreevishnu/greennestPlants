@@ -1,0 +1,95 @@
+{% extends "greenest_admin/base.html" %}
+{% load static %}
+{% block Admin_Dashboard %}
+    <style>
+      body { background-color: #f5f6f7; }
+      .preview-img {
+        width: 100%;
+        max-height: 250px;
+        object-fit: cover;
+        margin-top: 10px;
+        border-radius: 8px;
+      }
+    </style>
+
+<div class="col-lg-10 p-0" style="background: #f8f9fa;">
+      <div class="main-content">
+        <div class="content-section d-flex justify-content-between align-items-center flex-wrap">
+          <div>
+            
+          </div>
+        </div>
+
+
+<div class="container mt-4">
+  <h2 class="mb-4">Add New Banner</h2>
+
+  
+
+  <form method="POST" enctype="multipart/form-data" class="card p-4 shadow-sm bg-white">
+    {% csrf_token %}
+    <div class="mb-3">
+      <label class="form-label">Title</label>
+      {{ form.title }}
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Subtitle</label>
+      {{ form.subtitle }}
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Image</label>
+      {{ form.image }}
+      <img id="preview" class="preview-img" src="#" alt="Preview" style="display:none;">
+    </div>
+
+    <div class="form-check mb-3">
+      {{ form.is_active }}
+      <label class="form-check-label">Active</label>
+    </div>
+
+    <button type="submit" class="btn btn-success w-100">Add Banner</button>
+  </form>
+
+  <hr class="my-4">
+
+  <h4>Existing Banners</h4>
+  <div class="row">
+    {% for banner in banners %}
+      <div class="col-md-4 mb-4">
+    <div class="card shadow-sm">
+        <img src="{{ banner.image.url }}" class="card-img-top" style="height:200px; object-fit:cover;">
+        <div class="card-body">
+            <h6>{{ banner.title }}</h6>
+            <small class="text-muted">{{ banner.subtitle }}</small>
+            <div class="mt-2 d-flex justify-content-between">
+                <a href="{% url 'edit_banner' banner.id %}" class="btn btn-sm btn-primary">Edit</a>
+                <a href="{% url 'delete_banner' banner.id %}" class="btn btn-sm btn-danger" 
+                   onclick="return confirm('Are you sure you want to delete this banner?');">Delete</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+    {% empty %}
+      <p>No banners added yet.</p>
+    {% endfor %}
+  </div>
+</div>
+
+</div>
+</div>
+<script>
+  // Live image preview
+  document.querySelector('input[type="file"]').addEventListener('change', function(event) {
+    const [file] = event.target.files
+    if (file) {
+      const preview = document.getElementById('preview')
+      preview.src = URL.createObjectURL(file)
+      preview.style.display = 'block'
+    }
+  })
+</script>
+
+{% endblock %}

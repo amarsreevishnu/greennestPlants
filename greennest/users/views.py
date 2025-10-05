@@ -22,6 +22,7 @@ from coupon.services import create_referral_coupon
 from .models import EmailOTP,Profile, Address
 from products.models import Product, ProductVariant
 from offer.models import ProductOffer, CategoryOffer
+from greenest_admin.models import Banner
 
 User = get_user_model()  
 signer = Signer()
@@ -198,7 +199,7 @@ def user_logout(request):
 @login_required(login_url='user_login')
 def user_home(request):
     products = Product.objects.all()
-
+    banners = Banner.objects.filter(is_active=True)
     product_list = []
     for product in products:
         variant = product.variants.first()  
@@ -228,9 +229,10 @@ def user_home(request):
             "original_price": price,
             "final_price": round(final_price, 2),
             "discount": discount,
+            
         })
 
-    return render(request, "users/user_home.html", {"product_list": product_list})
+    return render(request, "users/user_home.html", {"product_list": product_list,"banners": banners,})
 
 def forget_password(request):
     if request.method == "POST":
