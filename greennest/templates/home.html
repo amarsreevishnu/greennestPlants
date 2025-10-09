@@ -13,9 +13,11 @@
 <style>
 .fixed-img {
     width: 100%;
-    height: 220px;   
-    object-fit: contain;  
+    height: 220px;
+    object-fit: cover;
+    border-radius: 8px; /* soft rounded corners */
 }
+
 </style>
 </head>
 
@@ -93,13 +95,13 @@
       {% for banner in banners %}
       <div class="carousel-item {% if forloop.first %}active{% endif %}">
         <div class="hero-slide d-flex align-items-center justify-content-center text-center text-white"
-             style="background: url('{{ banner.image.url }}') center center / cover no-repeat; height: 90vh;">
+             style="background: url('{{ banner.image.url }}') center center / cover no-repeat; height: 100vh;">
           <div class="container">
             {% if banner.title %}
-              <h1 class="fw-bold">{{ banner.title }}</h1>
+              <h1 style="text-shadow: 8.0px 16.0px 16.0px hsl(0deg 0% 0% / 0.25);"  class="fw-bold">{{ banner.title }}</h1>
             {% endif %}
             {% if banner.subtitle %}
-              <p class="lead">{{ banner.subtitle }}</p>
+              <p class="lead" ><strong>{{ banner.subtitle }}</strong></p>
             {% endif %}
             <a href="#products" class="btn btn-outline-light mt-3 px-4">Shop Now</a>
           </div>
