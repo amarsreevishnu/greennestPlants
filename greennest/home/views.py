@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.db.models import Min
 
 from products.models import Product
+from greenest_admin.models import Banner
 
 
 # Create your views here.
@@ -13,6 +14,7 @@ def home(request):
         min_price=Min("variants__price")  
     )
 
+    banners = Banner.objects.filter(is_active=True)
     # Attach a main_image property 
     for product in products:
         
@@ -25,5 +27,5 @@ def home(request):
             product.main_image = None  
 
     
-    return render(request, "home.html", {"products": products})
+    return render(request, "home.html", {"products": products,"banners":banners})
     

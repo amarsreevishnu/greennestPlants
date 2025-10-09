@@ -1,0 +1,76 @@
+{% extends "greenest_admin/base.html" %}
+{% load static %}
+{% block Admin_Dashboard %}
+
+    
+    <style>
+      body { background-color: #f5f6f7; }
+      .preview-img {
+        width: 100%;
+        max-height: 250px;
+        object-fit: cover;
+        margin-top: 10px;
+        border-radius: 8px;
+      }
+    </style>
+
+<div class="col-lg-10 p-0" style="background: #f8f9fa;">
+      <div class="main-content">
+
+<div class="container mt-4">
+  <h2 class="mb-4">Edit Banner</h2>
+
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+  {% endfor %}
+
+  <form method="POST" enctype="multipart/form-data" class="card p-4 shadow-sm bg-white">
+    {% csrf_token %}
+
+    <div class="mb-3">
+      <label class="form-label">Title</label>
+      {{ form.title }}
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Subtitle</label>
+      {{ form.subtitle }}
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Current Image</label><br>
+      <img src="{{ banner.image.url }}" class="preview-img" alt="Current Banner">
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Change Image (optional)</label>
+      {{ form.image }}
+      <img id="preview" class="preview-img" src="#" alt="Preview" style="display:none;">
+    </div>
+
+    <div class="form-check mb-3">
+      {{ form.is_active }}
+      <label class="form-check-label">Active</label>
+    </div>
+
+    <button type="submit" class="btn btn-success w-100 mb-2">Update Banner</button>
+    <a href="{% url 'add_banner' %}" class="btn btn-secondary w-100">Cancel</a>
+  </form>
+</div>
+
+</div>
+</div>
+
+<script>
+  // Live image preview
+  document.querySelector('input[type="file"]').addEventListener('change', function(event) {
+    const [file] = event.target.files
+    if (file) {
+      const preview = document.getElementById('preview')
+      preview.src = URL.createObjectURL(file)
+      preview.style.display = 'block'
+    }
+  })
+</script>
+
+{% endblock %}

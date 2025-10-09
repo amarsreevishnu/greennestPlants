@@ -27,6 +27,9 @@ from wallet.models import Wallet, WalletTransaction
 from wallet.utils import add_to_admin_wallet, deduct_from_admin_wallet
 from datetime import datetime, timedelta
 from django.utils.dateparse import parse_date
+from decimal import Decimal, ROUND_HALF_UP
+from django.db import transaction
+
 
 @login_required(login_url='admin_login')
 @never_cache
@@ -87,6 +90,7 @@ def admin_order_list(request):
     return render(request, 'admin/order_list.html', context)
  
 
+
 @login_required(login_url='admin_login')
 @never_cache
 def admin_order_detail(request, order_id):
@@ -112,7 +116,6 @@ def admin_order_detail(request, order_id):
             order.status = status
             order.save(update_fields=['status'])
             if status == "delivered":
-                
                 payment = Payment.objects.filter(order=order, method="cod").first()
                 if payment and payment.status == "pending":
                     payment.status = "success"
@@ -128,40 +131,72 @@ def admin_order_detail(request, order_id):
 
         # --- Approve Return (whole order) ---
         if action == "approve_return" and not item_id:
-            order.status = 'returned'
-            order.return_approved = True
-            order.return_approved_by = request.user
-            order.return_approved_at = timezone.now()
-            order.save()
+            with transaction.atomic():
+                order.status = 'returned'
+                order.return_approved = True
+                order.return_approved_by = request.user
+                order.return_approved_at = timezone.now()
+                order.save()
 
-            refund_amount = 0
-            for item in order_items.filter(status='return_requested'):
-                if item.variant and item.status != 'returned':
-                    item.variant.stock += item.quantity
-                    item.variant.save()
-                item.status = 'returned'
-                item.return_approved = True 
-                item.save()
-                refund_amount += item.price  
+                refund_amount = Decimal('0.00')
+                # compute order_subtotal considering items that are not already cancelled/returned
+                order_subtotal = sum(
+                    (Decimal(i.price) * i.quantity) for i in order_items.exclude(status__in=['cancelled', 'returned'])
+                ) or Decimal('0.00')
 
-            # --- Credit refund to wallet ---
-            if refund_amount > 0:
-                wallet, created = Wallet.objects.get_or_create(user=order.user)
-                wallet.balance += refund_amount
-                wallet.save()
-                WalletTransaction.objects.create(
-                    wallet=wallet,
-                    amount=refund_amount,
-                    transaction_type="credit",
-                    description=f"Refund for returned Order #{order.display_id  }"
-                )
+                for item in order_items.filter(status='return_requested'):
+                    if item.variant and item.status != 'returned':
+                        item.variant.stock += item.quantity
+                        item.variant.save()
+                    item.status = 'returned'
+                    item.return_approved = True
+                    item.save()
 
-                # Deduct from admin wallet for this refunded amount
-                deduct_from_admin_wallet(order.user, refund_amount, source="Order Item Cancellation", description=f"Refund for cancelled item in Order #{order.display_id}",source_order=order)
+                    # --- Refund calculation with proportional tax and discount ---
+                    item_subtotal = Decimal(item.price) * item.quantity
+                    item_share = (item_subtotal / order_subtotal) if order_subtotal else Decimal('0.00')
 
-                messages.success(request, f"Return approved. ₹{refund_amount} refunded to {order.user.full_name}'s wallet.")
-            else:
-                messages.success(request, "Return approved for the whole order (no refund).")
+                    item_tax_share = (Decimal(order.tax) * item_share).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                    item_discount_share = (Decimal(order.discount) * item_share).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+                    line_refund = (item_subtotal + item_tax_share - item_discount_share).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                    refund_amount += line_refund
+
+                    # decrement order-level tax/discount so remaining-order totals reflect refund
+                    order.tax = (Decimal(order.tax) - item_tax_share).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                    order.discount = (Decimal(order.discount) - item_discount_share).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+                refund_amount = refund_amount.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+                # subtract refund from final_amount and clamp at 0.00
+                order.final_amount = (Decimal(order.final_amount) - refund_amount).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                if order.final_amount < Decimal('0.00'):
+                    order.final_amount = Decimal('0.00')
+                order.save(update_fields=['tax', 'discount', 'final_amount'])
+
+                # --- Credit refund to wallet ---
+                if refund_amount > Decimal('0.00'):
+                    wallet, created = Wallet.objects.get_or_create(user=order.user)
+                    wallet.balance = (Decimal(wallet.balance) + refund_amount).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                    wallet.save()
+                    WalletTransaction.objects.create(
+                        wallet=wallet,
+                        amount=refund_amount,
+                        transaction_type="credit",
+                        description=f"Refund for returned Order #{order.display_id}"
+                    )
+
+                    deduct_from_admin_wallet(
+                        order.user,
+                        refund_amount,
+                        source="Order Item Cancellation",
+                        description=f"Refund for cancelled item in Order #{order.display_id}",
+                        source_order=order
+                    )
+
+                    messages.success(request, f"Return approved. ₹{refund_amount} refunded to {order.user.full_name}'s wallet.")
+                else:
+                    messages.success(request, "Return approved for the whole order (no refund).")
 
             return redirect('admin_order_detail', order_id=order.id)
 
@@ -177,35 +212,73 @@ def admin_order_detail(request, order_id):
 
         # --- Approve Return (single item) ---
         if action == "approve_return" and item_id:
-            item = get_object_or_404(OrderItem, id=item_id, order=order)
-            if item.variant and item.status == "return_requested":
-                item.variant.stock += item.quantity
-                item.variant.save()
-            item.status = "returned"
-            item.return_approved = True
-            item.save()
+            with transaction.atomic():
+                item = get_object_or_404(OrderItem, id=item_id, order=order)
+                # determine order_subtotal among items that are not already cancelled/returned
+                active_items = order.items.exclude(status__in=['cancelled', 'returned'])
+                order_subtotal = sum((Decimal(i.price) * i.quantity) for i in active_items) or Decimal('0.00')
 
-            # --- Refund single item ---
-            refund_amount = item.price
-            if refund_amount > 0:
-                wallet, created = Wallet.objects.get_or_create(user=order.user)
-                wallet.balance += refund_amount
-                wallet.save()
-                WalletTransaction.objects.create(
-                    wallet=wallet,
-                    amount=refund_amount,
-                    transaction_type="credit",
-                    description=f"Refund for returned item {item.variant} in Order #{order.display_id}"
-                )
+                if item.variant and item.status == "return_requested":
+                    # calculate refund shares BEFORE changing item.status
+                    item_subtotal = Decimal(item.price) * item.quantity
+                    item_share = (item_subtotal / order_subtotal) if order_subtotal else Decimal('0.00')
 
-                # Deduct from admin wallet for this refunded amount
-                deduct_from_admin_wallet(order.user, refund_amount, source="Order Item Return", description=f"Refund for Return item in Order #{order.display_id}", source_order=order)
-                
-                messages.success(request, f"Return approved. ₹{refund_amount} refunded to {order.user.username}'s wallet.")
-            else:
-                messages.success(request, f"Return approved for item {item.variant} (no refund).")
+                    item_tax_share = (Decimal(order.tax) * item_share).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                    item_discount_share = (Decimal(order.discount) * item_share).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
-            update_order_status(order)  
+                    refund_amount = (item_subtotal + item_tax_share - item_discount_share).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+                    # update stock & item status
+                    if item.variant:
+                        item.variant.stock += item.quantity
+                        item.variant.save()
+                    item.status = "returned"
+                    item.return_approved = True
+                    item.save()
+
+                    # credit wallet
+                    if refund_amount > Decimal('0.00'):
+                        wallet, created = Wallet.objects.get_or_create(user=order.user)
+                        wallet.balance = (Decimal(wallet.balance) + refund_amount).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                        wallet.save()
+                        WalletTransaction.objects.create(
+                            wallet=wallet,
+                            amount=refund_amount,
+                            transaction_type="credit",
+                            description=f"Refund for returned item {item.variant} in Order #{order.display_id}"
+                        )
+
+                        deduct_from_admin_wallet(
+                            order.user,
+                            refund_amount,
+                            source="Order Item Return",
+                            description=f"Refund for Return item in Order #{order.display_id}",
+                            source_order=order
+                        )
+
+                        messages.success(request, f"Return approved. ₹{refund_amount} refunded to {order.user.username}'s wallet.")
+                    else:
+                        messages.success(request, f"Return approved for item {item.variant} (no refund).")
+
+                    # update order-level tax/discount/final_amount
+                    order.tax = (Decimal(order.tax) - item_tax_share).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                    order.discount = (Decimal(order.discount) - item_discount_share).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                    order.final_amount = (Decimal(order.final_amount) - refund_amount).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                    if order.final_amount < Decimal('0.00'):
+                        order.final_amount = Decimal('0.00')
+                    order.save(update_fields=['tax', 'discount', 'final_amount'])
+
+                else:
+                    # if item.variant missing or not in return_requested state, still update but no refund logic
+                    if item.variant and item.status != "returned":
+                        item.variant.stock += item.quantity
+                        item.variant.save()
+                    item.status = "returned"
+                    item.return_approved = True
+                    item.save()
+                    messages.success(request, f"Return approved for item {item.variant}.")
+
+            update_order_status(order)
             return redirect('admin_order_detail', order_id=order.id)
 
         # --- Reject Return (single item) ---
@@ -213,42 +286,66 @@ def admin_order_detail(request, order_id):
             item = get_object_or_404(OrderItem, id=item_id, order=order)
             item.status = "return_rejected"
             item.save(update_fields=["status"])
-            update_order_status(order)  
+            update_order_status(order)
             messages.warning(request, f"Return request rejected for item {item.variant}.")
             return redirect('admin_order_detail', order_id=order.id)
 
         # --- Approve Cancel (whole order) ---
         if action == "approve_cancel":
-            order.status = 'cancelled'
-            order.cancel_approved = True
-            order.cancel_approved_by = request.user
-            order.cancel_approved_at = timezone.now()
-            order.save()
+            with transaction.atomic():
+                order.status = 'cancelled'
+                order.cancel_approved = True
+                order.cancel_approved_by = request.user
+                order.cancel_approved_at = timezone.now()
+                order.save()
 
-            refund_amount = 0
-            for item in order_items.exclude(status='cancelled'):
-                if item.variant:
-                    item.variant.stock += item.quantity
-                    item.variant.save()
-                item.status = 'cancelled'
-                item.cancel_approved = True
-                item.save()
-                refund_amount += item.price  
+                refund_amount = Decimal('0.00')
+                order_subtotal = sum(
+                    (Decimal(i.price) * i.quantity) for i in order_items.exclude(status__in=['cancelled', 'returned'])
+                ) or Decimal('0.00')
 
-            # --- Credit refund to wallet ---
-            if refund_amount > 0:
-                wallet, created = Wallet.objects.get_or_create(user=order.user)
-                wallet.balance += refund_amount
-                wallet.save()
-                WalletTransaction.objects.create(
-                    wallet=wallet,
-                    amount=refund_amount,
-                    transaction_type="credit",
-                    description=f"Refund for cancelled Order #{order.display_id}"
-                )
-                messages.success(request, f"Order cancelled. ₹{refund_amount} refunded to {order.user.first_name}'s wallet.")
-            else:
-                messages.success(request, "Order cancellation approved (no refund).")
+                for item in order_items.exclude(status='cancelled'):
+                    if item.variant:
+                        item.variant.stock += item.quantity
+                        item.variant.save()
+                    item.status = 'cancelled'
+                    item.cancel_approved = True
+                    item.save()
+
+                    # --- Refund calculation with proportional tax and discount ---
+                    item_subtotal = Decimal(item.price) * item.quantity
+                    item_share = (item_subtotal / order_subtotal) if order_subtotal else Decimal('0.00')
+
+                    item_tax_share = (Decimal(order.tax) * item_share).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                    item_discount_share = (Decimal(order.discount) * item_share).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+                    line_refund = (item_subtotal + item_tax_share - item_discount_share).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                    refund_amount += line_refund
+
+                    order.tax = (Decimal(order.tax) - item_tax_share).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                    order.discount = (Decimal(order.discount) - item_discount_share).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+                # after whole-order cancel, zero out order totals for clarity
+                refund_amount = refund_amount.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                order.tax = Decimal('0.00')
+                order.discount = Decimal('0.00')
+                order.final_amount = Decimal('0.00')
+                order.save(update_fields=['tax', 'discount', 'final_amount'])
+
+                # --- Credit refund to wallet ---
+                if refund_amount > Decimal('0.00'):
+                    wallet, created = Wallet.objects.get_or_create(user=order.user)
+                    wallet.balance = (Decimal(wallet.balance) + refund_amount).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                    wallet.save()
+                    WalletTransaction.objects.create(
+                        wallet=wallet,
+                        amount=refund_amount,
+                        transaction_type="credit",
+                        description=f"Refund for cancelled Order #{order.display_id}"
+                    )
+                    messages.success(request, f"Order cancelled. ₹{refund_amount} refunded to {order.user.first_name}'s wallet.")
+                else:
+                    messages.success(request, "Order cancellation approved (no refund).")
 
             return redirect('admin_order_detail', order_id=order.id)
 
@@ -266,7 +363,6 @@ def admin_order_detail(request, order_id):
         'order': order,
         'order_items': order_items,
     })
-
 
 
 
